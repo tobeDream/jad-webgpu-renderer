@@ -1,5 +1,5 @@
 //code from webgpu-fundamentals
-import { Matrix3, Matrix4 } from 'three'
+import { Matrix3, Matrix4, PerspectiveCamera } from 'three'
 import { makeShaderDataDefinitions, makeStructuredView } from 'webgpu-utils'
 
 export async function main(canvas: HTMLCanvasElement) {
@@ -24,6 +24,7 @@ export async function main(canvas: HTMLCanvasElement) {
 		};
 		struct UniformStruct {
 			projectionMatrix: mat4x4<f32>,
+			viewMatrix: mat4x4<f32>,
 			scale: vec2f,
 			offset: vec2f,
 		};
@@ -40,13 +41,13 @@ export async function main(canvas: HTMLCanvasElement) {
 
 		@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
 			let pos = array(
-				vec2f(0.0, 0.3),
-				vec2f(-0.3, -0.3),
-				vec2f(0.3, -0.3)
+				vec2f(0.0, 3),
+				vec2f(-3, -3),
+				vec2f(3, -3)
 			);
 
 			let p = vec4f(pos[vi] * transform.scale + transform.offset, 0, 1);
-			return transform.projectionMatrix * p;
+			return transform.projectionMatrix * transform.viewMatrix * p;
 		}
 
 		@fragment fn fs() -> @location(0) vec4f {
@@ -58,14 +59,20 @@ export async function main(canvas: HTMLCanvasElement) {
 		code
 	})
 
-	const projectionMat = new Matrix4()
-	projectionMat.set(1, 0, 0, 0.5, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+	const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
+	camera.position.set(15, 0, 100)
+	camera.updateProjectionMatrix()
+	camera.updateMatrixWorld()
+	const projectionMat = camera.projectionMatrix
+	const viewMat = camera.matrixWorldInverse
+	console.log(projectionMat.elements)
+	console.log(viewMat.elements)
 
 	const defs = makeShaderDataDefinitions(code)
-	console.log(defs)
 	const transformValues = makeStructuredView(defs.uniforms.transform)
 	transformValues.set({
 		projectionMatrix: projectionMat.elements,
+		viewMatrix: viewMat.elements,
 		offset: [0, 0],
 		scale: [1, 1]
 	})
@@ -159,3 +166,9 @@ export async function main(canvas: HTMLCanvasElement) {
 	})
 	observer.observe(canvas)
 }
+
+const canvas = document.querySelector('#canvas') as HTMLCanvasElement
+canvas.width = canvas.offsetWidth
+canvas.height = canvas.offsetHeight
+
+main(canvas)

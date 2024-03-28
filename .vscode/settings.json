@@ -1,0 +1,16 @@
+{
+	"vsintellicode.features.python.deepLearning": "enabled",
+	"editor.fontSize": 14,
+	"vim.normalModeKeyBindings": [
+		{
+			"before": ["K"],
+			"after": ["i", "<Enter>", "<Esc>"]
+		}
+	],
+	"vim.normalModeKeyBindingsNonRecursive": [
+		{
+			"before": ["<CR>"],
+			"after": ["o", "<Esc>"]
+		}
+	],
+}

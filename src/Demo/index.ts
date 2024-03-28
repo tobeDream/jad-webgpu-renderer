@@ -18,73 +18,75 @@ export async function main(canvas: HTMLCanvasElement) {
 	})
 
 	const code = `
-		struct A {
-			a: f32,
-			b: vec4f
-		};
-		struct UniformStruct {
-			projectionMatrix: mat4x4<f32>,
-			viewMatrix: mat4x4<f32>,
-			scale: vec2f,
-			offset: vec2f,
-		};
-
-		@group(0) @binding(0) var<uniform> transform: UniformStruct;
-		@group(1) @binding(0) var<uniform> color: vec4f;
-
-		struct Input{
+		struct Vertex {
 			@location(0) position: vec2f,
-			@location(1) scale: vec2f,
-			@location(2) offset: vec2f,
-			@location(3) color: vec4f
+			@location(1) size: f32,
+			@location(2) color: vec4f
+		};
+
+		struct Uniforms {
+			projectionMatrix: mat4x4f,
+			viewMatrix: mat4x4f,
+			resolution: vec2f
+		};
+
+		struct VSOutput {
+			@builtin(position) position: vec4f,
+			@location(0) color: vec4f,
+			@location(1) pointCoord: vec2f
+		};
+	
+		@group(0) @binding(0) var<uniform> uni: Uniforms;
+
+		@vertex fn vs(vert: Vertex, @builtin(vertex_index) vi: u32) -> VSOutput {
+			let points = array(
+				vec2f(-1, -1),
+				vec2f( 1, -1),
+				vec2f(-1,  1),
+				vec2f(-1,  1),
+				vec2f( 1, -1),
+				vec2f( 1,  1),
+				);
+			let pos = points[vi];
+			let clipPos = uni.projectionMatrix * uni.viewMatrix * vec4f(vert.position, 0, 1);
+			let pointPos = vec4f(pos * vert.size / uni.resolution * clipPos.w, 0, 0);
+
+			var vsOut: VSOutput;
+			// vsOut.position = uni.projectionMatrix * uni.viewMatrix * vec4f(pos, 0, 1);
+			vsOut.position = clipPos + pointPos;
+			vsOut.color = vert.color;
+			vsOut.pointCoord = pos;
+			return vsOut;
 		}
 
-		@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
-			let pos = array(
-				vec2f(0.0, 3),
-				vec2f(-3, -3),
-				vec2f(3, -3)
-			);
-
-			let p = vec4f(pos[vi] * transform.scale + transform.offset, 0, 1);
-			return transform.projectionMatrix * transform.viewMatrix * p;
-		}
-
-		@fragment fn fs() -> @location(0) vec4f {
-			return color;
+		@fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
+			let coord = vsOut.pointCoord;
+			if(length(coord) > 1) {
+				discard;
+			}
+			return vsOut.color;
 		}
 	`
-	const module = device.createShaderModule({
-		label: 'triangle vertex shader with uniforms',
-		code
-	})
 
-	const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
-	camera.position.set(15, 0, 100)
-	camera.updateProjectionMatrix()
-	camera.updateMatrixWorld()
-	const projectionMat = camera.projectionMatrix
-	const viewMat = camera.matrixWorldInverse
-	console.log(projectionMat.elements)
-	console.log(viewMat.elements)
-
-	const defs = makeShaderDataDefinitions(code)
-	const transformValues = makeStructuredView(defs.uniforms.transform)
-	transformValues.set({
-		projectionMatrix: projectionMat.elements,
-		viewMatrix: viewMat.elements,
-		offset: [0, 0],
-		scale: [1, 1]
-	})
-	const colorValues = makeStructuredView(defs.uniforms.color)
-	colorValues.set([0.1, 0.9, 0.89, 1])
+	const module = device.createShaderModule({ code })
 
 	const pipeline = device.createRenderPipeline({
-		label: 'triangle with uniforms',
+		label: '1 pixel points',
 		layout: 'auto',
 		vertex: {
 			module,
-			entryPoint: 'vs'
+			entryPoint: 'vs',
+			buffers: [
+				{
+					arrayStride: 2 * 4 + 1 * 4 + 4 * 1, // 2 floats, 4 bytes each
+					stepMode: 'instance',
+					attributes: [
+						{ shaderLocation: 0, offset: 0, format: 'float32x2' }, // position
+						{ shaderLocation: 1, offset: 4 * 2, format: 'float32' }, // size
+						{ shaderLocation: 2, offset: 4 * 3, format: 'unorm8x4' } // color
+					]
+				}
+			]
 		},
 		fragment: {
 			module,
@@ -93,37 +95,59 @@ export async function main(canvas: HTMLCanvasElement) {
 		}
 	})
 
-	//const transformUniformValues = new Float32Array(2 + 2)
-	//const colorUniformValue = new Float32Array(4)
-	//transformUniformValues.set([0.5, 0.5, 0.3, 0.0])
-	//colorUniformValue.set([0, 1, 0, 1])
+	const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
-	const transformUniformBuffer = device.createBuffer({
-		size: transformValues.arrayBuffer.byteLength, // transformUniformValues.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	const kNumPoints = 100
+	const vertexData = new Float32Array(kNumPoints * (2 + 1 + 1))
+	const colorData = new Uint8Array(vertexData.buffer)
+	for (let i = 0; i < kNumPoints; ++i) {
+		const offset = i * 4
+		vertexData[offset + 0] = rand(-30, 30)
+		vertexData[offset + 1] = rand(-30, 30)
+		vertexData[offset + 2] = rand(15, 15) //size
+		const offsetColor = 12 + i * 16
+		colorData[offsetColor + 0] = rand(0, 1) * 255
+		colorData[offsetColor + 1] = rand(0, 1) * 255
+		colorData[offsetColor + 2] = rand(0, 1) * 255
+		colorData[offsetColor + 3] = 1 * 255
+	}
+
+	const vertexBuffer = device.createBuffer({
+		label: 'vertex buffer vertices',
+		size: vertexData.byteLength,
+		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 	})
+	device.queue.writeBuffer(vertexBuffer, 0, vertexData)
 
-	const colorUniformBuffer = device.createBuffer({
-		size: colorValues.arrayBuffer.byteLength,
+	//uniforms
+	const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
+	camera.position.set(0, 0, 100)
+	const projectionMat = camera.projectionMatrix
+	const viewMat = camera.matrixWorldInverse
+	//@ts-ignore
+	window.c = camera
+	console.log(projectionMat.elements)
+	console.log(viewMat.elements)
+
+	const defs = makeShaderDataDefinitions(code)
+	const uniformValues = makeStructuredView(defs.uniforms.uni)
+
+	const uniformBuffer = device.createBuffer({
+		size: uniformValues.arrayBuffer.byteLength, // transformUniformValues.byteLength,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 	})
 
 	//对应vs 里的@group(0) @binding(0)
 	const bindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
-		entries: [{ binding: 0, resource: { buffer: transformUniformBuffer } }]
-	})
-
-	//对应 fs 里的@group(1) @binding(0)
-	const bindGroup1 = device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(1),
-		entries: [{ binding: 0, resource: { buffer: colorUniformBuffer } }]
+		entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
 	})
 
 	const renderPassDescriptor: GPURenderPassDescriptor = {
 		label: 'our basic canvas renderPass',
 		colorAttachments: [
 			{
+				// view: <- to be filled out when we render
 				view: ctx.getCurrentTexture().createView(),
 				clearValue: [0.3, 0.3, 0.3, 1],
 				loadOp: 'clear',
@@ -132,25 +156,30 @@ export async function main(canvas: HTMLCanvasElement) {
 		]
 	}
 
-	const m3 = new Matrix3()
-	m3.set(1, 2, 3, 4, 5, 6, 7, 8, 9)
-	console.log(m3)
-
+	//@ts-ignore
+	window.r = render
 	function render() {
 		if (!device || !ctx) return
-
-		device.queue.writeBuffer(transformUniformBuffer, 0, transformValues.arrayBuffer)
-		device.queue.writeBuffer(colorUniformBuffer, 0, colorValues.arrayBuffer)
-
+		const canvasTexture = ctx.getCurrentTexture()
+		const projectionMat = camera.projectionMatrix
+		const viewMat = camera.matrixWorldInverse
+		camera.updateProjectionMatrix()
+		camera.updateMatrixWorld()
+		uniformValues.set({
+			projectionMatrix: projectionMat.elements,
+			viewMatrix: viewMat.elements,
+			resolution: [canvas.width, canvas.height]
+		})
+		device.queue.writeBuffer(uniformBuffer, 0, uniformValues.arrayBuffer)
 		//@ts-ignore
-		renderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView()
-		const encoder = device.createCommandEncoder({ label: 'our encoder' })
+		renderPassDescriptor.colorAttachments[0].view = canvasTexture.createView()
 
+		const encoder = device.createCommandEncoder()
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		pass.setPipeline(pipeline)
+		pass.setVertexBuffer(0, vertexBuffer)
 		pass.setBindGroup(0, bindGroup)
-		pass.setBindGroup(1, bindGroup1)
-		pass.draw(3)
+		pass.draw(6, kNumPoints)
 		pass.end()
 
 		const commandBuffer = encoder.finish()

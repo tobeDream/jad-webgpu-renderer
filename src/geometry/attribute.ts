@@ -1,8 +1,9 @@
 /* eslint-disable no-undef */
-import {TypedArray} from 'localType'
+import { TypedArray } from 'localType'
 
 type Options = {
 	shaderLocation?: number
+	stepMode?: GPUVertexStepMode
 }
 
 class Attribute {
@@ -11,32 +12,22 @@ class Attribute {
 	private _version = 0
 	private _buffer: GPUBuffer | null
 	private _shaderLocation?: number
+	private _stepMode: GPUVertexStepMode = 'vertex'
 
 	constructor(data: TypedArray, itemSize: number, options?: Options) {
 		this._array = data
 		this._itemSize = itemSize
 		this._buffer = null
 		this._shaderLocation = options?.shaderLocation
+		if (options?.stepMode) this._stepMode = options.stepMode
 	}
 
 	get shaderLocation() {
 		return this._shaderLocation
 	}
 
-	public needsUpdate() {
-		this._version++
-	}
-
-	public updateBuffer(device: GPUDevice, name: string) {
-		if (this._buffer) {
-			this._buffer.destroy()
-		}
-		this._buffer = device.createBuffer({
-			label: name + ' vertex buffer',
-			size: this._array.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-		})
-		device.queue.writeBuffer(this._buffer, 0, this._array)
+	get stepMode() {
+		return this._stepMode
 	}
 
 	get version() {
@@ -62,6 +53,22 @@ class Attribute {
 
 	get buffer() {
 		return this._buffer
+	}
+
+	public needsUpdate() {
+		this._version++
+	}
+
+	public updateBuffer(device: GPUDevice, name: string) {
+		if (this._buffer) {
+			this._buffer.destroy()
+		}
+		this._buffer = device.createBuffer({
+			label: name + ' vertex buffer',
+			size: this._array.byteLength,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+		})
+		device.queue.writeBuffer(this._buffer, 0, this._array)
 	}
 
 	public getFormat() {

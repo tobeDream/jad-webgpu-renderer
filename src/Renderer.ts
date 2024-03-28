@@ -1,4 +1,4 @@
-import {OrthographicCamera, PerspectiveCamera} from 'three'
+import { OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
 
 type IProps = {
@@ -11,6 +11,7 @@ class Renderer {
 	private device: GPUDevice
 	private canvasCtx: GPUCanvasContext | null
 	private renderPassDescriptor: GPURenderPassDescriptor
+	private clearColor = [0, 0, 0, 0]
 
 	constructor(props: IProps) {
 		this.outputCanvas = props.canvas
@@ -18,18 +19,8 @@ class Renderer {
 		if (!this.canvasCtx) {
 			throw 'your browser not supports WebGPU'
 		}
+		if (props.clearColor) this.clearColor = props.clearColor.slice()
 		this.initWebGPU()
-		this.renderPassDescriptor = {
-			label: 'render pass',
-			colorAttachments: [
-				{
-					view: this.canvasCtx.getCurrentTexture().createView(),
-					clearValue: props.clearColor ? props.clearColor.slice() : [0, 0, 0, 0],
-					loadOp: 'clear',
-					storeOp: 'store'
-				}
-			]
-		}
 	}
 
 	get width() {
@@ -49,7 +40,7 @@ class Renderer {
 	 */
 	public render(camera: PerspectiveCamera | OrthographicCamera, scene: Scene) {
 		if (!this.device || !this.canvasCtx) return
-		const {device, canvasCtx, renderPassDescriptor} = this
+		const { device, canvasCtx, renderPassDescriptor } = this
 		const projectionMat = camera.projectionMatrix
 		const viewMat = camera.matrixWorldInverse
 
@@ -74,9 +65,20 @@ class Renderer {
 		const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 		this.canvasCtx.configure({
 			device,
-			format: presentationFormat
-			//alphaMode: 'premultiplied'
+			format: presentationFormat,
+			alphaMode: 'premultiplied'
 		})
+		this.renderPassDescriptor = {
+			label: 'render pass',
+			colorAttachments: [
+				{
+					view: this.canvasCtx.getCurrentTexture().createView(),
+					clearValue: this.clearColor,
+					loadOp: 'clear',
+					storeOp: 'store'
+				}
+			]
+		}
 	}
 }
 

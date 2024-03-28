@@ -1,4 +1,4 @@
-import {Object3D} from './Object3D'
+import { Object3D } from './Object3D'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 

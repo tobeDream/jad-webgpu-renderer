@@ -1,7 +1,6 @@
 import { makeShaderDataDefinitions } from 'webgpu-utils'
+import { Blending } from 'localType'
 import Uniform from './uniform'
-
-type Blending = 'normalBlending' | 'additiveBlending' | 'none'
 
 type IProps = {
 	shaderCode: string
@@ -15,7 +14,7 @@ class Material {
 	private vsEntry = 'vs'
 	private fsEntry = 'fs'
 	private code: string
-	private uniforms: Record<string, { uniform: Uniform; version: number }>
+	private uniforms: Record<string, Uniform>
 	private blending: Blending
 	private pipeline: GPURenderPipeline | null
 	private shaderModule: GPUShaderModule | null
@@ -28,35 +27,32 @@ class Material {
 		this.shaderModule = null
 		if (props.vertexShaderEntry) this.vsEntry = props.vertexShaderEntry
 		if (props.fragmentShaderEntry) this.fsEntry = props.fragmentShaderEntry
-		if (props.uniforms) {
-			this.initUniforms(props.uniforms)
-		}
+		this.initUniforms(props.uniforms || {})
 	}
 
 	private initUniforms(uniforms: Record<string, any>) {
 		const defs = makeShaderDataDefinitions(this.code)
 		for (let un in defs.uniforms) {
-			this.uniforms[un] = {
-				version: -1,
-				uniform: new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
-			}
+			this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
 		}
+	}
+
+	public getUniform(name: string) {
+		const uniform = this.uniforms[name]
+		return uniform
 	}
 
 	public getBindGroups(device: GPUDevice, pipeline: GPURenderPipeline) {
 		const bindGroups: GPUBindGroup[] = []
-		const groupIndexList = Array.from(new Set(Object.values(this.uniforms).map((u) => u.uniform.group)))
+		const groupIndexList = Array.from(new Set(Object.values(this.uniforms).map((u) => u.group)))
 		for (let index of groupIndexList) {
 			const descriptor: GPUBindGroupDescriptor = {
 				layout: pipeline.getBindGroupLayout(index),
 				entries: []
 			}
 			for (let un in this.uniforms) {
-				const { uniform, version } = this.uniforms[un]
-				if (version !== uniform.version) {
-					uniform.updateBuffer(device)
-					this.uniforms[un].version = uniform.version
-				}
+				const uniform = this.uniforms[un]
+				if (uniform.needsUpdate) uniform.updateBuffer(device)
 				const buffer = uniform.getBuffer(device)
 				if (!buffer) continue
 				const entries = descriptor.entries as GPUBindGroupEntry[]
@@ -68,7 +64,7 @@ class Material {
 			const bindGroup = device.createBindGroup(descriptor)
 			bindGroups.push(bindGroup)
 		}
-		return bindGroups
+		return { bindGroups, groupIndexList }
 	}
 
 	public getPipeline(device: GPUDevice, format: GPUTextureFormat, vertexBufferLayouts: GPUVertexBufferLayout[]) {
@@ -100,7 +96,7 @@ class Material {
 		switch (this.blending) {
 			case 'normalBlending': {
 				//@ts-ignore
-				pipelineDescriptor.fragment.targets[0].blending = {
+				pipelineDescriptor.fragment.targets[0].blend = {
 					color: {
 						srcFactor: 'one',
 						dstFactor: 'one-minus-src-alpha'
@@ -114,7 +110,7 @@ class Material {
 			}
 			case 'additiveBlending': {
 				//@ts-ignore
-				pipelineDescriptor.fragment.targets[0].blending = {
+				pipelineDescriptor.fragment.targets[0].blend = {
 					color: {
 						srcFactor: 'one',
 						dstFactor: 'one'

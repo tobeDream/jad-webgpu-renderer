@@ -7,3 +7,5 @@ export type TypedArray =
 	| Int8Array
 	| Int16Array
 	| Int32Array
+
+export type Blending = 'normalBlending' | 'additiveBlending' | 'none'

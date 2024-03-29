@@ -1,50 +1,53 @@
 import Attribute from './attribute'
 
 class Geometry {
-	private attributeList: { name: string; attribute: Attribute; version: number }[]
+	private attributes: Record<string, Attribute>
 
 	constructor() {
-		this.attributeList = []
+		this.attributes = {}
 	}
 
-	public setAttribute<T extends ArrayBufferView>(attribtueName: string, attribute: Attribute) {
-		this.attributeList.push({ name: attribtueName, attribute, version: -1 })
+	public getAttribute(name: string) {
+		return this.attributes[name]
+	}
+
+	public setAttribute(attribtueName: string, attribute: Attribute) {
+		if (attribute.shaderLocation === undefined) {
+			let location = 0
+			const existedLocations = Object.values(this.attributes)
+				.map((attr) => attr.shaderLocation)
+				.filter((l) => l !== undefined)
+			while (existedLocations.includes(location)) location++
+			attribute.shaderLocation = location
+		}
+		this.attributes[attribtueName] = attribute
 	}
 
 	public removeAttribute(attribtueName: string) {
-		const index = this.attributeList.findIndex((a) => a.name === attribtueName)
-		if (index > -1) {
-			this.attributeList[index].attribute.dispose()
-			this.attributeList.splice(index, 1)
+		const attr = this.attributes[attribtueName]
+		if (attr) {
+			attr.dispose()
+			delete this.attributes[attribtueName]
 		}
 	}
 
 	public dispose() {
-		for (let item of this.attributeList) {
-			item.attribute.dispose()
+		for (let name in this.attributes) {
+			this.attributes[name].dispose()
 		}
-		this.attributeList = []
+		this.attributes = {}
 	}
 
-	public getAttributeBufferLayouts() {
+	public getVertexStateInfo() {
 		const vertexBufferLayouts: GPUVertexBufferLayout[] = []
-		let location = 0
-		const existedShaderLocations = this.attributeList
-			.map((item) => item.attribute.shaderLocation)
-			.filter((l) => l !== undefined)
-			.sort()
-		for (let item of this.attributeList) {
-			const { attribute, name } = item
+		for (let attribute of Object.values(this.attributes)) {
 			const { itemSize, array, shaderLocation, stepMode } = attribute
-			while (existedShaderLocations.includes(location)) {
-				location++
-			}
 			const bufferLayout: GPUVertexBufferLayout = {
 				arrayStride: itemSize * array.BYTES_PER_ELEMENT,
 				stepMode,
 				attributes: [
 					{
-						shaderLocation: shaderLocation === undefined ? location++ : shaderLocation,
+						shaderLocation: shaderLocation || 0,
 						offset: 0,
 						format: attribute.getFormat()
 					}
@@ -52,19 +55,18 @@ class Geometry {
 			}
 			vertexBufferLayouts.push(bufferLayout)
 		}
+		return vertexBufferLayouts
 	}
 
 	public getVertexBufferList(device: GPUDevice) {
 		const bufferList: GPUBuffer[] = []
-		for (let item of this.attributeList) {
-			const { attribute, name, version } = item
-			if (version !== attribute.version || !attribute.buffer) {
-				attribute.updateBuffer(device, name)
-				item.version = attribute.version
-			}
+		const locationList: number[] = []
+		for (let attribute of Object.values(this.attributes)) {
+			if (attribute.needsUpdate || !attribute.buffer) attribute.updateBuffer(device)
 			bufferList.push(attribute.buffer as GPUBuffer)
+			locationList.push(attribute.shaderLocation || 0)
 		}
-		return bufferList
+		return { bufferList, locationList }
 	}
 
 	public getIndexBuffer(device: GPUDevice) {}

@@ -1,42 +1,64 @@
-import { PerspectiveCamera } from 'three'
+import { NormalBlending, PerspectiveCamera } from 'three'
 import Renderer from '../Renderer'
-import Geometry from '../geometry/geometry'
-import Attribute from '../geometry/attribute'
-import PointMaterial from '../material/PointMaterial'
-import Model from '../Model'
+import Scene from '../Scene'
+import Points from '../Points'
 
 const canvas = document.querySelector('#canvas') as HTMLCanvasElement
 canvas.width = canvas.offsetWidth
 canvas.height = canvas.offsetHeight
 
 const renderer = new Renderer({ canvas })
+const scene = new Scene()
+//@ts-ignore
+window.r = renderer
+//@ts-ignore
+window.s = scene
 
-const rand = (min: number, max: number) => min + Math.random() * (max - min)
-
-const kNumPoints = 100
-const positionData = new Float32Array(kNumPoints * 2)
-const colorData = new Uint8Array(kNumPoints * 4)
-const sizeData = new Float32Array(kNumPoints)
-for (let i = 0; i < kNumPoints; ++i) {
-	const offset = i * 4
-	positionData[offset + 0] = rand(-30, 30)
-	positionData[offset + 1] = rand(-30, 30)
-	sizeData[offset] = rand(15, 15) //size
-	colorData[offset + 0] = rand(0, 1) * 255
-	colorData[offset + 1] = rand(0, 1) * 255
-	colorData[offset + 2] = rand(0, 1) * 255
-	colorData[offset + 3] = 0.7 * 255
-}
-
-const geo = new Geometry()
-geo.setAttribute('position', new Attribute(positionData, 2))
-geo.setAttribute('size', new Attribute(sizeData, 1))
-geo.setAttribute('color', new Attribute(colorData, 4))
-
-//uniforms
 const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
 camera.position.set(0, 0, 100)
 const projectionMat = camera.projectionMatrix
 const viewMat = camera.matrixWorldInverse
 //@ts-ignore
 window.c = camera
+
+const rand = (min: number, max: number) => min + Math.random() * (max - min)
+function createPoints(num: number) {
+	const kNumPoints = 10
+	const positionData = new Float32Array(kNumPoints * 2)
+	const colorData = new Uint8Array(kNumPoints * 4)
+	const sizeData = new Float32Array(kNumPoints)
+	for (let i = 0; i < kNumPoints; ++i) {
+		positionData[i * 2 + 0] = num === 1 ? rand(-60, -5) : rand(5, 60)
+		positionData[i * 2 + 1] = rand(-40, 40)
+		sizeData[i] = rand(15, 15) //size
+		colorData[i * 4 + 0] = (num - 1) * 255 // rand(0, 1) * 255
+		colorData[i * 4 + 1] = (2 - num) * 255 //rand(0, 1) * 255
+		colorData[i * 4 + 2] = 0 // rand(0, 1) * 255
+		colorData[i * 4 + 3] = 0.5 * 255
+	}
+
+	const points = new Points({
+		positions: positionData,
+		sizes: sizeData,
+		colors: colorData,
+		blending: 'normalBlending'
+	})
+
+	scene.addModel(points)
+}
+
+createPoints(1)
+createPoints(2)
+
+setTimeout(() => {
+	renderer.render(camera, scene)
+}, 500)
+
+setTimeout(() => {
+	const sizeAttr = scene.modelList[0].geometry.getAttribute('size')
+	if (sizeAttr) {
+		sizeAttr.array[0] = 50
+		sizeAttr.needsUpdate = true
+		renderer.render(camera, scene)
+	}
+}, 4000)

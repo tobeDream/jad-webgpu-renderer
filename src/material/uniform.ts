@@ -8,8 +8,8 @@ type IProps = {
 }
 
 class Uniform {
-	private _version = 0
 	private _name: string
+	private _needsUpdate = true
 	private def: VariableDefinition
 	private view: StructuredView
 	private buffer: GPUBuffer | null
@@ -20,10 +20,6 @@ class Uniform {
 		this.view = makeStructuredView(this.def)
 		this.view.set(props.value)
 		this.buffer = null
-	}
-
-	get version() {
-		return this._version
 	}
 
 	get name() {
@@ -46,8 +42,16 @@ class Uniform {
 		return this.view.arrayBuffer
 	}
 
-	public needsUpdate() {
-		this._version++
+	get needsUpdate() {
+		return this._needsUpdate
+	}
+
+	set needsUpdate(b: boolean) {
+		this._needsUpdate = b
+	}
+
+	public udpateValue(value: any) {
+		this.view.set(value)
 	}
 
 	public getBuffer(device: GPUDevice) {

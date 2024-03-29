@@ -7,14 +7,16 @@ type Options = {
 }
 
 class Attribute {
+	private _name: string
 	private _array: TypedArray
 	private _itemSize: number
-	private _version = 0
+	private _needUpdate = true
 	private _buffer: GPUBuffer | null
 	private _shaderLocation?: number
 	private _stepMode: GPUVertexStepMode = 'vertex'
 
-	constructor(data: TypedArray, itemSize: number, options?: Options) {
+	constructor(name: string, data: TypedArray, itemSize: number, options?: Options) {
+		this._name = name
 		this._array = data
 		this._itemSize = itemSize
 		this._buffer = null
@@ -22,16 +24,20 @@ class Attribute {
 		if (options?.stepMode) this._stepMode = options.stepMode
 	}
 
+	get name() {
+		return this._name
+	}
+
 	get shaderLocation() {
 		return this._shaderLocation
 	}
 
-	get stepMode() {
-		return this._stepMode
+	set shaderLocation(l: number | undefined) {
+		this._shaderLocation = l
 	}
 
-	get version() {
-		return this._version
+	get stepMode() {
+		return this._stepMode
 	}
 
 	get array() {
@@ -40,7 +46,7 @@ class Attribute {
 
 	set array(data: TypedArray) {
 		this._array = data
-		this._version++
+		this._needUpdate = true
 	}
 
 	get itemSize() {
@@ -55,26 +61,32 @@ class Attribute {
 		return this._buffer
 	}
 
-	public needsUpdate() {
-		this._version++
+	get needsUpdate() {
+		return this._needUpdate
 	}
 
-	public updateBuffer(device: GPUDevice, name: string) {
+	set needsUpdate(b: boolean) {
+		this._needUpdate = b
+	}
+
+	public updateBuffer(device: GPUDevice) {
 		if (this._buffer) {
 			this._buffer.destroy()
 		}
 		this._buffer = device.createBuffer({
-			label: name + ' vertex buffer',
+			label: this.name + ' vertex buffer',
 			size: this._array.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 		})
 		device.queue.writeBuffer(this._buffer, 0, this._array)
+		this._needUpdate = false
 	}
 
 	public getFormat() {
 		let typeStr = this._array.constructor.name.split('Array')[0].toLocaleLowerCase() //Float32, Uint8, Int8, ...
 		if (typeStr.startsWith('int')) typeStr = 's' + typeStr
-		return (typeStr.toLocaleLowerCase() + `x${this.itemSize}`) as GPUVertexFormat
+		if (typeStr.includes('int')) typeStr = typeStr.replace('int', 'norm')
+		return (typeStr.toLocaleLowerCase() + (this.itemSize === 1 ? '' : `x${this.itemSize}`)) as GPUVertexFormat
 	}
 
 	public dispose() {

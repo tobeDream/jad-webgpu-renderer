@@ -1,4 +1,5 @@
 import Material from './material'
+import { Blending } from 'localType'
 
 const code = `
     struct Vertex {
@@ -47,11 +48,12 @@ const code = `
     }
 `
 
-type IProps = {}
+type IProps = { blending?: Blending }
 
 class PointMaterial extends Material {
 	constructor(props?: IProps) {
-		super({ shaderCode: code, vertexShaderEntry: 'vs', fragmentShaderEntry: 'fs' })
+		console.log(props?.blending)
+		super({ shaderCode: code, vertexShaderEntry: 'vs', fragmentShaderEntry: 'fs', blending: props?.blending })
 	}
 }
 

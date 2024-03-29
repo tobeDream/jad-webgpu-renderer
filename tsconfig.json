@@ -12,7 +12,7 @@
 		"target": "esnext",
 		"jsx": "react",
 		"typeRoots": ["node_modules/@types", "./typings/*", "node_modules/@webgpu/types"],
-		"baseUrl": ".",
+		"baseUrl": "./",
 		"paths": {
 			"@/*": ["src/*"],
 			"localType": ["src/types.ts"]

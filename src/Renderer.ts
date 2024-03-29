@@ -1,4 +1,4 @@
-import { OrthographicCamera, PerspectiveCamera } from 'three'
+import { Matrix4, OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
 
 type IProps = {
@@ -14,6 +14,7 @@ class Renderer {
 	private clearColor = [0.3, 0.3, 0.3, 1]
 	private presentationFormat: GPUTextureFormat
 	private _ready = false
+	precreatedUniformBuffers: Record<string, GPUBuffer>
 
 	constructor(props: IProps) {
 		this.outputCanvas = props.canvas
@@ -46,20 +47,9 @@ class Renderer {
 	 */
 	public render(camera: PerspectiveCamera | OrthographicCamera, scene: Scene) {
 		console.log('render')
-		if (!this.device || !this.canvasCtx) return
-		camera.updateProjectionMatrix()
-		camera.updateMatrixWorld()
+		if (!this.device || !this.canvasCtx || !this.ready) return
+		this.updateCameraMatrix(camera)
 		const { device, canvasCtx, renderPassDescriptor } = this
-		const projectionMat = camera.projectionMatrix
-		const viewMat = camera.matrixWorldInverse
-		for (let model of scene.modelList) {
-			const projectionUniform = model.material.getUniform('projectionMatrix')
-			const viewUniform = model.material.getUniform('viewMatrix')
-			const resolutionUniform = model.material.getUniform('resolution')
-			if (projectionUniform) projectionUniform.udpateValue(projectionMat.elements)
-			if (viewUniform) viewUniform.udpateValue(viewMat.elements)
-			if (resolutionUniform) resolutionUniform.udpateValue([this.width, this.height])
-		}
 
 		//@ts-ignore
 		renderPassDescriptor.colorAttachments[0].view = canvasCtx.getCurrentTexture().createView()
@@ -71,7 +61,7 @@ class Renderer {
 			const { bufferList: vertexBufferList, locationList } = geometry.getVertexBufferList(this.device)
 			const pipeline = material.getPipeline(this.device, this.presentationFormat, vertexStateInfo)
 			if (!pipeline) continue
-			const { bindGroups, groupIndexList } = material.getBindGroups(device, pipeline)
+			const { bindGroups, groupIndexList } = material.getBindGroups(this, device, pipeline)
 			pass.setPipeline(pipeline)
 			for (let i = 0; i < bindGroups.length; ++i) {
 				pass.setBindGroup(groupIndexList[i], bindGroups[i])
@@ -87,7 +77,14 @@ class Renderer {
 		this.device.queue.submit([commandBuffer])
 	}
 
-	public resize(width: number, height: number) {}
+	public resize() {
+		if (!this.ready || !this.device) return
+		this.device.queue.writeBuffer(
+			this.precreatedUniformBuffers.resolution,
+			0,
+			new Float32Array([this.width, this.height])
+		)
+	}
 
 	private async initWebGPU() {
 		const adapter = await navigator.gpu?.requestAdapter()
@@ -116,7 +113,39 @@ class Renderer {
 				}
 			]
 		}
+		const projectionMatrix = device.createBuffer({
+			size: 16 * 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
+		const viewMatrix = device.createBuffer({
+			size: 16 * 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
+		const resolution = device.createBuffer({
+			size: 2 * 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
+		this.precreatedUniformBuffers = {
+			projectionMatrix,
+			viewMatrix,
+			resolution
+		}
 		this._ready = true
+		this.resize()
+	}
+
+	private updateCameraMatrix(camera: PerspectiveCamera | OrthographicCamera) {
+		if (!this.device || !this.ready) camera.updateProjectionMatrix()
+		camera.updateMatrixWorld()
+		const projectionMat = camera.projectionMatrix
+		const viewMat = camera.matrixWorldInverse
+
+		this.device.queue.writeBuffer(
+			this.precreatedUniformBuffers.projectionMatrix,
+			0,
+			new Float32Array(projectionMat.elements)
+		)
+		this.device.queue.writeBuffer(this.precreatedUniformBuffers.viewMatrix, 0, new Float32Array(viewMat.elements))
 	}
 }
 

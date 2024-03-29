@@ -1,5 +1,6 @@
 import { makeShaderDataDefinitions } from 'webgpu-utils'
 import { Blending } from 'localType'
+import Renderer from '../Renderer'
 import Uniform from './uniform'
 
 type IProps = {
@@ -9,6 +10,8 @@ type IProps = {
 	uniforms?: Record<string, any>
 	blending?: Blending
 }
+
+const bufferExistedUnifoms = ['projectionMatrix', 'viewMatrix', 'resolution']
 
 class Material {
 	private vsEntry = 'vs'
@@ -42,7 +45,7 @@ class Material {
 		return uniform
 	}
 
-	public getBindGroups(device: GPUDevice, pipeline: GPURenderPipeline) {
+	public getBindGroups(renderer: Renderer, device: GPUDevice, pipeline: GPURenderPipeline) {
 		const bindGroups: GPUBindGroup[] = []
 		const groupIndexList = Array.from(new Set(Object.values(this.uniforms).map((u) => u.group)))
 		for (let index of groupIndexList) {
@@ -52,8 +55,13 @@ class Material {
 			}
 			for (let un in this.uniforms) {
 				const uniform = this.uniforms[un]
-				if (uniform.needsUpdate) uniform.updateBuffer(device)
-				const buffer = uniform.getBuffer(device)
+				let buffer: GPUBuffer | null = null
+				if (renderer.precreatedUniformBuffers[uniform.name]) {
+					buffer = renderer.precreatedUniformBuffers[uniform.name]
+				} else {
+					if (uniform.needsUpdate) uniform.updateBuffer(device)
+					buffer = uniform.getBuffer(device)
+				}
 				if (!buffer) continue
 				const entries = descriptor.entries as GPUBindGroupEntry[]
 				entries.push({

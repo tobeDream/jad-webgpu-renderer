@@ -1,4 +1,4 @@
-import { NormalBlending, PerspectiveCamera } from 'three'
+import { PerspectiveCamera } from 'three'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points'
@@ -43,7 +43,7 @@ function createPoints(num: number) {
 		// sizes: sizeData,
 		// colors: colorData,
 		material: {
-			blending: 'additiveBlending',
+			blending: 'normalBlending',
 			color: [0.85, 0.95, 0.1, 0.3],
 			size: 20
 		}
@@ -55,9 +55,7 @@ function createPoints(num: number) {
 // createPoints(1)
 createPoints(2)
 
-setTimeout(() => {
-	renderer.render(camera, scene)
-}, 500)
+renderer.render(camera, scene)
 
 setTimeout(() => {
 	const sizeAttr = scene.modelList[0].geometry.getAttribute('size')

@@ -1,6 +1,6 @@
 import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
-import PointMaterial from './material/PointMaterial'
+import PointMaterial from './material/pointMaterial'
 import Model from './Model'
 import { Blending } from 'localType'
 

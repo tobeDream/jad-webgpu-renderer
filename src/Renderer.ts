@@ -1,10 +1,12 @@
-import { Matrix4, OrthographicCamera, PerspectiveCamera } from 'three'
+import { OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
 
 type IProps = {
 	canvas: HTMLCanvasElement
 	clearColor?: [number, number, number, number]
 }
+
+const delay = (t = 1000) => new Promise((resolve) => setTimeout(resolve, t))
 
 class Renderer {
 	private outputCanvas: HTMLCanvasElement
@@ -45,8 +47,14 @@ class Renderer {
 	 * @param camera
 	 * @param scene
 	 */
-	public render(camera: PerspectiveCamera | OrthographicCamera, scene: Scene) {
-		if (!this.device || !this.canvasCtx || !this.ready) return
+	public async render(camera: PerspectiveCamera | OrthographicCamera, scene: Scene) {
+		let wait = 0
+		while (!this.ready) {
+			await delay(20)
+			wait += 20
+			if (wait > 2000) return
+		}
+		if (!this.device || !this.canvasCtx) return
 		this.updateCameraMatrix(camera)
 		const { device, canvasCtx, renderPassDescriptor } = this
 

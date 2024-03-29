@@ -12,14 +12,10 @@ type IProps = {
 }
 
 class Points extends Model {
-	private geo: Geometry
-	private mat: PointMaterial
 	constructor(props: IProps) {
 		const geometry = new Geometry()
 		const material = new PointMaterial({ blending: props.blending })
 		super(geometry, material)
-		this.geo = geometry
-		this.mat = material
 		this.initAttributes(props)
 	}
 
@@ -33,6 +29,7 @@ class Points extends Model {
 		this.geometry.setAttribute('position', positionAttribute)
 		this.geometry.setAttribute('size', sizeAttribute)
 		this.geometry.setAttribute('color', colorAttribute)
+		this.geometry.vertexCount = 6 //wgsl 中通过硬编码设置了两个三角形的顶点坐标，由此组成一个正方形代表一个可以设置尺寸的散点
 	}
 }
 

@@ -40,10 +40,12 @@ const code = `
 
     @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
         let coord = vsOut.pointCoord;
-        if(length(coord) > 1) {
+        let dis = length(coord);
+        if(dis >= 1) {
             discard;
         }
-        let alpha = vsOut.color.a;
+        let edgeAlpha = smoothstep(0, 0.1, 1 - dis);
+        let alpha = vsOut.color.a * edgeAlpha;
         return vec4f(vsOut.color.rgb * alpha, alpha);
     }
 `

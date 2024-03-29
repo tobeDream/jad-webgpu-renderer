@@ -16,14 +16,12 @@ window.s = scene
 
 const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
 camera.position.set(0, 0, 100)
-const projectionMat = camera.projectionMatrix
-const viewMat = camera.matrixWorldInverse
 //@ts-ignore
 window.c = camera
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 function createPoints(num: number) {
-	const kNumPoints = 10
+	const kNumPoints = 100
 	const positionData = new Float32Array(kNumPoints * 2)
 	const colorData = new Uint8Array(kNumPoints * 4)
 	const sizeData = new Float32Array(kNumPoints)
@@ -34,14 +32,14 @@ function createPoints(num: number) {
 		colorData[i * 4 + 0] = (num - 1) * 255 // rand(0, 1) * 255
 		colorData[i * 4 + 1] = (2 - num) * 255 //rand(0, 1) * 255
 		colorData[i * 4 + 2] = 0 // rand(0, 1) * 255
-		colorData[i * 4 + 3] = 0.5 * 255
+		colorData[i * 4 + 3] = 0.8 * 255
 	}
 
 	const points = new Points({
 		positions: positionData,
 		sizes: sizeData,
 		colors: colorData,
-		blending: 'normalBlending'
+		blending: 'additiveBlending'
 	})
 
 	scene.addModel(points)

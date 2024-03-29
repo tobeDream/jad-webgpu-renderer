@@ -2,9 +2,27 @@ import Attribute from './attribute'
 
 class Geometry {
 	private attributes: Record<string, Attribute>
+	private _vertexCount = -1
+	private _instanceCount = -1
 
 	constructor() {
 		this.attributes = {}
+	}
+
+	set vertexCount(v: number) {
+		this._vertexCount = v
+	}
+
+	get vertexCount() {
+		return this._vertexCount
+	}
+
+	set instanceCount(i: number) {
+		this._instanceCount = i
+	}
+
+	get instanceCount() {
+		return this._instanceCount
 	}
 
 	public getAttribute(name: string) {
@@ -21,6 +39,9 @@ class Geometry {
 			attribute.shaderLocation = location
 		}
 		this.attributes[attribtueName] = attribute
+		const count = attribute.array.length / attribute.itemSize
+		if (attribute.stepMode === 'vertex' && this._vertexCount === -1) this._vertexCount = count
+		if (attribute.stepMode === 'instance' && this._instanceCount === -1) this._instanceCount = count
 	}
 
 	public removeAttribute(attribtueName: string) {

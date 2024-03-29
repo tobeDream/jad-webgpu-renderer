@@ -46,7 +46,6 @@ class Renderer {
 	 * @param scene
 	 */
 	public render(camera: PerspectiveCamera | OrthographicCamera, scene: Scene) {
-		console.log('render')
 		if (!this.device || !this.canvasCtx || !this.ready) return
 		this.updateCameraMatrix(camera)
 		const { device, canvasCtx, renderPassDescriptor } = this
@@ -57,6 +56,7 @@ class Renderer {
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
 			const { geometry, material } = model
+			if (geometry.vertexCount === -1) continue
 			const vertexStateInfo = geometry.getVertexStateInfo()
 			const { bufferList: vertexBufferList, locationList } = geometry.getVertexBufferList(this.device)
 			const pipeline = material.getPipeline(this.device, this.presentationFormat, vertexStateInfo)
@@ -69,7 +69,8 @@ class Renderer {
 			for (let i = 0; i < vertexBufferList.length; ++i) {
 				pass.setVertexBuffer(locationList[i], vertexBufferList[i])
 			}
-			pass.draw(6, 10)
+			if (geometry.instanceCount > -1) pass.draw(geometry.vertexCount, geometry.instanceCount)
+			else pass.draw(geometry.vertexCount)
 		}
 		pass.end()
 

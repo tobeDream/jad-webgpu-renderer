@@ -28,7 +28,7 @@ function createPoints(num: number) {
 	for (let i = 0; i < kNumPoints; ++i) {
 		positionData[i * 2 + 0] = num === 1 ? rand(-60, -5) : rand(5, 60)
 		positionData[i * 2 + 1] = rand(-40, 40)
-		sizeData[i] = rand(15, 15) //size
+		sizeData[i] = rand(25, 25) //size
 		colorData[i * 4 + 0] = (num - 1) * 255 // rand(0, 1) * 255
 		colorData[i * 4 + 1] = (2 - num) * 255 //rand(0, 1) * 255
 		colorData[i * 4 + 2] = 0 // rand(0, 1) * 255
@@ -39,7 +39,9 @@ function createPoints(num: number) {
 		positions: positionData,
 		sizes: sizeData,
 		colors: colorData,
-		blending: 'additiveBlending'
+		material: {
+			blending: 'additiveBlending'
+		}
 	})
 
 	scene.addModel(points)

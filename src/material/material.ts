@@ -35,6 +35,7 @@ class Material {
 
 	private initUniforms(uniforms: Record<string, any>) {
 		const defs = makeShaderDataDefinitions(this.code)
+		console.log(defs)
 		for (let un in defs.uniforms) {
 			this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
 		}
@@ -55,6 +56,7 @@ class Material {
 			}
 			for (let un in this.uniforms) {
 				const uniform = this.uniforms[un]
+				if (uniform.group !== index) continue
 				let buffer: GPUBuffer | null = null
 				if (renderer.precreatedUniformBuffers[uniform.name]) {
 					buffer = renderer.precreatedUniformBuffers[uniform.name]

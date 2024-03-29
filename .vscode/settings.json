@@ -1,6 +1,6 @@
 {
 	"vsintellicode.features.python.deepLearning": "enabled",
-	"editor.fontSize": 14,
+	"editor.fontSize": 15,
 	"vim.normalModeKeyBindings": [
 		{
 			"before": ["K"],

@@ -15,8 +15,8 @@ const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
-    ${hasColor ? '' : '@group(1) @binding(1) var<uniform> color: vec4f;'}
-    ${hasSize ? '' : '@group(1) @binding(1) var<uniform> color: vec4f;'}
+    ${hasColor ? '' : '@group(1) @binding(0) var<uniform> color: vec4f;'}
+    ${hasSize ? '' : '@group(1) @binding(1) var<uniform> size: f32;'}
     
 
     struct VSOutput {
@@ -70,8 +70,8 @@ type IProps = {
 
 class PointMaterial extends Material {
 	constructor(props: IProps) {
-		const color = props.color !== undefined ? props.color.slice() : [1, 0, 0, 1]
-		const size = props.size !== undefined ? props.size : 8
+		const color = props.color !== undefined ? props.color.slice() : [1, 0, 0, 0.7]
+		const size = props.size !== undefined ? props.size : 10
 		super({
 			shaderCode: getShaderCode(props.hasColorAttribute, props.hasSizeAttribute),
 			vertexShaderEntry: 'vs',

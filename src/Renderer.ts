@@ -89,11 +89,18 @@ class Renderer {
 
 	private async initWebGPU() {
 		const adapter = await navigator.gpu?.requestAdapter()
-		const device = await adapter?.requestDevice()
+		const device = await adapter?.requestDevice({
+			requiredLimits: {
+				//设置单个buffer上限为800MB，略大于一亿个点的坐标Float32Array大小
+				maxBufferSize: 800 * 1024 * 1024
+			}
+		})
 		if (!device) {
 			throw 'your browser not supports WebGPU'
 		}
 		this.device = device
+		//@ts-ignore
+		window.limits = device.limits
 		if (!this.canvasCtx) {
 			throw 'your browser not supports WebGPU'
 		}

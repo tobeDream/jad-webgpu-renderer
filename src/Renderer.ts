@@ -77,8 +77,14 @@ class Renderer {
 			for (let i = 0; i < vertexBufferList.length; ++i) {
 				pass.setVertexBuffer(locationList[i], vertexBufferList[i])
 			}
-			if (geometry.instanceCount > -1) pass.draw(geometry.vertexCount, geometry.instanceCount)
-			else pass.draw(geometry.vertexCount)
+			const indexBuffer = geometry.getIndexBuffer(device)
+			if (indexBuffer) {
+				pass.setIndexBuffer(indexBuffer, 'uint32')
+			}
+			const instanceCount = geometry.instanceCount > -1 ? geometry.instanceCount : undefined
+			const index = geometry.getIndex()
+			if (index) pass.drawIndexed(index.length, instanceCount)
+			else pass.draw(geometry.vertexCount, instanceCount)
 		}
 		pass.end()
 

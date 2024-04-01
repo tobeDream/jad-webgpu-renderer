@@ -4,9 +4,14 @@ class Geometry {
 	private attributes: Record<string, Attribute>
 	private _vertexCount = -1
 	private _instanceCount = -1
+	private _indexBuffer: GPUBuffer | null
+	private _indexArr: Uint32Array | null
+	private _indexBufferNeedsUpdate = true
 
 	constructor() {
 		this.attributes = {}
+		this._indexBuffer = null
+		this._indexArr = null
 	}
 
 	set vertexCount(v: number) {
@@ -23,6 +28,15 @@ class Geometry {
 
 	get instanceCount() {
 		return this._instanceCount
+	}
+
+	public setIndex(arr: Uint32Array) {
+		this._indexArr = arr
+		this._indexBufferNeedsUpdate = true
+	}
+
+	public getIndex() {
+		return this._indexArr
 	}
 
 	public getAttribute(name: string) {
@@ -50,13 +64,6 @@ class Geometry {
 			attr.dispose()
 			delete this.attributes[attribtueName]
 		}
-	}
-
-	public dispose() {
-		for (let name in this.attributes) {
-			this.attributes[name].dispose()
-		}
-		this.attributes = {}
 	}
 
 	public getVertexStateInfo() {
@@ -90,7 +97,37 @@ class Geometry {
 		return { bufferList, locationList }
 	}
 
-	public getIndexBuffer(device: GPUDevice) {}
+	public getIndexBuffer(device: GPUDevice) {
+		if (!this._indexArr) return
+		if (this._indexBufferNeedsUpdate) this.udpateIndexBuffer(device)
+		this._indexBufferNeedsUpdate = false
+		return this._indexBuffer
+	}
+
+	public dispose() {
+		for (let name in this.attributes) {
+			this.attributes[name].dispose()
+		}
+		this.attributes = {}
+		if (this._indexBuffer) this._indexBuffer.destroy()
+	}
+
+	private createIndexBuffer(device: GPUDevice) {
+		if (!this._indexArr) return
+		if (this._indexBuffer) this._indexBuffer.destroy()
+		this._indexBuffer = device.createBuffer({
+			label: 'index buffer',
+			size: this._indexArr.byteLength,
+			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+		})
+	}
+
+	private udpateIndexBuffer(device: GPUDevice) {
+		if (!this._indexArr) return
+		if (!this._indexBuffer) this.createIndexBuffer(device)
+		if (!this._indexBuffer) return
+		device.queue.writeBuffer(this._indexBuffer, 0, this._indexArr)
+	}
 }
 
 export default Geometry

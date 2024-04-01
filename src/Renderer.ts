@@ -3,6 +3,7 @@ import Scene from './Scene'
 
 type IProps = {
 	canvas: HTMLCanvasElement
+	antiAlias?: boolean
 	clearColor?: [number, number, number, number]
 }
 
@@ -16,13 +17,21 @@ class Renderer {
 	private clearColor = [0.3, 0.3, 0.3, 1]
 	private presentationFormat: GPUTextureFormat
 	private _ready = false
+	private _multisampleTexture: GPUTexture | null
+	private _antialias: boolean
+
 	precreatedUniformBuffers: Record<string, GPUBuffer>
 
 	constructor(props: IProps) {
 		this.outputCanvas = props.canvas
-		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
-		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
+		this.outputCanvas.width = (this.outputCanvas.offsetWidth * 0.1) / window.devicePixelRatio
+		this.outputCanvas.height = (this.outputCanvas.offsetHeight * 0.1) / window.devicePixelRatio
 		this.canvasCtx = this.outputCanvas.getContext('webgpu') || null
+		this._antialias = props.antiAlias || false
+		this._multisampleTexture = null
+		if (this._antialias) {
+			this.createMultisampleTexture()
+		}
 		if (!this.canvasCtx) {
 			throw 'your browser not supports WebGPU'
 		}
@@ -42,6 +51,16 @@ class Renderer {
 		return this.outputCanvas.height
 	}
 
+	get antialias() {
+		return this._antialias
+	}
+
+	set antialias(v: boolean) {
+		this._antialias = v
+		if (v) this.createMultisampleTexture()
+		else if (this._multisampleTexture) this._multisampleTexture.destroy()
+	}
+
 	/**
 	 * 根据camera获取projectionMatrix和viewMatrix，遍历scene.children。
 	 * 从children[i]中获取到geometry和material。从geometry中获取顶点数据，从material中获取渲染管线（包含着色器）
@@ -59,10 +78,15 @@ class Renderer {
 		if (!this.device || !this.canvasCtx) return
 		this.updateCameraMatrix(camera)
 		const { device, canvasCtx, renderPassDescriptor } = this
-		console.log(this.outputCanvas.width, this.outputCanvas.height)
 
-		//@ts-ignore
-		renderPassDescriptor.colorAttachments[0].view = canvasCtx.getCurrentTexture().createView()
+		const colorAttachment = (renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0]
+		if (!this._antialias) {
+			colorAttachment.view = canvasCtx.getCurrentTexture().createView()
+			colorAttachment.resolveTarget = undefined
+		} else if (this._multisampleTexture) {
+			colorAttachment.view = this._multisampleTexture?.createView()
+			colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
+		}
 		const encoder = device.createCommandEncoder()
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
@@ -70,15 +94,19 @@ class Renderer {
 			if (geometry.vertexCount === -1) continue
 			const vertexStateInfo = geometry.getVertexStateInfo()
 			const { bufferList: vertexBufferList, locationList } = geometry.getVertexBufferList(this.device)
-			const pipeline = material.getPipeline(this.device, this.presentationFormat, vertexStateInfo)
-			if (!pipeline) continue
+			const pipelineDescriptor = material.getPipelineDescriptor(
+				this.device,
+				this.presentationFormat,
+				vertexStateInfo
+			)
+			if (!pipelineDescriptor) continue
+			const pipeline = this.createPipeline(pipelineDescriptor)
 			const { bindGroups, groupIndexList } = material.getBindGroups(
 				this,
 				device,
 				pipeline,
 				geometry.getStorageAttrbutes()
 			)
-			console.log(bindGroups, groupIndexList)
 			pass.setPipeline(pipeline)
 			for (let i = 0; i < bindGroups.length; ++i) {
 				pass.setBindGroup(groupIndexList[i], bindGroups[i])
@@ -108,6 +136,7 @@ class Renderer {
 			0,
 			new Float32Array([this.width, this.height])
 		)
+		if (this._antialias) this.createMultisampleTexture()
 	}
 
 	private async initWebGPU() {
@@ -163,6 +192,28 @@ class Renderer {
 		}
 		this._ready = true
 		this.resize()
+		if (this._antialias) this.createMultisampleTexture()
+	}
+
+	private createMultisampleTexture() {
+		if (!this.canvasCtx || !this.device) return
+		if (this._multisampleTexture) this._multisampleTexture.destroy()
+		const outputCanvavTexture = this.canvasCtx.getCurrentTexture()
+		this._multisampleTexture = this.device.createTexture({
+			format: outputCanvavTexture.format,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT,
+			size: [outputCanvavTexture.width, outputCanvavTexture.height],
+			sampleCount: 4 //MSAA webgpu只支持采样率为1或者4的多重采样
+		})
+	}
+
+	private createPipeline(pipelineDescriptor: GPURenderPipelineDescriptor) {
+		if (this._antialias) {
+			pipelineDescriptor.multisample = { count: 4 }
+		} else {
+			delete pipelineDescriptor.multisample
+		}
+		return this.device.createRenderPipeline(pipelineDescriptor)
 	}
 
 	private updateCameraMatrix(camera: PerspectiveCamera | OrthographicCamera) {

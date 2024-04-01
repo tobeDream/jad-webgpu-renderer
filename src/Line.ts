@@ -9,6 +9,7 @@ type IProps = {
 	positions: Float32Array
 	material?: {
 		color?: [number, number, number, number]
+		lineWidth?: number
 		blending?: Blending
 	}
 }
@@ -76,8 +77,6 @@ class Line extends Model {
 			indexArr[i * 6 + 4] = i + 1 + count
 			indexArr[i * 6 + 5] = i + count
 		}
-
-		console.log(angleArr, sideArr)
 
 		return { sideArr, indexArr, angleArr }
 	}

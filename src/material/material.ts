@@ -18,7 +18,7 @@ class Material {
 	private code: string
 	private uniforms: Record<string, Uniform>
 	private blending: Blending
-	private pipeline: GPURenderPipeline | null
+	private pipelineDescriptor: GPURenderPipelineDescriptor | null
 	private shaderModule: GPUShaderModule | null
 	private _defs: ShaderDataDefinitions
 
@@ -26,7 +26,7 @@ class Material {
 		this.blending = props.blending || 'none'
 		this.uniforms = {}
 		this.code = props.shaderCode
-		this.pipeline = null
+		this.pipelineDescriptor = null
 		this.shaderModule = null
 		if (props.vertexShaderEntry) this.vsEntry = props.vertexShaderEntry
 		if (props.fragmentShaderEntry) this.fsEntry = props.fragmentShaderEntry
@@ -99,12 +99,20 @@ class Material {
 		return { bindGroups, groupIndexList }
 	}
 
-	public getPipeline(device: GPUDevice, format: GPUTextureFormat, vertexBufferLayouts: GPUVertexBufferLayout[]) {
-		if (!this.pipeline) this.createPipeline(device, format, vertexBufferLayouts)
-		return this.pipeline
+	public getPipelineDescriptor(
+		device: GPUDevice,
+		format: GPUTextureFormat,
+		vertexBufferLayouts: GPUVertexBufferLayout[]
+	) {
+		if (!this.pipelineDescriptor) this.createPipelineDescriptor(device, format, vertexBufferLayouts)
+		return this.pipelineDescriptor
 	}
 
-	private createPipeline(device: GPUDevice, format: GPUTextureFormat, vertexBufferLayouts: GPUVertexBufferLayout[]) {
+	private createPipelineDescriptor(
+		device: GPUDevice,
+		format: GPUTextureFormat,
+		vertexBufferLayouts: GPUVertexBufferLayout[]
+	) {
 		if (!this.shaderModule) this.shaderModule = device.createShaderModule({ code: this.code })
 		const pipelineDescriptor: GPURenderPipelineDescriptor = {
 			label: 'pipeline',
@@ -121,7 +129,7 @@ class Material {
 			}
 		}
 		this.configBlending(pipelineDescriptor)
-		this.pipeline = device.createRenderPipeline(pipelineDescriptor)
+		this.pipelineDescriptor = pipelineDescriptor
 	}
 
 	private configBlending(pipelineDescriptor: GPURenderPipelineDescriptor) {

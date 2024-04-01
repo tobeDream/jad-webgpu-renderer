@@ -11,6 +11,8 @@ type IProps = {
 	material?: {
 		size?: number
 		color?: [number, number, number, number]
+		highlightColor?: [number, number, number, number]
+		highlightSize?: number
 		blending?: Blending
 	}
 }
@@ -27,10 +29,24 @@ class Points extends Model {
 		const material = new PointMaterial({
 			...props.material,
 			hasColorAttribute: !!props.colors,
-			hasSizeAttribute: !!props.sizes
+			hasSizeAttribute: !!props.sizes,
+			numPoints: props.positions.length / 2
 		})
 		super(geometry, material)
 		this.initAttributes(props)
+	}
+
+	public highlights(indexList: number[]) {
+		const uniform = this.material.getUniform('highlightFlags')
+		const highlightFlags = new Uint32Array(uniform.byteLength / 4)
+		for (let index of indexList) {
+			const i = (index / 32) | 0
+			const j = index % 32
+			const mask = 1 << j
+			highlightFlags[i] |= mask
+		}
+		uniform.arrayBuffer = highlightFlags.buffer
+		uniform.needsUpdate = true
 	}
 
 	private initAttributes(props: IProps) {

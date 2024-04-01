@@ -7,25 +7,36 @@ import { Blending } from 'localType'
 //所以我们需要人为地将 wgsl 代码中未使用的 uniform 定义删除
 const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
     struct Vertex {
+        @builtin(vertex_index) vi: u32,
+        @builtin(instance_index) ii: u32,
         @location(0) position: vec2f,
         ${hasSize ? '@location(1) size: f32,' : ''}
         ${hasColor ? '@location(2) color: vec4f,' : ''}
     };
 
+    struct Style {
+        color: vec4f,
+        size: f32,
+        highlightColor: vec4f,
+        highlightSize: f32,
+    };
+
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
-    ${hasColor ? '' : '@group(1) @binding(0) var<uniform> color: vec4f;'}
-    ${hasSize ? '' : '@group(1) @binding(1) var<uniform> size: f32;'}
+    @group(1) @binding(0) var<storage, read> highlightFlags: array<u32>;
+    @group(1) @binding(1) var<uniform> style: Style;
     
 
     struct VSOutput {
         @builtin(position) position: vec4f,
         ${hasColor ? '@location(0) color: vec4f,' : ''}
         @location(1) pointCoord: vec2f,
+        @location(2) highlight: f32,
     };
 
-    @vertex fn vs(vert: Vertex, @builtin(vertex_index) vi: u32) -> VSOutput {
+    @vertex fn vs(vert: Vertex) -> VSOutput {
+        var vsOut: VSOutput;
         let points = array(
             vec2f(-1, -1),
             vec2f( 1, -1),
@@ -34,15 +45,24 @@ const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
             vec2f( 1, -1),
             vec2f( 1,  1),
         );
-        let pos = points[vi];
-        let s = ${hasSize ? 'vert.size' : 'size'};
+
+        let i = vert.ii / 32u;
+        let j = vert.ii % 32u;
+        var highlight = f32((highlightFlags[i] >> j) & 1u);
+        vsOut.highlight = highlight;
+
+        let pos = points[vert.vi];
+        let size = ${hasSize ? 'vert.size' : 'style.size'};
+        let s = mix(size, style.highlightSize, highlight);
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
         let pointPos = vec4f(pos * s / resolution * clipPos.w, 0, 0);
 
-        var vsOut: VSOutput;
         vsOut.position = clipPos + pointPos;
-        ${hasColor ? 'vsOut.color = vert.color;' : ''}
+
         vsOut.pointCoord = pos;
+
+        ${hasColor ? 'vsOut.color = vert.color;' : ''}
+
         return vsOut;
     }
 
@@ -54,7 +74,8 @@ const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
         }
         let edgeAlpha = smoothstep(0, 0.1, 1 - dis);
 
-        let c = ${hasColor ? 'vsOut.color' : 'color'};
+        let color = ${hasColor ? 'vsOut.color' : 'style.color'};
+        let c = mix(color, style.highlightColor, vsOut.highlight);
         let alpha = c.a * edgeAlpha;
         return vec4f(c.rgb * alpha, alpha);
     }
@@ -63,8 +84,11 @@ const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
 type IProps = {
 	hasColorAttribute: boolean
 	hasSizeAttribute: boolean
+	numPoints: number
 	blending?: Blending
 	color?: [number, number, number, number]
+	highlightColor?: [number, number, number, number]
+	highlightSize?: number
 	size?: number
 }
 
@@ -72,12 +96,15 @@ class PointMaterial extends Material {
 	constructor(props: IProps) {
 		const color = props.color !== undefined ? props.color.slice() : [1, 0, 0, 0.7]
 		const size = props.size !== undefined ? props.size : 10
+		const highlightList = new Uint32Array(Math.max(props.numPoints / 32, 1))
+		const highlightColor = props.highlightColor || [1, 0, 0, 1]
+		const highlightSize = props.highlightSize || size * 1.2
 		super({
 			shaderCode: getShaderCode(props.hasColorAttribute, props.hasSizeAttribute),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props?.blending,
-			uniforms: { color, size }
+			uniforms: { highlightFlags: highlightList, style: { color, size, highlightColor, highlightSize } }
 		})
 	}
 }

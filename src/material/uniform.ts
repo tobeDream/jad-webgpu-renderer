@@ -1,25 +1,24 @@
 /* eslint-disable no-undef */
 import { makeStructuredView, StructuredView, VariableDefinition } from 'webgpu-utils'
 
-type IProps = {
+export type IProps = {
 	name: string
 	def: VariableDefinition
 	value: any
 }
 
 class Uniform {
-	private _name: string
-	private _needsUpdate = true
-	private def: VariableDefinition
-	private view: StructuredView
-	private buffer: GPUBuffer | null
+	protected _name: string
+	protected _needsUpdate = true
+	protected def: VariableDefinition
+	protected view: StructuredView
+	protected buffer: GPUBuffer | null
 
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
-		this.view = makeStructuredView(this.def)
-		this.view.set(props.value)
 		this.buffer = null
+		this.initView(props)
 	}
 
 	get name() {
@@ -40,6 +39,10 @@ class Uniform {
 
 	get arrayBuffer() {
 		return this.view.arrayBuffer
+	}
+
+	set arrayBuffer(ab: ArrayBuffer) {
+		this.view.arrayBuffer = ab
 	}
 
 	get needsUpdate() {
@@ -69,7 +72,12 @@ class Uniform {
 		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
 	}
 
-	private createBuffer(device: GPUDevice) {
+	protected initView(props: IProps) {
+		this.view = makeStructuredView(this.def)
+		this.view.set(props.value)
+	}
+
+	protected createBuffer(device: GPUDevice) {
 		if (this.buffer) this.buffer.destroy()
 		this.buffer = device.createBuffer({
 			size: this.byteLength,

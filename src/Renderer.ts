@@ -24,8 +24,8 @@ class Renderer {
 
 	constructor(props: IProps) {
 		this.outputCanvas = props.canvas
-		this.outputCanvas.width = (this.outputCanvas.offsetWidth * 0.1) / window.devicePixelRatio
-		this.outputCanvas.height = (this.outputCanvas.offsetHeight * 0.1) / window.devicePixelRatio
+		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
+		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
 		this.canvasCtx = this.outputCanvas.getContext('webgpu') || null
 		this._antialias = props.antiAlias || false
 		this._multisampleTexture = null

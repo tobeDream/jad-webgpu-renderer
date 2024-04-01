@@ -2,6 +2,7 @@ import { ShaderDataDefinitions, makeShaderDataDefinitions } from 'webgpu-utils'
 import { Blending } from 'localType'
 import Renderer from '../Renderer'
 import Uniform from './uniform'
+import Storage from './storage'
 import Attribute from '@/geometry/attribute'
 
 type IProps = {
@@ -13,14 +14,14 @@ type IProps = {
 }
 
 class Material {
-	private vsEntry = 'vs'
-	private fsEntry = 'fs'
-	private code: string
-	private uniforms: Record<string, Uniform>
-	private blending: Blending
-	private pipelineDescriptor: GPURenderPipelineDescriptor | null
-	private shaderModule: GPUShaderModule | null
-	private _defs: ShaderDataDefinitions
+	protected vsEntry = 'vs'
+	protected fsEntry = 'fs'
+	protected code: string
+	protected uniforms: Record<string, Uniform>
+	protected blending: Blending
+	protected pipelineDescriptor: GPURenderPipelineDescriptor | null
+	protected shaderModule: GPUShaderModule | null
+	protected _defs: ShaderDataDefinitions
 
 	constructor(props: IProps) {
 		this.blending = props.blending || 'none'
@@ -37,12 +38,15 @@ class Material {
 		return this._defs
 	}
 
-	private initUniforms(uniforms: Record<string, any>) {
+	protected initUniforms(uniforms: Record<string, any>) {
 		const defs = makeShaderDataDefinitions(this.code)
 		this._defs = defs
-		defs.storages
+		console.log(defs)
 		for (let un in defs.uniforms) {
 			this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
+		}
+		for (let sn in defs.storages) {
+			this.uniforms[sn] = new Storage({ name: sn, def: defs.storages[sn], value: uniforms[sn] })
 		}
 	}
 
@@ -82,7 +86,9 @@ class Material {
 			}
 			for (let attr of attributes) {
 				const def = this.defs.storages[attr.name]
-				if (!def || attr.storeType !== 'storageBuffer') continue
+				if (!def)
+					throw `the definetion of attribute ${attr.name} not found in shader, attribute name must equal to the shader variable name. Please check`
+				if (attr.storeType !== 'storageBuffer') continue
 				const { group, binding } = def
 				if (group !== index) continue
 				if (attr.needsUpdate || !attr.buffer) attr.updateBuffer(device)
@@ -108,7 +114,7 @@ class Material {
 		return this.pipelineDescriptor
 	}
 
-	private createPipelineDescriptor(
+	protected createPipelineDescriptor(
 		device: GPUDevice,
 		format: GPUTextureFormat,
 		vertexBufferLayouts: GPUVertexBufferLayout[]
@@ -132,7 +138,7 @@ class Material {
 		this.pipelineDescriptor = pipelineDescriptor
 	}
 
-	private configBlending(pipelineDescriptor: GPURenderPipelineDescriptor) {
+	protected configBlending(pipelineDescriptor: GPURenderPipelineDescriptor) {
 		switch (this.blending) {
 			case 'normalBlending': {
 				//@ts-ignore

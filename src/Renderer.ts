@@ -20,6 +20,8 @@ class Renderer {
 
 	constructor(props: IProps) {
 		this.outputCanvas = props.canvas
+		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
+		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
 		this.canvasCtx = this.outputCanvas.getContext('webgpu') || null
 		if (!this.canvasCtx) {
 			throw 'your browser not supports WebGPU'
@@ -57,6 +59,7 @@ class Renderer {
 		if (!this.device || !this.canvasCtx) return
 		this.updateCameraMatrix(camera)
 		const { device, canvasCtx, renderPassDescriptor } = this
+		console.log(this.outputCanvas.width, this.outputCanvas.height)
 
 		//@ts-ignore
 		renderPassDescriptor.colorAttachments[0].view = canvasCtx.getCurrentTexture().createView()

@@ -68,7 +68,7 @@ class Line extends Model {
 			angleArr[i] = (angleArr[i - count] + Math.PI) % (Math.PI * 2)
 		}
 
-		let lineWidth = 3
+		let lineWidth = 0.5
 		console.log(cornerList)
 		for (let i = 0; i < count; ++i) {
 			const angle = angleArr[i]

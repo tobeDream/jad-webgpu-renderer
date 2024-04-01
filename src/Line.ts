@@ -41,12 +41,10 @@ class Line extends Model {
 		const posArr = new Float32Array(count * 2 * 2)
 		const indexArr = new Uint32Array((count - 1) * 6)
 		const angleArr = new Float32Array(count * 2)
-		const cornerList = new Float32Array(count)
 
 		const fp = new Vector2(positions[0], positions[1])
 		const sp = new Vector2(positions[2], positions[3])
 		angleArr[0] = new Vector2(fp.y - sp.y, sp.x - fp.x).angle()
-		cornerList[0] = Math.PI
 		for (let i = 1; i < count - 1; ++i) {
 			const pp = new Vector2(positions[(i - 1) * 2], positions[(i - 1) * 2 + 1])
 			const p = new Vector2(positions[i * 2], positions[i * 2 + 1])
@@ -56,34 +54,22 @@ class Line extends Model {
 			const corner = (pv.angle() - nv.angle() + Math.PI * 2) % (Math.PI * 2)
 			const angle = (nv.angle() + corner / 2) % (Math.PI * 2)
 			angleArr[i] = angle
-			cornerList[i] = corner
 		}
 		angleArr[count - 1] = new Vector2(
 			positions[count - 3] - positions[count - 1],
 			positions[count * 2 - 2] - positions[count * 2 - 4]
 		).angle()
-		cornerList[count - 1] = Math.PI
 
 		for (let i = count; i < 2 * count; ++i) {
 			angleArr[i] = (angleArr[i - count] + Math.PI) % (Math.PI * 2)
 		}
 
-		let lineWidth = 0.5
-		console.log(cornerList)
 		for (let i = 0; i < count; ++i) {
-			const angle = angleArr[i]
-			const corner = cornerList[i]
 			const p = new Vector2(positions[i * 2], positions[i * 2 + 1])
-			const v = new Vector2(Math.cos(angle), Math.sin(angle))
-			const width = lineWidth / Math.abs(Math.sin(corner / 2))
-			console.log(width)
-			v.multiplyScalar(width)
-			const leftP = p.clone().add(v)
-			const rightP = p.clone().sub(v)
-			posArr[i * 2 + 0] = leftP.x //矩形顶点i
-			posArr[i * 2 + 1] = leftP.y
-			posArr[(i + count) * 2 + 0] = rightP.x //矩形顶点count + i
-			posArr[(i + count) * 2 + 1] = rightP.y
+			posArr[i * 2 + 0] = p.x // leftP.x //矩形顶点i
+			posArr[i * 2 + 1] = p.y // leftP.y
+			posArr[(i + count) * 2 + 0] = p.x // rightP.x //矩形顶点count + i
+			posArr[(i + count) * 2 + 1] = p.y // rightP.y
 			indexArr[i * 6 + 0] = i
 			indexArr[i * 6 + 1] = i + 1
 			indexArr[i * 6 + 2] = i + 1 + count

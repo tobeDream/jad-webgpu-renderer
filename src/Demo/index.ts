@@ -19,7 +19,7 @@ window.r = renderer
 window.s = scene
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const pos = new Float32Array([-40, 0, 30, 5, 0, 20, 30, 20])
+const pos = new Float32Array([-40, 0, 0, 0, 0, 20, 30, 20])
 
 const line = new Line({ positions: pos, material: { color: [1, 0, 0, 0.7], blending: 'normalBlending' } })
 scene.addModel(line)

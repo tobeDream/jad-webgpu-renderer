@@ -26,21 +26,23 @@ class Line extends Model {
 	private initAttributes(props: IProps) {
 		const res = this.extendLineToMesh(props.positions)
 		if (!res) return
-		const { posArr, indexArr, angleArr } = res
-		const positionAttribute = new Attribute('position', posArr, 2, { shaderLocation: 0 })
-		const angleAttribute = new Attribute('angle', angleArr, 1, { shaderLocation: 1 })
-		this.geometry.setAttribute('position', positionAttribute)
-		this.geometry.setAttribute('angle', angleAttribute)
-		this.geometry.vertexCount = (props.positions.length / 2 - 1) * 6
+		const { sideArr, indexArr, angleArr } = res
+		const positionAttribute = new Attribute('positions', props.positions, 2, { storeType: 'storageBuffer' })
+		const angleAttribute = new Attribute('angles', angleArr, 1, { storeType: 'storageBuffer' })
+		const sideAttribute = new Attribute('side', sideArr, 1, { shaderLocation: 0 })
+		this.geometry.setAttribute('positions', positionAttribute)
+		this.geometry.setAttribute('angles', angleAttribute)
+		this.geometry.setAttribute('side', sideAttribute)
 		this.geometry.setIndex(indexArr)
 	}
 
 	private extendLineToMesh(positions: Float32Array) {
 		const count = positions.length / 2
 		if (count < 2) return null
-		const posArr = new Float32Array(count * 2 * 2)
+		const posArr = positions
 		const indexArr = new Uint32Array((count - 1) * 6)
-		const angleArr = new Float32Array(count * 2)
+		const angleArr = new Float32Array(count)
+		const sideArr = new Float32Array(count * 2) //1: left side, -1: right side
 
 		const fp = new Vector2(positions[0], positions[1])
 		const sp = new Vector2(positions[2], positions[3])
@@ -56,7 +58,7 @@ class Line extends Model {
 			angleArr[i] = angle
 		}
 		angleArr[count - 1] = new Vector2(
-			positions[count - 3] - positions[count - 1],
+			positions[count * 2 - 3] - positions[count * 2 - 1],
 			positions[count * 2 - 2] - positions[count * 2 - 4]
 		).angle()
 
@@ -65,11 +67,8 @@ class Line extends Model {
 		}
 
 		for (let i = 0; i < count; ++i) {
-			const p = new Vector2(positions[i * 2], positions[i * 2 + 1])
-			posArr[i * 2 + 0] = p.x // leftP.x //矩形顶点i
-			posArr[i * 2 + 1] = p.y // leftP.y
-			posArr[(i + count) * 2 + 0] = p.x // rightP.x //矩形顶点count + i
-			posArr[(i + count) * 2 + 1] = p.y // rightP.y
+			sideArr[i] = 1
+			sideArr[i + count] = -1
 			indexArr[i * 6 + 0] = i
 			indexArr[i * 6 + 1] = i + 1
 			indexArr[i * 6 + 2] = i + 1 + count
@@ -78,9 +77,9 @@ class Line extends Model {
 			indexArr[i * 6 + 5] = i + count
 		}
 
-		console.log(posArr, indexArr, angleArr)
+		console.log(angleArr, sideArr)
 
-		return { posArr, indexArr, angleArr }
+		return { sideArr, indexArr, angleArr }
 	}
 }
 

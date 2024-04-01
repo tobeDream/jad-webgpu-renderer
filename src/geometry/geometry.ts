@@ -1,3 +1,4 @@
+import { VariableDefinitions } from 'webgpu-utils'
 import Attribute from './attribute'
 
 class Geometry {
@@ -66,9 +67,13 @@ class Geometry {
 		}
 	}
 
+	public getStorageAttrbutes() {
+		return Object.values(this.attributes).filter((attr) => attr.storeType === 'storageBuffer')
+	}
+
 	public getVertexStateInfo() {
 		const vertexBufferLayouts: GPUVertexBufferLayout[] = []
-		for (let attribute of Object.values(this.attributes)) {
+		for (let attribute of Object.values(this.attributes).filter((attr) => attr.storeType === 'vertexBuffer')) {
 			const { itemSize, array, shaderLocation, stepMode } = attribute
 			const bufferLayout: GPUVertexBufferLayout = {
 				arrayStride: itemSize * array.BYTES_PER_ELEMENT,
@@ -89,7 +94,7 @@ class Geometry {
 	public getVertexBufferList(device: GPUDevice) {
 		const bufferList: GPUBuffer[] = []
 		const locationList: number[] = []
-		for (let attribute of Object.values(this.attributes)) {
+		for (let attribute of Object.values(this.attributes).filter((attr) => attr.storeType === 'vertexBuffer')) {
 			if (attribute.needsUpdate || !attribute.buffer) attribute.updateBuffer(device)
 			bufferList.push(attribute.buffer as GPUBuffer)
 			locationList.push(attribute.shaderLocation || 0)

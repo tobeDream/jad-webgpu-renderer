@@ -1,7 +1,8 @@
-import { makeShaderDataDefinitions } from 'webgpu-utils'
+import { ShaderDataDefinitions, makeShaderDataDefinitions } from 'webgpu-utils'
 import { Blending } from 'localType'
 import Renderer from '../Renderer'
 import Uniform from './uniform'
+import Attribute from '@/geometry/attribute'
 
 type IProps = {
 	shaderCode: string
@@ -11,8 +12,6 @@ type IProps = {
 	blending?: Blending
 }
 
-const bufferExistedUnifoms = ['projectionMatrix', 'viewMatrix', 'resolution']
-
 class Material {
 	private vsEntry = 'vs'
 	private fsEntry = 'fs'
@@ -21,6 +20,7 @@ class Material {
 	private blending: Blending
 	private pipeline: GPURenderPipeline | null
 	private shaderModule: GPUShaderModule | null
+	private _defs: ShaderDataDefinitions
 
 	constructor(props: IProps) {
 		this.blending = props.blending || 'none'
@@ -33,9 +33,14 @@ class Material {
 		this.initUniforms(props.uniforms || {})
 	}
 
+	get defs() {
+		return this._defs
+	}
+
 	private initUniforms(uniforms: Record<string, any>) {
 		const defs = makeShaderDataDefinitions(this.code)
-		console.log(defs)
+		this._defs = defs
+		defs.storages
 		for (let un in defs.uniforms) {
 			this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
 		}
@@ -46,9 +51,13 @@ class Material {
 		return uniform
 	}
 
-	public getBindGroups(renderer: Renderer, device: GPUDevice, pipeline: GPURenderPipeline) {
+	public getBindGroups(renderer: Renderer, device: GPUDevice, pipeline: GPURenderPipeline, attributes: Attribute[]) {
 		const bindGroups: GPUBindGroup[] = []
-		const groupIndexList = Array.from(new Set(Object.values(this.uniforms).map((u) => u.group)))
+		const uniformGroupIndexs = Object.values(this.uniforms).map((u) => u.group)
+		const attributeGroupIndexs = attributes
+			.map((attr) => this.defs.storages[attr.name]?.group)
+			.filter((idx) => idx !== undefined)
+		const groupIndexList = Array.from(new Set([...uniformGroupIndexs, ...attributeGroupIndexs]))
 		for (let index of groupIndexList) {
 			const descriptor: GPUBindGroupDescriptor = {
 				layout: pipeline.getBindGroupLayout(index),
@@ -69,6 +78,19 @@ class Material {
 				entries.push({
 					binding: uniform.binding,
 					resource: { buffer }
+				})
+			}
+			for (let attr of attributes) {
+				const def = this.defs.storages[attr.name]
+				if (!def || attr.storeType !== 'storageBuffer') continue
+				const { group, binding } = def
+				if (group !== index) continue
+				if (attr.needsUpdate || !attr.buffer) attr.updateBuffer(device)
+				if (!attr.buffer) continue
+				const entries = descriptor.entries as GPUBindGroupEntry[]
+				entries.push({
+					binding: binding,
+					resource: { buffer: attr.buffer }
 				})
 			}
 			const bindGroup = device.createBindGroup(descriptor)

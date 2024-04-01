@@ -72,7 +72,13 @@ class Renderer {
 			const { bufferList: vertexBufferList, locationList } = geometry.getVertexBufferList(this.device)
 			const pipeline = material.getPipeline(this.device, this.presentationFormat, vertexStateInfo)
 			if (!pipeline) continue
-			const { bindGroups, groupIndexList } = material.getBindGroups(this, device, pipeline)
+			const { bindGroups, groupIndexList } = material.getBindGroups(
+				this,
+				device,
+				pipeline,
+				geometry.getStorageAttrbutes()
+			)
+			console.log(bindGroups, groupIndexList)
 			pass.setPipeline(pipeline)
 			for (let i = 0; i < bindGroups.length; ++i) {
 				pass.setBindGroup(groupIndexList[i], bindGroups[i])

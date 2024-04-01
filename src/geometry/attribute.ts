@@ -4,6 +4,7 @@ import { TypedArray } from 'localType'
 type Options = {
 	shaderLocation?: number
 	stepMode?: GPUVertexStepMode
+	storeType?: 'vertexBuffer' | 'storageBuffer'
 }
 
 class Attribute {
@@ -14,6 +15,7 @@ class Attribute {
 	private _buffer: GPUBuffer | null
 	private _shaderLocation?: number
 	private _stepMode: GPUVertexStepMode = 'vertex'
+	private _storeType: 'vertexBuffer' | 'storageBuffer'
 
 	constructor(name: string, data: TypedArray, itemSize: number, options?: Options) {
 		this._name = name
@@ -21,6 +23,7 @@ class Attribute {
 		this._itemSize = itemSize
 		this._buffer = null
 		this._shaderLocation = options?.shaderLocation
+		this._storeType = options?.storeType || 'vertexBuffer'
 		if (options?.stepMode) this._stepMode = options.stepMode
 	}
 
@@ -30,6 +33,10 @@ class Attribute {
 
 	get shaderLocation() {
 		return this._shaderLocation
+	}
+
+	get storeType() {
+		return this._storeType
 	}
 
 	set shaderLocation(l: number | undefined) {
@@ -76,7 +83,9 @@ class Attribute {
 		this._buffer = device.createBuffer({
 			label: this.name + ' vertex buffer',
 			size: this._array.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+			usage:
+				(this._storeType === 'vertexBuffer' ? GPUBufferUsage.VERTEX : GPUBufferUsage.STORAGE) |
+				GPUBufferUsage.COPY_DST
 		})
 		device.queue.writeBuffer(this._buffer, 0, this._array)
 		this._needUpdate = false

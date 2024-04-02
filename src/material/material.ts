@@ -55,6 +55,12 @@ class Material {
 		return uniform
 	}
 
+	public updateUniform(uniformName: string, value: any) {
+		const uniform = this.uniforms[uniformName]
+		if (!uniform) return
+		uniform.udpateValue(value)
+	}
+
 	public getBindGroups(renderer: Renderer, device: GPUDevice, pipeline: GPURenderPipeline, attributes: Attribute[]) {
 		const bindGroups: GPUBindGroup[] = []
 		const uniformGroupIndexs = Object.values(this.uniforms).map((u) => u.group)

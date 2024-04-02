@@ -32,6 +32,7 @@ class Storage extends Uniform {
 
 	public udpateValue(value: any, byteLength = this.byteLength) {
 		this.setView(value, byteLength / 4)
+		this._needsUpdate = true
 	}
 
 	protected createBuffer(device: GPUDevice) {

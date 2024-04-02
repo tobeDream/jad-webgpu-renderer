@@ -51,4 +51,7 @@ window.c = camera
 
 renderer.render(camera, scene)
 
-const orth = new OrthographicCamera(100, 200, 200, 100, 100, 200)
+setTimeout(() => {
+	points.material.updateUniform('color', [1, 0, 0, 0.5])
+	renderer.render(camera, scene)
+}, 3000)

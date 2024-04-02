@@ -13,16 +13,22 @@ class Uniform {
 	protected def: VariableDefinition
 	protected view: StructuredView
 	protected buffer: GPUBuffer | null
+	protected _value: any
 
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
 		this.buffer = null
+		this._value = props.value
 		this.initView(props)
 	}
 
 	get name() {
 		return this._name
+	}
+
+	get value() {
+		return this._value
 	}
 
 	get binding() {
@@ -55,6 +61,8 @@ class Uniform {
 
 	public udpateValue(value: any) {
 		this.view.set(value)
+		this._value = value
+		this._needsUpdate = true
 	}
 
 	public getBuffer(device: GPUDevice) {

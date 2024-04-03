@@ -53,6 +53,12 @@ class LineMaterial extends Material {
 		const lineWidth = props.lineWidth || 5
 		super({ shaderCode: code, blending: props.blending, uniforms: { style: { color, lineWidth } } })
 	}
+
+	public updateUniform(uniformName: string, value: any) {
+		const styleUniform = this.uniforms.style
+		if (!(uniformName in styleUniform.value)) return
+		styleUniform.udpateValue({ ...styleUniform.value, [uniformName]: value })
+	}
 }
 
 export default LineMaterial

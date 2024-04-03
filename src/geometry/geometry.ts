@@ -93,13 +93,11 @@ class Geometry {
 
 	public getVertexBufferList(device: GPUDevice) {
 		const bufferList: GPUBuffer[] = []
-		const locationList: number[] = []
 		for (let attribute of Object.values(this.attributes).filter((attr) => attr.storeType === 'vertexBuffer')) {
 			if (attribute.needsUpdate || !attribute.buffer) attribute.updateBuffer(device)
 			bufferList.push(attribute.buffer as GPUBuffer)
-			locationList.push(attribute.shaderLocation || 0)
 		}
-		return { bufferList, locationList }
+		return bufferList
 	}
 
 	public getIndexBuffer(device: GPUDevice) {

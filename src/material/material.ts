@@ -42,7 +42,6 @@ class Material {
 	protected initUniforms(uniforms: Record<string, any>) {
 		const defs = makeShaderDataDefinitions(this.code)
 		this._defs = defs
-		console.log(defs)
 		for (let un in uniforms) {
 			if (un in defs.uniforms) {
 				this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })

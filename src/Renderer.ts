@@ -94,7 +94,7 @@ class Renderer {
 			const { geometry, material } = model
 			if (geometry.vertexCount === -1) continue
 			const vertexStateInfo = geometry.getVertexStateInfo()
-			const { bufferList: vertexBufferList, locationList } = geometry.getVertexBufferList(this.device)
+			const vertexBufferList = geometry.getVertexBufferList(this.device)
 			const pipelineDescriptor = material.getPipelineDescriptor(
 				this.device,
 				this.presentationFormat,
@@ -113,7 +113,7 @@ class Renderer {
 				pass.setBindGroup(groupIndexList[i], bindGroups[i])
 			}
 			for (let i = 0; i < vertexBufferList.length; ++i) {
-				pass.setVertexBuffer(locationList[i], vertexBufferList[i])
+				pass.setVertexBuffer(i, vertexBufferList[i])
 			}
 			const indexBuffer = geometry.getIndexBuffer(device)
 			if (indexBuffer) {

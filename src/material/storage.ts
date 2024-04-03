@@ -16,7 +16,6 @@ class Storage extends Uniform {
 	}
 
 	protected initView(props: IProps, size = 1) {
-		console.log(this.def)
 		this.setView(props.value, size)
 	}
 

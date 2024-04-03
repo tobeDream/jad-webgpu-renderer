@@ -11,7 +11,7 @@
 		"moduleResolution": "node",
 		"target": "esnext",
 		"jsx": "react",
-		"typeRoots": ["node_modules/@types", "./typings/*", "node_modules/@webgpu/types"],
+		"typeRoots": ["node_modules/@types", "./typings/*", "node_modules/@webgpu/types", "./src/types.ts"],
 		"baseUrl": "./",
 		"paths": {
 			"@/*": ["src/*"],

@@ -1,5 +1,6 @@
 import { OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
+import { precreatedUniforms } from '@/utils'
 
 type IProps = {
 	canvas: HTMLCanvasElement
@@ -14,7 +15,7 @@ class Renderer {
 	private device: GPUDevice
 	private canvasCtx: GPUCanvasContext | null
 	private renderPassDescriptor: GPURenderPassDescriptor
-	private clearColor = [0.3, 0.3, 0.3, 1]
+	private clearColor = [0, 0, 0, 0]
 	private presentationFormat: GPUTextureFormat
 	private _ready = false
 	private _multisampleTexture: GPUTexture | null

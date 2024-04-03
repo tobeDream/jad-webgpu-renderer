@@ -4,6 +4,7 @@ import Renderer from '../Renderer'
 import Uniform from './uniform'
 import Storage from './storage'
 import Attribute from '@/geometry/attribute'
+import { precreatedUniforms } from '@/utils'
 
 type IProps = {
 	shaderCode: string
@@ -42,11 +43,17 @@ class Material {
 		const defs = makeShaderDataDefinitions(this.code)
 		this._defs = defs
 		console.log(defs)
-		for (let un in defs.uniforms) {
-			this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
+		for (let un in uniforms) {
+			if (un in defs.uniforms) {
+				this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
+			} else if (un in defs.storages) {
+				this.uniforms[un] = new Storage({ name: un, def: defs.storages[un], value: uniforms[un] })
+			}
 		}
-		for (let sn in defs.storages) {
-			this.uniforms[sn] = new Storage({ name: sn, def: defs.storages[sn], value: uniforms[sn] })
+		for (let un of precreatedUniforms) {
+			if (un in defs.uniforms) {
+				this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: undefined })
+			}
 		}
 	}
 

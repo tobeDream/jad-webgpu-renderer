@@ -52,7 +52,7 @@ const points = new Points({
 scene.addModel(points)
 scene.addModel(line)
 
-const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
+const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 10000)
 camera.position.set(0, 0, 500)
 //@ts-ignore
 window.c = camera

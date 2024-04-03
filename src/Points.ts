@@ -37,16 +37,16 @@ class Points extends Model {
 	}
 
 	public highlights(indexList: number[]) {
-		const uniform = this.material.getUniform('highlightFlags')
-		const highlightFlags = new Uint32Array(uniform.byteLength / 4)
+		const storage = this.material.getStorage('highlightFlags')
+		const highlightFlags = new Uint32Array(storage.byteLength / 4)
 		for (let index of indexList) {
 			const i = (index / 32) | 0
 			const j = index % 32
 			const mask = 1 << j
 			highlightFlags[i] |= mask
 		}
-		uniform.arrayBuffer = highlightFlags.buffer
-		uniform.needsUpdate = true
+		storage.udpateValue(highlightFlags)
+		storage.needsUpdate = true
 	}
 
 	private initAttributes(props: IProps) {

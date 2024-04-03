@@ -1,7 +1,9 @@
 import Material from './material'
-import { Blending } from '../types'
+import { Blending, TypedArray } from '../types'
 
 type IProps = {
+	positions: TypedArray
+	angles: TypedArray
 	color?: [number, number, number, number]
 	lineWidth?: number
 	blending?: Blending
@@ -51,7 +53,12 @@ class LineMaterial extends Material {
 	constructor(props: IProps) {
 		const color = props.color || [1, 0, 0, 1]
 		const lineWidth = props.lineWidth || 5
-		super({ shaderCode: code, blending: props.blending, uniforms: { style: { color, lineWidth } } })
+		super({
+			shaderCode: code,
+			blending: props.blending,
+			storages: { positions: props.positions, angles: props.angles },
+			uniforms: { style: { color, lineWidth } }
+		})
 	}
 
 	public updateUniform(uniformName: string, value: any) {

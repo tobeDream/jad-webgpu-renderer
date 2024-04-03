@@ -106,7 +106,10 @@ class PointMaterial extends Material {
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props?.blending,
-			uniforms: { highlightFlags: highlightList, style: { color, size, highlightColor, highlightSize } }
+			storages: {
+				highlightFlags: highlightList
+			},
+			uniforms: { style: { color, size, highlightColor, highlightSize } }
 		})
 	}
 

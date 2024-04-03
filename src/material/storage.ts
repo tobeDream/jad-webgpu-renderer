@@ -1,37 +1,86 @@
-import { makeStructuredView } from 'webgpu-utils'
-import Uniform, { IProps as UniformProps } from './uniform'
+import { VariableDefinition } from 'webgpu-utils'
+import { TypedArray } from '../types'
 
-type IProps = UniformProps & {
-	byteLength?: number
+type IProps = {
+	name: string
+	def: VariableDefinition
+	value: TypedArray
 }
 
 /**
  * shader中 storage 变量是动态数组，没有确定的长度，所以webgpu-utils 无法为 storage 创建 typedArray，
  * 需要我们自己设置typedArray。而且 storage buffer的大小是可变的
  */
-class Storage extends Uniform {
+class Storage {
+	protected _name: string
+	protected _needsUpdate = true
+	protected def: VariableDefinition
+	protected view: TypedArray
+	protected buffer: GPUBuffer | null
 	constructor(props: IProps) {
-		super(props)
-		this.initView(props, (props.byteLength || 4) / 4)
+		this._name = props.name
+		this.def = props.def
+		this.buffer = null
+		this.view = props.value
 	}
 
-	protected initView(props: IProps, size = 1) {
-		this.setView(props.value, size)
+	get name() {
+		return this._name
 	}
 
-	private setView(value: any, size: number) {
-		try {
-			const arrayBuffer = new Uint32Array(size).buffer
-			this.view = makeStructuredView(this.def, arrayBuffer)
-			this.view.set(value)
-		} catch (e) {
-			this.setView(value, size * 2)
-		}
+	get value() {
+		return this.view
 	}
 
-	public udpateValue(value: any, byteLength = this.byteLength) {
-		this.setView(value, byteLength / 4)
+	get binding() {
+		return this.def.binding
+	}
+
+	get group() {
+		return this.def.group
+	}
+
+	get byteLength() {
+		return this.view.byteLength
+	}
+
+	get arrayBuffer() {
+		return this.view.buffer
+	}
+
+	get needsUpdate() {
+		return this._needsUpdate
+	}
+
+	set needsUpdate(b: boolean) {
+		this._needsUpdate = b
+	}
+
+	public udpateValue(value: TypedArray) {
+		this.view = value
 		this._needsUpdate = true
+	}
+
+	public getBuffer(device: GPUDevice) {
+		if (!this.buffer) {
+			this.createBuffer(device)
+			this.updateBuffer(device)
+		} else if (this._needsUpdate) {
+			this.updateBuffer(device)
+		}
+		return this.buffer
+	}
+
+	public dispose() {
+		if (this.buffer) this.buffer.destroy()
+	}
+
+	public updateBuffer(device: GPUDevice) {
+		if (!this.buffer) this.createBuffer(device)
+		if (!this.buffer) return
+		if (this.buffer.size <= this.arrayBuffer.byteLength) this.createBuffer(device)
+		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
+		this._needsUpdate = false
 	}
 
 	protected createBuffer(device: GPUDevice) {

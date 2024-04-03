@@ -16,28 +16,25 @@ type IProps = {
 
 class Line extends Model {
 	constructor(props: IProps) {
-		const geometry = new Geometry()
-		const material = new LineMaterial({
-			...props.material
-		})
-		super(geometry, material)
-		this.initAttributes(props)
-	}
-
-	private initAttributes(props: IProps) {
-		const res = this.extendLineToMesh(props.positions)
+		const res = Line.extendLineToMesh(props.positions)
 		if (!res) return
 		const { sideArr, indexArr, angleArr } = res
-		const positionAttribute = new Attribute('positions', props.positions, 2, { storeType: 'storageBuffer' })
-		const angleAttribute = new Attribute('angles', angleArr, 1, { storeType: 'storageBuffer' })
+
+		const geometry = new Geometry()
+		const material = new LineMaterial({
+			...props.material,
+			positions: props.positions,
+			angles: angleArr
+		})
+
+		super(geometry, material)
+
 		const sideAttribute = new Attribute('side', sideArr, 1, { shaderLocation: 0 })
-		this.geometry.setAttribute('positions', positionAttribute)
-		this.geometry.setAttribute('angles', angleAttribute)
 		this.geometry.setAttribute('side', sideAttribute)
 		this.geometry.setIndex(indexArr)
 	}
 
-	private extendLineToMesh(positions: Float32Array) {
+	private static extendLineToMesh(positions: Float32Array) {
 		const count = positions.length / 2
 		if (count < 2) return null
 		const posArr = positions

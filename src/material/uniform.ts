@@ -66,7 +66,12 @@ class Uniform {
 	}
 
 	public getBuffer(device: GPUDevice) {
-		if (!this.buffer) this.createBuffer(device)
+		if (!this.buffer) {
+			this.createBuffer(device)
+			this.updateBuffer(device)
+		} else if (this._needsUpdate) {
+			this.updateBuffer(device)
+		}
 		return this.buffer
 	}
 
@@ -78,6 +83,7 @@ class Uniform {
 		if (!this.buffer) this.createBuffer(device)
 		if (!this.buffer) return
 		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
+		this._needsUpdate = false
 	}
 
 	protected initView(props: IProps) {

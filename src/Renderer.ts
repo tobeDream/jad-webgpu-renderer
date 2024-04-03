@@ -102,12 +102,7 @@ class Renderer {
 			)
 			if (!pipelineDescriptor) continue
 			const pipeline = this.createPipeline(pipelineDescriptor)
-			const { bindGroups, groupIndexList } = material.getBindGroups(
-				this,
-				device,
-				pipeline,
-				geometry.getStorageAttrbutes()
-			)
+			const { bindGroups, groupIndexList } = material.getBindGroups(this, device, pipeline)
 			pass.setPipeline(pipeline)
 			for (let i = 0; i < bindGroups.length; ++i) {
 				pass.setBindGroup(groupIndexList[i], bindGroups[i])

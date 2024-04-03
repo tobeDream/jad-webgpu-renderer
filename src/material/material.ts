@@ -1,5 +1,5 @@
 import { ShaderDataDefinitions, makeShaderDataDefinitions } from 'webgpu-utils'
-import { Blending } from 'localType'
+import { Blending } from '../types'
 import Renderer from '../Renderer'
 import Uniform from './uniform'
 import Storage from './storage'

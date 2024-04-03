@@ -2,7 +2,7 @@ import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
 import LineMaterial from './material/lineMaterial'
 import Model from './Model'
-import { Blending } from 'localType'
+import { Blending } from './types'
 import { Vector2 } from 'three'
 
 type IProps = {

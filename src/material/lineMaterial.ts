@@ -1,5 +1,5 @@
 import Material from './material'
-import { Blending } from 'localType'
+import { Blending } from '../types'
 
 type IProps = {
 	color?: [number, number, number, number]

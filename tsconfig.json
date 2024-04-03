@@ -14,8 +14,7 @@
 		"typeRoots": ["node_modules/@types", "./typings/*", "node_modules/@webgpu/types", "./src/types.ts"],
 		"baseUrl": "./",
 		"paths": {
-			"@/*": ["src/*"],
-			"localType": ["src/types.ts"]
+			"@/*": ["src/*"]
 		}
 	},
 	"include": ["./src/**/*"],

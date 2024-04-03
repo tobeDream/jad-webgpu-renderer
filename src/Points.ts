@@ -2,7 +2,7 @@ import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
 import PointMaterial from './material/pointMaterial'
 import Model from './Model'
-import { Blending } from 'localType'
+import { Blending } from './types'
 
 type IProps = {
 	positions: Float32Array

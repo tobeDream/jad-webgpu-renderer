@@ -11,7 +11,6 @@ npm install jad-webgpu-visualization-renderer
 ## Usage
 
 ```ts
-//init
 import { Renderer, Scene, Points } from 'jad-webgpu-visualization-renderer'
 import { PerspectiveCamera } from 'three'
 
@@ -19,26 +18,57 @@ const renderer = new Renderer({ canvas })
 const scene = new Scene()
 //you can use THREE.PerspectiveCamera or OrthographicCamera
 const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
-camera.position.set(0, 0, 100)
+camera.position.set(0, 0, 500)
 
-//add Points Model
-const positions = new Float32Array([30, 20, 20, -20]) //draw two points
-const sizes = new Float32Array([25, 15]) //set size in pixel
-const colors = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]) //set the first point's color to red, the second to green
+const num = 40
+const pos = new Float32Array(num * 2)
+const color = new Uint8Array(num * 4)
+const size = new Float32Array(num)
+for (let i = 0; i < num; ++i) {
+	pos[2 * i] = (640 / num) * i - 320
+	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
+	color[i * 4 + 0] = 255
+	color[i * 4 + 1] = ((num - i) / num) * 255
+	color[i * 4 + 2] = 0
+	color[i * 4 + 3] = 255
+	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 15 + 15
+}
+
+//create Line model
+const line = new Line({
+	positions: pos,
+	material: { color: [0.0, 0.0, 1, 0.5], lineWidth: 10, blending: 'normalBlending' } //optional
+})
+
+//create Points model
 const points = new Points({
-	positions,
-	sizes,
-	colors,
+	positions: pos,
+	colors: color, //optional
+	sizes: size, //optional
 	material: {
-		blending: 'normalBlending'
+		//optional
+		color: [1, 1, 0, 1],
+		blending: 'normalBlending',
+		size: 25,
+		highlightSize: 40,
+		highlightColor: [1, 0, 0, 0.5]
 	}
 })
-scene.addModel(points)
 
-//draw the two points to the canvas
+scene.addModel(points)
+scene.addModel(line)
+
 renderer.render(camera, scene)
+
+setTimeout(() => {
+	//change line color after 3sec
+	line.material.updateUniform('color', [1, 0, 0, 0.5])
+	//highlight 1st 5th 20th and 33th point
+	points.highlights([1, 5, 20, 33])
+	renderer.render(camera, scene)
+}, 3000)
 ```
 
 ## TODO
 
-1. draw lines with width
+1. draw heatmap

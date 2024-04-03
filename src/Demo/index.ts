@@ -22,6 +22,7 @@ window.s = scene
 const num = 40
 const pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
+const size = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
 	pos[2 * i] = (640 / num) * i - 320
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
@@ -29,6 +30,7 @@ for (let i = 0; i < num; ++i) {
 	color[i * 4 + 1] = ((num - i) / num) * 255
 	color[i * 4 + 2] = 0
 	color[i * 4 + 3] = 255
+	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 15 + 15
 }
 
 const line = new Line({
@@ -38,6 +40,7 @@ const line = new Line({
 const points = new Points({
 	positions: pos,
 	colors: color,
+	sizes: size,
 	material: {
 		color: [1, 1, 0, 1],
 		blending: 'normalBlending',
@@ -58,5 +61,6 @@ renderer.render(camera, scene)
 
 setTimeout(() => {
 	line.material.updateUniform('color', [1, 0, 0, 0.5])
+	points.highlights([1, 5, 20, 33])
 	renderer.render(camera, scene)
 }, 3000)

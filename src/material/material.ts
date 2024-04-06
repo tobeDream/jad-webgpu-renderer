@@ -98,10 +98,7 @@ class Material {
 					buffer = uniform.getBuffer(device)
 				}
 				if (!buffer) continue
-				entries.push({
-					binding: uniform.binding,
-					resource: { buffer }
-				})
+				entries.push({ binding: uniform.binding, resource: { buffer } })
 			}
 			for (let sn in this.storages) {
 				const storage = this.storages[sn]

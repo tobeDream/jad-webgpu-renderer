@@ -1,6 +1,6 @@
 import { Vector3 } from 'three'
 import { makeShaderDataDefinitions } from 'webgpu-utils'
-import Uniform from '../material/uniform'
+import Uniform from './material/uniform'
 
 const defaultWorkgroupSize: [number, number, number] = [8, 8, 1]
 

@@ -19,9 +19,9 @@ async function main() {
 	const radius = 3
 	const points = new Float32Array(num * 2)
 
-	points[0] = -0.99
+	points[0] = 0
 	points[1] = 0
-	points[2] = 0.99
+	points[2] = 0
 	points[3] = 0
 	// for (let i = 0; i < num; ++i) {
 	// 	points[i * 2] = Math.random() * 2 - 1
@@ -45,34 +45,34 @@ async function main() {
 			@compute @workgroup_size(1, 1, 1)
 			fn main(@builtin(global_invocation_id) id: vec3u){
 				let index = getIndex(id.xy);
-				// if(index >= arrayLength(&input) / 2){
-				// 	return;
-				// }
+				if(index >= arrayLength(&input)){
+					return;
+				}
 				let point = input[index];
 				//将 ndc 坐标系下的 point 坐标转换为屏幕空间的像素坐标，其中像素坐标的原点位于屏幕的左下方
 				let pc = (point + vec2f(1, 1)) / 2.0f * resolution;
 
-				_ = radius;
-				atomicStore(&output_x[index], u32(pc.x));
-				atomicStore(&output_y[index], u32(pc.y));
+				// _ = radius;
+				// atomicStore(&output_x[index], u32(pc.x));
+				// atomicStore(&output_y[index], u32(pc.y));
 
 				//遍历 point 像素半径覆盖的各个像素
-				// let r = i32(radius);
-				// let r2 = pow(radius, 2f);
-				// for(var i = -r; i <= r; i++){
-				// 	for(var j = -r; j <= r; j++){
-				// 		var xx = (f32(i) + pc.x) % resolution.x;
-				// 		var yy = (f32(j) + pc.y) % resolution.y;
-				// 		let x = u32(step(0, xx) * xx);
-				// 		let y = u32(step(0, yy) * yy);
-				// 		let d = pow(f32(i), 2) + pow(f32(j), 2);
-				// 		let v = u32(step(d, r2)) * vec2u(u32(r - abs(i)), u32(r - abs(j)));
-				// 		// let v = step(0, 1 - d / radius) * (1 - d / radius);
-				// 		let outIdx = y * u32(resolution.x) + x;
-				// 		atomicAdd(&output_x[outIdx], v.x);
-				// 		atomicAdd(&output_y[outIdx], v.y);
-				// 	}
-				// }
+				let r = i32(radius);
+				let r2 = pow(radius, 2f);
+				for(var i = -r; i <= r; i++){
+					for(var j = -r; j <= r; j++){
+						var xx = (f32(i) + pc.x) % resolution.x;
+						var yy = (f32(j) + pc.y) % resolution.y;
+						let x = u32(step(0, xx) * xx);
+						let y = u32(step(0, yy) * yy);
+						let d = pow(f32(i), 2) + pow(f32(j), 2);
+						let v = u32(step(d, r2)) * vec2u(u32(r - abs(i)), u32(r - abs(j)));
+						// let v = step(0, 1 - d / radius) * (1 - d / radius);
+						let outIdx = y * u32(resolution.x) + x;
+						atomicAdd(&output_x[outIdx], v.x);
+						atomicAdd(&output_y[outIdx], v.y);
+					}
+				}
 			}
 		`
 	})
@@ -174,7 +174,7 @@ async function main() {
 	const data1 = new Uint32Array(readBufferY.getMappedRange())
 	let count = 0
 	for (let i = 0; i < data.length; ++i) {
-		if (data[i] !== 0) {
+		if (data[i] !== 0 || data1[i] !== 0) {
 			count++
 			console.log(i, i % canvas.width, (i / canvas.width) | 0, data[i], data1[i])
 		}

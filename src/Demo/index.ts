@@ -1,42 +1,19 @@
-async function main() {
-	const canvas = document.querySelector('#canvas') as HTMLCanvasElement
-	canvas.width = canvas.offsetWidth / 32
-	canvas.height = canvas.offsetHeight / 32
-
-	console.log(canvas.width, canvas.height)
-
-	const ctx = canvas.getContext('webgpu') || null
-	if (!ctx) return
-	const adapter = await navigator.gpu.requestAdapter()
-	const device = await adapter?.requestDevice({
-		requiredLimits: {
-			maxBufferSize: 800 * 1024 * 1024
-		}
-	})
-	if (!device) return
-
-	const num = 2
-	const radius = 3
-	const points = new Float32Array(num * 2)
-
-	points[0] = 0
-	points[1] = 0
-	points[2] = 0
-	points[3] = 0
-	// for (let i = 0; i < num; ++i) {
-	// 	points[i * 2] = Math.random() * 2 - 1
-	// 	points[i * 2 + 1] = Math.random() * 2 - 1
-	// }
-
-	const shaderModule = device.createShaderModule({
+async function computeHeatValues(
+	device: GPUDevice,
+	points: Float32Array,
+	radius: number,
+	resolution: [number, number]
+) {
+	const num = points.length / 2
+	const computeShaderModule = device.createShaderModule({
 		label: 'compute shader demo',
 		code: `
+			const prec = 10000f;
 			@group(0) @binding(0) var<storage> input: array<vec2f>;
-			@group(0) @binding(1) var<storage, read_write> output_x: array<atomic<u32>>;
+			@group(0) @binding(1) var<storage, read_write> output: array<atomic<u32>>;
 			@group(0) @binding(2) var<uniform> grid: vec2u;
 			@group(0) @binding(3) var<uniform> resolution: vec2f;
 			@group(0) @binding(4) var<uniform> radius: f32;
-			@group(0) @binding(5) var<storage, read_write> output_y: array<atomic<u32>>;
 
 			fn getIndex(id: vec2u) -> u32 {
 				return (id.y % grid.y) * grid.x + (id.x % grid.x);
@@ -54,23 +31,21 @@ async function main() {
 
 				// _ = radius;
 				// atomicStore(&output_x[index], u32(pc.x));
-				// atomicStore(&output_y[index], u32(pc.y));
 
 				//遍历 point 像素半径覆盖的各个像素
 				let r = i32(radius);
-				let r2 = pow(radius, 2f);
 				for(var i = -r; i <= r; i++){
 					for(var j = -r; j <= r; j++){
 						var xx = (f32(i) + pc.x) % resolution.x;
 						var yy = (f32(j) + pc.y) % resolution.y;
 						let x = u32(step(0, xx) * xx);
 						let y = u32(step(0, yy) * yy);
-						let d = pow(f32(i), 2) + pow(f32(j), 2);
-						let v = u32(step(d, r2)) * vec2u(u32(r - abs(i)), u32(r - abs(j)));
-						// let v = step(0, 1 - d / radius) * (1 - d / radius);
+						let d = pow(pow(f32(i), 2) + pow(f32(j), 2), 0.5);
+						var h = step(d / radius, 1) * (1 - d / radius);
+						h = pow(h, 1.5);
 						let outIdx = y * u32(resolution.x) + x;
-						atomicAdd(&output_x[outIdx], v.x);
-						atomicAdd(&output_y[outIdx], v.y);
+						let v = u32(step(0, h) * h * prec);
+						atomicAdd(&output[outIdx], v);
 					}
 				}
 			}
@@ -81,7 +56,7 @@ async function main() {
 		label: 'compute pipeline demo',
 		layout: 'auto',
 		compute: {
-			module: shaderModule,
+			module: computeShaderModule,
 			entryPoint: 'main'
 		}
 	})
@@ -96,7 +71,6 @@ async function main() {
 
 	const countX = Math.ceil(num ** 0.5)
 	const countY = Math.ceil(num / countX)
-	console.log(countX, countY, num)
 	const gridValue = new Uint32Array([countX, countY])
 	const gridBuffer = device.createBuffer({
 		label: 'Grid Uniforms',
@@ -105,7 +79,7 @@ async function main() {
 	})
 	device.queue.writeBuffer(gridBuffer, 0, gridValue)
 
-	const resolutionValue = new Float32Array([canvas.width, canvas.height])
+	const resolutionValue = new Float32Array(resolution)
 	const resolutionBuffer = device.createBuffer({
 		label: 'Resolution Uniforms',
 		size: resolutionValue.byteLength,
@@ -120,27 +94,15 @@ async function main() {
 	})
 	device.queue.writeBuffer(inputBuffer, 0, points)
 
-	const outputBufferX = device.createBuffer({
+	const outputBuffer = device.createBuffer({
 		label: 'output storage buffer',
-		size: canvas.width * canvas.height * 4,
+		size: resolution[0] * resolution[1] * 4,
 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
 	})
 
-	const readBufferX = device.createBuffer({
+	const readBuffer = device.createBuffer({
 		label: 'unmaped buffer',
-		size: outputBufferX.size,
-		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-	})
-
-	const outputBufferY = device.createBuffer({
-		label: 'output storage buffer',
-		size: canvas.width * canvas.height * 4,
-		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-	})
-
-	const readBufferY = device.createBuffer({
-		label: 'unmaped buffer',
-		size: outputBufferX.size,
+		size: outputBuffer.size,
 		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
 	})
 
@@ -148,11 +110,10 @@ async function main() {
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
 			{ binding: 0, resource: { buffer: inputBuffer } },
-			{ binding: 1, resource: { buffer: outputBufferX } },
+			{ binding: 1, resource: { buffer: outputBuffer } },
 			{ binding: 2, resource: { buffer: gridBuffer } },
 			{ binding: 3, resource: { buffer: resolutionBuffer } },
-			{ binding: 4, resource: { buffer: radiusBuffer } },
-			{ binding: 5, resource: { buffer: outputBufferY } }
+			{ binding: 4, resource: { buffer: radiusBuffer } }
 		]
 	})
 
@@ -163,25 +124,161 @@ async function main() {
 
 	computePass.dispatchWorkgroups(countX, countY)
 	computePass.end()
-	encoder.copyBufferToBuffer(outputBufferX, 0, readBufferX, 0, readBufferX.size)
-	encoder.copyBufferToBuffer(outputBufferY, 0, readBufferY, 0, readBufferY.size)
+
+	encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, readBuffer.size)
+
 	const commandBuffer = encoder.finish()
 	device.queue.submit([commandBuffer])
 
-	await readBufferX.mapAsync(GPUMapMode.READ)
-	await readBufferY.mapAsync(GPUMapMode.READ)
-	const data = new Uint32Array(readBufferX.getMappedRange())
-	const data1 = new Uint32Array(readBufferY.getMappedRange())
-	let count = 0
+	await readBuffer.mapAsync(GPUMapMode.READ)
+	const data = new Uint32Array(readBuffer.getMappedRange())
+	let maxValue = -Infinity
 	for (let i = 0; i < data.length; ++i) {
-		if (data[i] !== 0 || data1[i] !== 0) {
-			count++
-			console.log(i, i % canvas.width, (i / canvas.width) | 0, data[i], data1[i])
-		}
+		if (maxValue < data[i]) maxValue = data[i]
 	}
-	console.log(data)
-	console.log(data1)
-	console.log('count: ' + count)
+	readBuffer.unmap()
+	return { maxHeatValue: maxValue / 10000, buffer: outputBuffer }
+}
+
+async function main() {
+	const canvas = document.querySelector('#canvas') as HTMLCanvasElement
+	canvas.width = canvas.offsetWidth / 1
+	canvas.height = canvas.offsetHeight / 1
+
+	console.log(canvas.width, canvas.height)
+
+	const context = canvas.getContext('webgpu') || null
+	if (!context) return
+	const adapter = await navigator.gpu.requestAdapter()
+	const device = await adapter?.requestDevice({
+		requiredLimits: {
+			maxBufferSize: 800 * 1024 * 1024
+		}
+	})
+	if (!device) return
+
+	const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
+	context.configure({
+		device,
+		format: presentationFormat,
+		alphaMode: 'premultiplied'
+	})
+
+	const num = 100
+	const radius = 25
+	const points = new Float32Array(num * 2)
+
+	points[0] = 0
+	points[1] = 0
+	points[2] = 0.5
+	points[3] = 0
+	for (let i = 2; i < num; ++i) {
+		points[i * 2] = Math.random() * 2 - 1
+		points[i * 2 + 1] = Math.random() * 2 - 1
+	}
+
+	const { maxHeatValue, buffer } = await computeHeatValues(device, points, radius, [canvas.width, canvas.height])
+	console.log(maxHeatValue)
+
+	//render pipeline
+	const shaderModule = device.createShaderModule({
+		label: 'render shader module',
+		code: `
+			// const resolution = vec2u(175, 119);
+			@group(0) @binding(0) var<storage, read> heatmap: array<u32>;
+			@group(0) @binding(1) var<uniform> max_heat_value: f32;
+			@group(0) @binding(2) var<uniform> resolution: vec2f;
+
+			@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+				let positions = array(
+					vec2f(-1, -1),
+					vec2f(1, 1),
+					vec2f(-1, 1),
+					vec2f(-1, -1),
+					vec2f(1, -1),
+					vec2f(1, 1),
+				);
+
+				return vec4f(positions[vi], 0, 1);
+			}
+
+			@fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
+				let index = u32(pos.y) * u32(resolution.x) + u32(pos.x);
+				var val = f32(heatmap[index]) / max_heat_value / 10000f;
+				return vec4f(val, 0, 0, 1);
+			}
+		`
+	})
+
+	const renderPipeline = device.createRenderPipeline({
+		label: 'hardcoded checkerboard triangle pipeline',
+		layout: 'auto',
+		vertex: {
+			module: shaderModule,
+			entryPoint: 'vs'
+		},
+		fragment: {
+			module: shaderModule,
+			entryPoint: 'fs',
+			targets: [{ format: presentationFormat }]
+		}
+	})
+
+	const renderPassDescriptor: GPURenderPassDescriptor = {
+		label: 'our basic canvas renderPass',
+		colorAttachments: [
+			{
+				view: context.getCurrentTexture().createView(),
+				clearValue: [0.3, 0.3, 0.3, 1],
+				loadOp: 'clear',
+				storeOp: 'store'
+			}
+		]
+	}
+
+	const maxHeatValueArr = new Float32Array([1.5])
+	const maxHeatValueBuffer = device.createBuffer({
+		label: 'max heat value buffer',
+		size: maxHeatValueArr.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	})
+
+	const resolutionValue = new Float32Array([canvas.width, canvas.height])
+	const resolutionBuffer = device.createBuffer({
+		label: 'Resolution Uniforms',
+		size: resolutionValue.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	})
+	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
+
+	device.queue.writeBuffer(maxHeatValueBuffer, 0, maxHeatValueArr)
+	const renderBindGroup = device.createBindGroup({
+		layout: renderPipeline.getBindGroupLayout(0),
+		entries: [
+			{
+				binding: 0,
+				resource: { buffer }
+			},
+			{
+				binding: 1,
+				resource: { buffer: maxHeatValueBuffer }
+			},
+			{
+				binding: 2,
+				resource: { buffer: resolutionBuffer }
+			}
+		]
+	})
+
+	const encoder = device.createCommandEncoder()
+	const renderPass = encoder.beginRenderPass(renderPassDescriptor)
+	renderPass.setPipeline(renderPipeline)
+	renderPass.setBindGroup(0, renderBindGroup)
+	renderPass.draw(6)
+	renderPass.end()
+
+	const commandBuffer = encoder.finish()
+	device.queue.submit([commandBuffer])
 }
 
 main()

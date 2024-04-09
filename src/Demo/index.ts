@@ -184,12 +184,39 @@ async function main() {
 	const shaderModule = device.createShaderModule({
 		label: 'render shader module',
 		code: `
-			// const resolution = vec2u(175, 119);
 			@group(0) @binding(0) var<storage, read> heatmap: array<u32>;
 			@group(0) @binding(1) var<uniform> max_heat_value: f32;
 			@group(0) @binding(2) var<uniform> resolution: vec2f;
+			@group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
+			@group(0) @binding(4) var<uniform> offsets: array<vec4f, 5>;
+
+			fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
+				let rl = abs(mid - low);
+				let rr = abs(mid - high);
+				var vl = (mid - value) / rl;
+				vl = step(0, vl) * vl;
+				var vr = (value - mid) / rr;
+				vr = step(0, vr) * vr;
+
+				return 1 - clamp(vl + vr, 0, 1);
+			}
+
+			fn interpColor(heatValue: f32) -> vec4f {
+				var color = vec4f(0, 0, 0, 0);
+				for(var i = 0;  i < 5; i++){
+					color += fade(
+						select(offsets[i + 1].x, offsets[4].x - offsets[3].x, i == 4),
+						offsets[i].x,
+						select(offsets[i - 1].x, offsets[0].x + offsets[1].x, i == 0),
+						heatValue
+					) * colors[i];
+				}
+				color.a = 1;
+				return color;
+			}
 
 			@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+				_ = offsets;
 				let positions = array(
 					vec2f(-1, -1),
 					vec2f(1, 1),
@@ -205,7 +232,11 @@ async function main() {
 			@fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
 				let index = u32(pos.y) * u32(resolution.x) + u32(pos.x);
 				var val = f32(heatmap[index]) / max_heat_value / 10000f;
-				return vec4f(val, 0, 0, 1);
+				if(val == 0){
+					discard;
+				}
+				let color = interpColor(val);
+				return color * val;
 			}
 		`
 	})
@@ -220,7 +251,21 @@ async function main() {
 		fragment: {
 			module: shaderModule,
 			entryPoint: 'fs',
-			targets: [{ format: presentationFormat }]
+			targets: [
+				{
+					format: presentationFormat,
+					blend: {
+						color: {
+							srcFactor: 'one',
+							dstFactor: 'one-minus-src-alpha'
+						},
+						alpha: {
+							srcFactor: 'one',
+							dstFactor: 'one-minus-src-alpha'
+						}
+					}
+				}
+			]
 		}
 	})
 
@@ -242,6 +287,7 @@ async function main() {
 		size: maxHeatValueArr.byteLength,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 	})
+	device.queue.writeBuffer(maxHeatValueBuffer, 0, maxHeatValueArr)
 
 	const resolutionValue = new Float32Array([canvas.width, canvas.height])
 	const resolutionBuffer = device.createBuffer({
@@ -251,7 +297,22 @@ async function main() {
 	})
 	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
 
-	device.queue.writeBuffer(maxHeatValueBuffer, 0, maxHeatValueArr)
+	const colorList = new Float32Array([1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1])
+	const colorListBuffer = device.createBuffer({
+		label: 'color list buffer',
+		size: colorList.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	})
+	device.queue.writeBuffer(colorListBuffer, 0, colorList)
+
+	const colorOffsetList = new Float32Array([1, 0, 0, 0, 0.85, 0, 0, 0, 0.55, 0, 0, 0, 0.35, 0, 0, 0, 0, 0, 0, 0])
+	const colorOffsetListBuffer = device.createBuffer({
+		label: 'color offsets buffer',
+		size: colorOffsetList.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	})
+	device.queue.writeBuffer(colorOffsetListBuffer, 0, colorOffsetList)
+
 	const renderBindGroup = device.createBindGroup({
 		layout: renderPipeline.getBindGroupLayout(0),
 		entries: [
@@ -266,6 +327,14 @@ async function main() {
 			{
 				binding: 2,
 				resource: { buffer: resolutionBuffer }
+			},
+			{
+				binding: 3,
+				resource: { buffer: colorListBuffer }
+			},
+			{
+				binding: 4,
+				resource: { buffer: colorOffsetListBuffer }
 			}
 		]
 	})

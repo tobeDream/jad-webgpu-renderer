@@ -164,18 +164,19 @@ async function main() {
 		alphaMode: 'premultiplied'
 	})
 
-	const num = 100
+	const num = 1
 	const radius = 25
 	const points = new Float32Array(num * 2)
 
 	points[0] = 0
-	points[1] = 0
+	points[1] = 0.99
 	points[2] = 0.5
 	points[3] = 0
 	for (let i = 2; i < num; ++i) {
 		points[i * 2] = Math.random() * 2 - 1
 		points[i * 2 + 1] = Math.random() * 2 - 1
 	}
+	console.log(points)
 
 	const { maxHeatValue, buffer } = await computeHeatValues(device, points, radius, [canvas.width, canvas.height])
 	console.log(maxHeatValue)
@@ -187,8 +188,8 @@ async function main() {
 			@group(0) @binding(0) var<storage, read> heatmap: array<u32>;
 			@group(0) @binding(1) var<uniform> max_heat_value: f32;
 			@group(0) @binding(2) var<uniform> resolution: vec2f;
+			//color.a 为 颜色插值时对应的 offset 取值范围为0到1
 			@group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
-			@group(0) @binding(4) var<uniform> offsets: array<vec4f, 5>;
 
 			fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
 				let rl = abs(mid - low);
@@ -202,21 +203,25 @@ async function main() {
 			}
 
 			fn interpColor(heatValue: f32) -> vec4f {
-				var color = vec4f(0, 0, 0, 0);
+				if(heatValue > 1){
+					return vec4f(colors[0].rgb, 1);
+				}
+				if(heatValue < 0){
+					return vec4f(colors[4].rgb, 1);
+				}
+				var color = vec3f(0, 0, 0);
 				for(var i = 0;  i < 5; i++){
 					color += fade(
-						select(offsets[i + 1].x, offsets[4].x - offsets[3].x, i == 4),
-						offsets[i].x,
-						select(offsets[i - 1].x, offsets[0].x + offsets[1].x, i == 0),
+						select(colors[i + 1].a, colors[4].a - colors[3].a, i == 4),
+						colors[i].a,
+						select(colors[i - 1].a, colors[0].a + colors[1].a, i == 0),
 						heatValue
-					) * colors[i];
+					) * colors[i].rgb;
 				}
-				color.a = 1;
-				return color;
+				return vec4f(color, 1);
 			}
 
 			@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
-				_ = offsets;
 				let positions = array(
 					vec2f(-1, -1),
 					vec2f(1, 1),
@@ -236,7 +241,8 @@ async function main() {
 					discard;
 				}
 				let color = interpColor(val);
-				return color * val;
+				// return color * val;
+				return vec4f(val, 0, 0, 1);
 			}
 		`
 	})
@@ -281,7 +287,7 @@ async function main() {
 		]
 	}
 
-	const maxHeatValueArr = new Float32Array([1.5])
+	const maxHeatValueArr = new Float32Array([2])
 	const maxHeatValueBuffer = device.createBuffer({
 		label: 'max heat value buffer',
 		size: maxHeatValueArr.byteLength,
@@ -297,21 +303,13 @@ async function main() {
 	})
 	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
 
-	const colorList = new Float32Array([1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1])
+	const colorList = new Float32Array([1, 0, 0, 1, 1, 1, 0, 0.85, 0, 1, 0, 0.55, 0, 0, 1, 0.35, 0, 0, 0, 0])
 	const colorListBuffer = device.createBuffer({
 		label: 'color list buffer',
 		size: colorList.byteLength,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 	})
 	device.queue.writeBuffer(colorListBuffer, 0, colorList)
-
-	const colorOffsetList = new Float32Array([1, 0, 0, 0, 0.85, 0, 0, 0, 0.55, 0, 0, 0, 0.35, 0, 0, 0, 0, 0, 0, 0])
-	const colorOffsetListBuffer = device.createBuffer({
-		label: 'color offsets buffer',
-		size: colorOffsetList.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(colorOffsetListBuffer, 0, colorOffsetList)
 
 	const renderBindGroup = device.createBindGroup({
 		layout: renderPipeline.getBindGroupLayout(0),
@@ -331,10 +329,6 @@ async function main() {
 			{
 				binding: 3,
 				resource: { buffer: colorListBuffer }
-			},
-			{
-				binding: 4,
-				resource: { buffer: colorOffsetListBuffer }
 			}
 		]
 	})

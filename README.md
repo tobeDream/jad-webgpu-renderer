@@ -10,6 +10,8 @@ npm install jad-webgpu-visualization-renderer
 
 ## Usage
 
+### 散点和轨迹渲染
+
 ```ts
 import { Renderer, Scene, Points } from 'jad-webgpu-visualization-renderer'
 import { PerspectiveCamera } from 'three'
@@ -69,7 +71,9 @@ setTimeout(() => {
 }, 3000)
 ```
 
-//Heatmap
+![截图](./screenshots/points_path.png)
+
+### 热力数据渲染
 
 ```ts
 import { Renderer, Scene, Points } from 'jad-webgpu-visualization-renderer'

@@ -34,16 +34,18 @@ async function computeHeatValues(
 
 				//遍历 point 像素半径覆盖的各个像素
 				let r = i32(radius);
-				for(var i = -r; i <= r; i++){
-					for(var j = -r; j <= r; j++){
-						var xx = (f32(i) + pc.x) % resolution.x;
-						var yy = (f32(j) + pc.y) % resolution.y;
-						let x = u32(step(0, xx) * xx);
-						let y = u32(step(0, yy) * yy);
-						let d = pow(pow(f32(i), 2) + pow(f32(j), 2), 0.5);
+				let w = i32(resolution.x);
+				let h = i32(resolution.y);
+				let si = max(0, i32(pc.x) - r);
+				let ei = min(w, i32(pc.x) + r);
+				let sj = max(0, i32(pc.y) - r);
+				let ej = min(h, i32(pc.y) + r);
+				for(var i = si; i <= ei; i++){
+					for(var j = sj; j <= ej; j++){
+						let d = pow(pow(f32(i) - pc.x, 2) + pow(f32(j) - pc.y, 2), 0.5);
 						var h = step(d / radius, 1) * (1 - d / radius);
 						h = pow(h, 1.5);
-						let outIdx = y * u32(resolution.x) + x;
+						let outIdx = u32(j) * u32(resolution.x) + u32(i);
 						let v = u32(step(0, h) * h * prec);
 						atomicAdd(&output[outIdx], v);
 					}
@@ -164,14 +166,14 @@ async function main() {
 		alphaMode: 'premultiplied'
 	})
 
-	const num = 1
-	const radius = 25
+	const num = 200
+	const radius = 20
 	const points = new Float32Array(num * 2)
 
 	points[0] = 0
-	points[1] = 0.99
+	points[1] = 0
 	points[2] = 0.5
-	points[3] = 0
+	points[3] = 0.5
 	for (let i = 2; i < num; ++i) {
 		points[i * 2] = Math.random() * 2 - 1
 		points[i * 2 + 1] = Math.random() * 2 - 1
@@ -235,14 +237,14 @@ async function main() {
 			}
 
 			@fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
-				let index = u32(pos.y) * u32(resolution.x) + u32(pos.x);
+				let index = u32(resolution.y - pos.y) * u32(resolution.x) + u32(pos.x);
 				var val = f32(heatmap[index]) / max_heat_value / 10000f;
 				if(val == 0){
 					discard;
 				}
 				let color = interpColor(val);
-				// return color * val;
-				return vec4f(val, 0, 0, 1);
+				return color * val;
+				// return vec4f(val, 0, 0, 1);
 			}
 		`
 	})

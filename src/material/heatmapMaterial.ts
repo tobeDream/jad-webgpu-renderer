@@ -6,7 +6,7 @@ type IProps = {
 	points: Float32Array
 	colorList?: [Color, Color, Color, Color, Color]
 	offsets?: [number, number, number, number, number]
-	maxHeatValue?: number
+	maxHeatValue?: number | ((maxValue: number) => number)
 	radius?: number
 }
 
@@ -57,7 +57,7 @@ const computeShaderCode = `
 
 const renderShaderCode = `
     @group(0) @binding(0) var<storage, read> heatmap: array<u32>;
-    @group(0) @binding(1) var<uniform> max_heat_value: f32;
+    @group(0) @binding(1) var<uniform> maxHeatValue: f32;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     //color.a 为 颜色插值时对应的 offset 取值范围为0到1
     @group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
@@ -107,7 +107,7 @@ const renderShaderCode = `
 
     @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         let index = u32(resolution.y - pos.y) * u32(resolution.x) + u32(pos.x);
-        var val = f32(heatmap[index]) / max_heat_value / 10000f;
+        var val = f32(heatmap[index]) / maxHeatValue / 10000f;
         if(val == 0){
             discard;
         }
@@ -118,7 +118,8 @@ const renderShaderCode = `
 `
 
 class HeatmapMaterial extends Material {
-	private maxHeatValue = 1
+	private actualMaxHeatValue: number
+	private maxHeatValue: number | ((maxValue: number) => number)
 	private radius = 25
 	private points = new Float32Array([])
 	private colorList: Float32Array
@@ -134,8 +135,10 @@ class HeatmapMaterial extends Material {
 			: new Float32Array([1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
 		this.offsetList = props.offsets ? new Float32Array(props.offsets) : new Float32Array([1, 0.85, 0.55, 0.35, 0])
 		this.maxHeatValue = props.maxHeatValue || 1
+		this.maxHeatValue = typeof props.maxHeatValue === 'number' ? props.maxHeatValue : 1
 		this.points = props.points
-		this.updateUniform('max_heat_value', this.maxHeatValue)
+		this.radius = props.radius || 15
+		this.updateUniform('maxHeatValue', this.maxHeatValue)
 		this.updateUniform('colors', this.colorOffsets)
 	}
 
@@ -210,6 +213,12 @@ class HeatmapMaterial extends Material {
 		})
 		this.replaceStorageBuffer('heatmap', outputBuffer)
 
+		const readBuffer = device.createBuffer({
+			label: 'unmaped buffer',
+			size: outputBuffer.size,
+			usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+		})
+
 		const bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
@@ -229,6 +238,18 @@ class HeatmapMaterial extends Material {
 
 		computePass.dispatchWorkgroups(countX, countY)
 		computePass.end()
+
+		encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, readBuffer.size)
+
+		readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+			const data = new Uint32Array(readBuffer.getMappedRange())
+			let maxValue = -Infinity
+			for (let i = 0; i < data.length; ++i) {
+				if (maxValue < data[i]) maxValue = data[i]
+			}
+			console.log(maxValue)
+			readBuffer.unmap()
+		})
 	}
 }
 

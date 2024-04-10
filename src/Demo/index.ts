@@ -48,5 +48,12 @@ const h = new Heatmap({
 })
 
 scene.addModel(h)
+//@ts-ignore
+window.h = h
 
 renderer.render(camera, scene)
+
+setTimeout(() => {
+	h.material.updateUniform('maxHeatValue', 2)
+	renderer.render(camera, scene)
+}, 3000)

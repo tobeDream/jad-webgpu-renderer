@@ -1,10 +1,10 @@
 import Material from './material'
-import { Blending, TypedArray } from '../types'
+import { Blending, TypedArray, Color } from '../types'
 
 type IProps = {
 	positions: TypedArray
 	angles: TypedArray
-	color?: [number, number, number, number]
+	color?: Color
 	lineWidth?: number
 	blending?: Blending
 }

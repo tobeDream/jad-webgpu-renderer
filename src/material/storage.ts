@@ -61,6 +61,14 @@ class Storage {
 		this._needsUpdate = true
 	}
 
+	public replaceBuffer(buffer: GPUBuffer) {
+		if (this.buffer) {
+			this.buffer.destroy()
+		}
+		this.buffer = buffer
+		this._needsUpdate = false
+	}
+
 	public getBuffer(device: GPUDevice) {
 		if (!this.buffer) {
 			this.createBuffer(device)

@@ -70,6 +70,13 @@ class Material {
 		uniform.udpateValue(value)
 	}
 
+	public replaceStorageBuffer(sn: string, buffer: GPUBuffer) {
+		const storage = this.storages[sn]
+		if (storage) {
+			storage.replaceBuffer(buffer)
+		}
+	}
+
 	public updateStorage(storageName: string, value: TypedArray) {
 		const storage = this.storages[storageName]
 		if (!storage) return
@@ -121,6 +128,8 @@ class Material {
 		if (!this.pipelineDescriptor) this.createPipelineDescriptor(device, format, vertexBufferLayouts)
 		return this.pipelineDescriptor
 	}
+
+	public recordComputeCommand(renderer: Renderer, encoder: GPUCommandEncoder) {}
 
 	protected createPipelineDescriptor(
 		device: GPUDevice,

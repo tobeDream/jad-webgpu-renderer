@@ -1,6 +1,5 @@
 import { OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
-import { precreatedUniforms } from '@/utils'
 
 type IProps = {
 	canvas: HTMLCanvasElement
@@ -12,7 +11,6 @@ const delay = (t = 1000) => new Promise((resolve) => setTimeout(resolve, t))
 
 class Renderer {
 	private outputCanvas: HTMLCanvasElement
-	private device: GPUDevice
 	private canvasCtx: GPUCanvasContext | null
 	private renderPassDescriptor: GPURenderPassDescriptor
 	private clearColor = [0, 0, 0, 0]
@@ -20,6 +18,7 @@ class Renderer {
 	private _ready = false
 	private _multisampleTexture: GPUTexture | null
 	private _antialias: boolean
+	public device: GPUDevice
 
 	precreatedUniformBuffers: Record<string, GPUBuffer>
 
@@ -88,13 +87,19 @@ class Renderer {
 			colorAttachment.view = this._multisampleTexture?.createView()
 			colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
 		}
+
 		const encoder = device.createCommandEncoder()
+		for (let model of scene.modelList) {
+			model.material.recordComputeCommand(this, encoder)
+		}
+
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
 			const { geometry, material } = model
 			if (geometry.vertexCount === -1) continue
 			const vertexStateInfo = geometry.getVertexStateInfo()
 			const vertexBufferList = geometry.getVertexBufferList(this.device)
+
 			const pipelineDescriptor = material.getPipelineDescriptor(
 				this.device,
 				this.presentationFormat,

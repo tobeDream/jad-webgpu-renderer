@@ -9,3 +9,5 @@ export type TypedArray =
 	| Int32Array
 
 export type Blending = 'normalBlending' | 'additiveBlending' | 'none'
+
+export type Color = [number, number, number, number]

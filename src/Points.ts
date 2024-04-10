@@ -2,7 +2,7 @@ import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
 import PointMaterial from './material/pointMaterial'
 import Model from './Model'
-import { Blending } from './types'
+import { Blending, Color } from './types'
 
 type IProps = {
 	positions: Float32Array
@@ -10,8 +10,8 @@ type IProps = {
 	colors?: Uint8Array
 	material?: {
 		size?: number
-		color?: [number, number, number, number]
-		highlightColor?: [number, number, number, number]
+		color?: Color
+		highlightColor?: Color
 		highlightSize?: number
 		blending?: Blending
 	}

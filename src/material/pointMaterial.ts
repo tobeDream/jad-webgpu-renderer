@@ -1,5 +1,5 @@
 import Material from './material'
-import { Blending } from '../types'
+import { Blending, Color } from '../types'
 
 //wgsl 代码编译时会将未使用的 uniform 变量定义代码删掉，导致 pipeline.layout 为auto 时，不会创建这些 uniform 的 bindGroupLayout
 //而我们使用的 webgpu-utils 库会将这些 uniforms 变量解析出来，导致我们在依靠 webgpu-utils 解析出来的 uniform 定义创建 bindGroup时，
@@ -86,8 +86,8 @@ type IProps = {
 	hasSizeAttribute: boolean
 	numPoints: number
 	blending?: Blending
-	color?: [number, number, number, number]
-	highlightColor?: [number, number, number, number]
+	color?: Color
+	highlightColor?: Color
 	highlightSize?: number
 	size?: number
 }

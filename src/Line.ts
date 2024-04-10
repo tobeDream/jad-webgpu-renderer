@@ -2,13 +2,13 @@ import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
 import LineMaterial from './material/lineMaterial'
 import Model from './Model'
-import { Blending } from './types'
+import { Blending, Color } from './types'
 import { Vector2 } from 'three'
 
 type IProps = {
 	positions: Float32Array
 	material?: {
-		color?: [number, number, number, number]
+		color?: Color
 		lineWidth?: number
 		blending?: Blending
 	}

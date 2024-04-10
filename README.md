@@ -69,6 +69,42 @@ setTimeout(() => {
 }, 3000)
 ```
 
-## TODO
+//Heatmap
 
-1. draw heatmap
+```ts
+import { Renderer, Scene, Points } from 'jad-webgpu-visualization-renderer'
+import { PerspectiveCamera } from 'three'
+
+const renderer = new Renderer({ canvas })
+const scene = new Scene()
+//you can use THREE.PerspectiveCamera or OrthographicCamera
+const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000)
+camera.position.set(0, 0, 500)
+
+const num = 2000
+const points = new Float32Array(num * 2)
+
+points[0] = 0.2
+points[1] = 0
+points[2] = 0.5
+points[3] = 0
+for (let i = 2; i < num; ++i) {
+	points[i * 2] = Math.random() * 600 - 300
+	points[i * 2 + 1] = Math.random() * 200 - 100
+}
+console.log(points)
+
+const h = new Heatmap({
+	points,
+	material: {
+		radius: 5,
+		maxHeatValue: 5
+	}
+})
+
+scene.addModel(h)
+
+renderer.render(camera, scene)
+```
+
+![热力图截图](./screenshots/heatmap.png)

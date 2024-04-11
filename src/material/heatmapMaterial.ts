@@ -10,8 +10,10 @@ type IProps = {
 	radius?: number
 }
 
+const heatValuePrec = 10000
+
 const computeShaderCode = `
-    const prec = 10000f;
+    const prec = ${heatValuePrec}f;
     @group(0) @binding(0) var<storage> input: array<vec2f>;
     @group(0) @binding(1) var<storage, read_write> output: array<atomic<u32>>;
     @group(0) @binding(2) var<uniform> grid: vec2u;
@@ -107,7 +109,7 @@ const renderShaderCode = `
 
     @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         let index = u32(resolution.y - pos.y) * u32(resolution.x) + u32(pos.x);
-        var val = f32(heatmap[index]) / maxHeatValue / 10000f;
+        var val = f32(heatmap[index]) / maxHeatValue / ${heatValuePrec}f;
         if(val == 0){
             discard;
         }
@@ -256,8 +258,7 @@ class HeatmapMaterial extends Material {
 				for (let i = 0; i < data.length; ++i) {
 					if (maxValue < data[i]) maxValue = data[i]
 				}
-				console.log(maxValue / 10000)
-				this.actualMaxHeatValue = maxValue / 10000
+				this.actualMaxHeatValue = maxValue / heatValuePrec
 				this.updateUniform('maxHeatValue', this.getMaxHeatValue())
 				readBuffer.unmap()
 				renderer.render()

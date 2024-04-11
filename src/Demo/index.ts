@@ -44,7 +44,8 @@ const h = new Heatmap({
 	points,
 	material: {
 		radius: 5,
-		maxHeatValue: (maxValue) => maxValue
+		maxHeatValue: 1,
+		maxHeatValueRatio: 1
 	}
 })
 

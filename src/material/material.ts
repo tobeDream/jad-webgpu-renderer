@@ -129,7 +129,7 @@ class Material {
 		return this.pipelineDescriptor
 	}
 
-	public recordComputeCommand(renderer: Renderer, encoder: GPUCommandEncoder) {}
+	public recordComputeCommand(renderer: Renderer) {}
 
 	protected createPipelineDescriptor(
 		device: GPUDevice,

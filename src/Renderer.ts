@@ -2,6 +2,8 @@ import { OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
 
 type IProps = {
+	camera: OrthographicCamera | PerspectiveCamera
+	scene: Scene
 	canvas: HTMLCanvasElement
 	antiAlias?: boolean
 	clearColor?: [number, number, number, number]
@@ -18,11 +20,16 @@ class Renderer {
 	private _ready = false
 	private _multisampleTexture: GPUTexture | null
 	private _antialias: boolean
+
 	public device: GPUDevice
+	public camera: IProps['camera']
+	public scene: Scene
 
 	precreatedUniformBuffers: Record<string, GPUBuffer>
 
 	constructor(props: IProps) {
+		this.camera = props.camera
+		this.scene = props.scene
 		this.outputCanvas = props.canvas
 		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
 		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
@@ -68,7 +75,7 @@ class Renderer {
 	 * @param camera
 	 * @param scene
 	 */
-	public async render(camera: PerspectiveCamera | OrthographicCamera, scene: Scene) {
+	public async render() {
 		let wait = 0
 		while (!this.ready) {
 			await delay(20)
@@ -76,6 +83,7 @@ class Renderer {
 			if (wait > 2000) return
 		}
 		if (!this.device || !this.canvasCtx) return
+		const { camera, scene } = this
 		this.updateCameraMatrix(camera)
 		const { device, canvasCtx, renderPassDescriptor } = this
 
@@ -88,11 +96,11 @@ class Renderer {
 			colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
 		}
 
-		const encoder = device.createCommandEncoder()
 		for (let model of scene.modelList) {
-			model.material.recordComputeCommand(this, encoder)
+			model.material.recordComputeCommand(this)
 		}
 
+		const encoder = device.createCommandEncoder()
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
 			const { geometry, material } = model

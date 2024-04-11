@@ -14,7 +14,6 @@ canvas.width = canvas.offsetWidth
 canvas.height = canvas.offsetHeight
 console.log(canvas.width, canvas.height)
 
-const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0.5] })
 const scene = new Scene()
 //@ts-ignore
 window.r = renderer
@@ -25,6 +24,8 @@ const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000
 camera.position.set(0, 0, 500)
 //@ts-ignore
 window.c = camera
+
+const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearColor: [0, 0, 0, 0.5] })
 
 const num = 2000
 const points = new Float32Array(num * 2)
@@ -43,7 +44,7 @@ const h = new Heatmap({
 	points,
 	material: {
 		radius: 5,
-		maxHeatValue: 5
+		maxHeatValue: (maxValue) => maxValue
 	}
 })
 
@@ -51,9 +52,9 @@ scene.addModel(h)
 //@ts-ignore
 window.h = h
 
-renderer.render(camera, scene)
+renderer.render()
 
-setTimeout(() => {
-	h.material.updateUniform('maxHeatValue', 2)
-	renderer.render(camera, scene)
-}, 3000)
+// setTimeout(() => {
+// 	h.material.updateUniform('maxHeatValue', 2)
+// 	renderer.render(camera, scene)
+// }, 3000)

@@ -101,8 +101,8 @@ console.log(points)
 const h = new Heatmap({
 	points,
 	material: {
-		radius: 5,
-		maxHeatValue: 5
+		radius: 20,
+		maxHeatValue: (maxValue) => maxValue //can be number of (maxValue: number) => number
 	}
 })
 

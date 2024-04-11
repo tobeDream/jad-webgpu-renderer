@@ -118,7 +118,7 @@ const renderShaderCode = `
 `
 
 class HeatmapMaterial extends Material {
-	private actualMaxHeatValue: number
+	private actualMaxHeatValue = -1
 	private maxHeatValue: number | ((maxValue: number) => number)
 	private radius = 25
 	private points = new Float32Array([])
@@ -135,10 +135,9 @@ class HeatmapMaterial extends Material {
 			: new Float32Array([1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
 		this.offsetList = props.offsets ? new Float32Array(props.offsets) : new Float32Array([1, 0.85, 0.55, 0.35, 0])
 		this.maxHeatValue = props.maxHeatValue || 1
-		this.maxHeatValue = typeof props.maxHeatValue === 'number' ? props.maxHeatValue : 1
 		this.points = props.points
 		this.radius = props.radius || 15
-		this.updateUniform('maxHeatValue', this.maxHeatValue)
+		this.updateUniform('maxHeatValue', typeof this.maxHeatValue === 'number' ? this.maxHeatValue : 1)
 		this.updateUniform('colors', this.colorOffsets)
 	}
 
@@ -153,7 +152,12 @@ class HeatmapMaterial extends Material {
 		return res
 	}
 
-	public recordComputeCommand(renderer: Renderer, encoder: GPUCommandEncoder) {
+	private getMaxHeatValue() {
+		if (typeof this.maxHeatValue === 'number') return this.maxHeatValue
+		return this.maxHeatValue(this.actualMaxHeatValue)
+	}
+
+	public recordComputeCommand(renderer: Renderer) {
 		const device = renderer.device
 		const num = this.points.length / 2
 		const computeShaderModule = device.createShaderModule({
@@ -232,6 +236,7 @@ class HeatmapMaterial extends Material {
 			]
 		})
 
+		const encoder = device.createCommandEncoder()
 		const computePass = encoder.beginComputePass()
 		computePass.setPipeline(pipeline)
 		computePass.setBindGroup(0, bindGroup)
@@ -239,17 +244,25 @@ class HeatmapMaterial extends Material {
 		computePass.dispatchWorkgroups(countX, countY)
 		computePass.end()
 
-		encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, readBuffer.size)
+		if (this.actualMaxHeatValue === -1) encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, readBuffer.size)
 
-		readBuffer.mapAsync(GPUMapMode.READ).then(() => {
-			const data = new Uint32Array(readBuffer.getMappedRange())
-			let maxValue = -Infinity
-			for (let i = 0; i < data.length; ++i) {
-				if (maxValue < data[i]) maxValue = data[i]
-			}
-			console.log(maxValue)
-			readBuffer.unmap()
-		})
+		const commandBuffer = encoder.finish()
+		device.queue.submit([commandBuffer])
+
+		if (this.actualMaxHeatValue === -1) {
+			readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+				const data = new Uint32Array(readBuffer.getMappedRange())
+				let maxValue = -Infinity
+				for (let i = 0; i < data.length; ++i) {
+					if (maxValue < data[i]) maxValue = data[i]
+				}
+				console.log(maxValue / 10000)
+				this.actualMaxHeatValue = maxValue / 10000
+				this.updateUniform('maxHeatValue', this.getMaxHeatValue())
+				readBuffer.unmap()
+				renderer.render()
+			})
+		}
 	}
 }
 

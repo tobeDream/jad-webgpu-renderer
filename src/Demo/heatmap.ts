@@ -132,14 +132,15 @@ async function computeHeatValues(
 	const commandBuffer = encoder.finish()
 	device.queue.submit([commandBuffer])
 
-	await readBuffer.mapAsync(GPUMapMode.READ)
-	const data = new Uint32Array(readBuffer.getMappedRange())
-	let maxValue = -Infinity
-	for (let i = 0; i < data.length; ++i) {
-		if (maxValue < data[i]) maxValue = data[i]
-	}
-	readBuffer.unmap()
-	return { maxHeatValue: maxValue / 10000, buffer: outputBuffer }
+	readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+		const data = new Uint32Array(readBuffer.getMappedRange())
+		let maxValue = -Infinity
+		for (let i = 0; i < data.length; ++i) {
+			if (maxValue < data[i]) maxValue = data[i]
+		}
+		readBuffer.unmap()
+	})
+	return { maxHeatValue: 2, buffer: outputBuffer }
 }
 
 async function main() {

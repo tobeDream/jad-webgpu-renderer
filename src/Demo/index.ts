@@ -27,7 +27,7 @@ window.c = camera
 
 const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearColor: [0, 0, 0, 0.5] })
 
-const num = 2000
+const num = 10000
 const points = new Float32Array(num * 2)
 
 points[0] = 0.2
@@ -43,9 +43,8 @@ console.log(points)
 const h = new Heatmap({
 	points,
 	material: {
-		radius: 5,
-		maxHeatValue: 1,
-		maxHeatValueRatio: 1
+		radius: 15,
+		maxHeatValueRatio: 0.5
 	}
 })
 

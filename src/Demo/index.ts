@@ -27,7 +27,6 @@ window.c = camera
 
 const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearColor: [0, 0, 0, 0.5] })
 
-const s = new Date().valueOf()
 const num = 10000
 const points = new Float32Array(num * 2)
 
@@ -40,22 +39,19 @@ for (let i = 2; i < num; ++i) {
 	points[i * 2 + 1] = Math.random() * 200 - 100
 }
 
-console.log(new Date().valueOf() - s)
 const h = new Heatmap({
 	points,
 	material: {
 		radius: 15,
-		maxHeatValueRatio: 1
+		maxHeatValueRatio: 0.5
 	}
 })
-console.log(new Date().valueOf() - s)
 
 scene.addModel(h)
 //@ts-ignore
 window.h = h
 
 renderer.render()
-console.log(new Date().valueOf() - s)
 
 // setTimeout(() => {
 // 	h.material.updateUniform('maxHeatValue', 2)

@@ -7,6 +7,7 @@ type IProps = {
 	canvas: HTMLCanvasElement
 	antiAlias?: boolean
 	clearColor?: [number, number, number, number]
+	deviceLimits?: GPUDeviceDescriptor['requiredLimits']
 }
 
 const delay = (t = 1000) => new Promise((resolve) => setTimeout(resolve, t))
@@ -43,7 +44,7 @@ class Renderer {
 			throw 'your browser not supports WebGPU'
 		}
 		if (props.clearColor) this.clearColor = props.clearColor.slice()
-		this.initWebGPU()
+		this.initWebGPU(props)
 	}
 
 	get ready() {
@@ -148,12 +149,13 @@ class Renderer {
 		if (this._antialias) this.createMultisampleTexture()
 	}
 
-	private async initWebGPU() {
+	private async initWebGPU(props: IProps) {
 		const adapter = await navigator.gpu?.requestAdapter()
 		const device = await adapter?.requestDevice({
-			requiredLimits: {
+			requiredLimits: props.deviceLimits || {
 				//设置单个buffer上限为800MB，略大于一亿个点的坐标Float32Array大小
-				maxBufferSize: 800 * 1024 * 1024
+				maxBufferSize: 800 * 1024 * 1024,
+				maxStorageBufferBindingSize: 800 * 1024 * 1024
 			}
 		})
 		if (!device) {

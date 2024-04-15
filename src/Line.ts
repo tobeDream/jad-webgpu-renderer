@@ -75,6 +75,7 @@ class Line extends Model {
 			indexArr[i * 6 + 5] = i + count
 		}
 
+		console.log(angleArr)
 		return { sideArr, indexArr, angleArr }
 	}
 }

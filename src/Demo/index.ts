@@ -3,6 +3,7 @@ import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Heatmap from '../Heatmap'
 import Points from '../Points'
+import Line from '@/Line'
 
 //@ts-ignore
 window.m = Matrix4
@@ -25,31 +26,41 @@ camera.position.set(0, 0, 500)
 //@ts-ignore
 window.c = camera
 
-const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearColor: [0, 0, 0, 0.5] })
-
-const num = 10000
-const points = new Float32Array(num * 2)
-
-points[0] = 0.2
-points[1] = 0
-points[2] = 0.5
-points[3] = 0
-for (let i = 2; i < num; ++i) {
-	points[i * 2] = Math.random() * 600 - 300
-	points[i * 2 + 1] = Math.random() * 200 - 100
-}
-
-const h = new Heatmap({
-	points,
-	material: {
-		radius: 15,
-		maxHeatValueRatio: 0.5
-	}
+const renderer = new Renderer({
+	camera,
+	scene,
+	canvas,
+	antiAlias: true,
+	clearColor: [0, 0, 0, 0.5]
 })
 
-scene.addModel(h)
+// const num = 40000
+// const points = new Float32Array(num * 2)
+
+// points[0] = 0.2
+// points[1] = 0
+// points[2] = 0.5
+// points[3] = 0
+// for (let i = 2; i < num; ++i) {
+// 	points[i * 2] = Math.random() * 600 - 300
+// 	points[i * 2 + 1] = Math.random() * 200 - 100
+// }
+
+// const h = new Heatmap({
+// 	points,
+// 	material: {
+// 		radius: 6,
+// 		maxHeatValueRatio: 1
+// 	}
+// })
+
+// scene.addModel(h)
 //@ts-ignore
-window.h = h
+// window.h = h
+
+const positions = new Float32Array([-100, 0, 0, 0, -50, 100, 0, 150, 200, 150])
+const l = new Line({ positions, material: { lineWidth: 35 } })
+scene.addModel(l)
 
 renderer.render()
 

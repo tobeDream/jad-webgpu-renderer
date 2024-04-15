@@ -47,6 +47,64 @@ class Renderer {
 		this.initWebGPU(props)
 	}
 
+	private async initWebGPU(props: IProps) {
+		const adapter = await navigator.gpu?.requestAdapter()
+		const device = await adapter?.requestDevice({
+			requiredLimits: {
+				//设置单个buffer上限为800MB，略大于一亿个点的坐标Float32Array大小
+				maxBufferSize: 800 * 1024 * 1024,
+				maxStorageBufferBindingSize: 800 * 1024 * 1024,
+				...props.deviceLimits
+			}
+		})
+		if (!device) {
+			throw 'your browser not supports WebGPU'
+		}
+		this.device = device
+		//@ts-ignore
+		window.limits = device.limits
+		if (!this.canvasCtx) {
+			throw 'your browser not supports WebGPU'
+		}
+		this.presentationFormat = navigator.gpu.getPreferredCanvasFormat()
+		this.canvasCtx.configure({
+			device,
+			format: this.presentationFormat,
+			alphaMode: 'premultiplied'
+		})
+		this.renderPassDescriptor = {
+			label: 'render pass',
+			colorAttachments: [
+				{
+					view: this.canvasCtx.getCurrentTexture().createView(),
+					clearValue: this.clearColor,
+					loadOp: 'clear',
+					storeOp: 'store'
+				}
+			]
+		}
+		const projectionMatrix = device.createBuffer({
+			size: 16 * 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
+		const viewMatrix = device.createBuffer({
+			size: 16 * 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
+		const resolution = device.createBuffer({
+			size: 2 * 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
+		this.precreatedUniformBuffers = {
+			projectionMatrix,
+			viewMatrix,
+			resolution
+		}
+		this._ready = true
+		this.resize()
+		if (this._antialias) this.createMultisampleTexture()
+	}
+
 	get ready() {
 		return this._ready
 	}
@@ -146,63 +204,6 @@ class Renderer {
 			0,
 			new Float32Array([this.width, this.height])
 		)
-		if (this._antialias) this.createMultisampleTexture()
-	}
-
-	private async initWebGPU(props: IProps) {
-		const adapter = await navigator.gpu?.requestAdapter()
-		const device = await adapter?.requestDevice({
-			requiredLimits: props.deviceLimits || {
-				//设置单个buffer上限为800MB，略大于一亿个点的坐标Float32Array大小
-				maxBufferSize: 800 * 1024 * 1024,
-				maxStorageBufferBindingSize: 800 * 1024 * 1024
-			}
-		})
-		if (!device) {
-			throw 'your browser not supports WebGPU'
-		}
-		this.device = device
-		//@ts-ignore
-		window.limits = device.limits
-		if (!this.canvasCtx) {
-			throw 'your browser not supports WebGPU'
-		}
-		this.presentationFormat = navigator.gpu.getPreferredCanvasFormat()
-		this.canvasCtx.configure({
-			device,
-			format: this.presentationFormat,
-			alphaMode: 'premultiplied'
-		})
-		this.renderPassDescriptor = {
-			label: 'render pass',
-			colorAttachments: [
-				{
-					view: this.canvasCtx.getCurrentTexture().createView(),
-					clearValue: this.clearColor,
-					loadOp: 'clear',
-					storeOp: 'store'
-				}
-			]
-		}
-		const projectionMatrix = device.createBuffer({
-			size: 16 * 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		})
-		const viewMatrix = device.createBuffer({
-			size: 16 * 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		})
-		const resolution = device.createBuffer({
-			size: 2 * 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		})
-		this.precreatedUniformBuffers = {
-			projectionMatrix,
-			viewMatrix,
-			resolution
-		}
-		this._ready = true
-		this.resize()
 		if (this._antialias) this.createMultisampleTexture()
 	}
 

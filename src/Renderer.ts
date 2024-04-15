@@ -163,7 +163,7 @@ class Renderer {
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
 			const { geometry, material } = model
-			if (geometry.vertexCount === -1) continue
+			// if (geometry.vertexCount === -1) continue
 			const vertexStateInfo = geometry.getVertexStateInfo()
 			const vertexBufferList = geometry.getVertexBufferList(this.device)
 

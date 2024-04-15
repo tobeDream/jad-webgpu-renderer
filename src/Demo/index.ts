@@ -1,70 +1,59 @@
-import { PerspectiveCamera, Matrix4, Vector4 } from 'three'
+import { OrthographicCamera, PerspectiveCamera, Vector2 } from 'three'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
-import Heatmap from '../Heatmap'
 import Points from '../Points'
-import Line from '@/Line'
+import Line from '../Line'
 
 //@ts-ignore
-window.m = Matrix4
-//@ts-ignore
-window.v = Vector4
+window.V = Vector2
 
 const canvas = document.querySelector('#canvas') as HTMLCanvasElement
 canvas.width = canvas.offsetWidth
 canvas.height = canvas.offsetHeight
-console.log(canvas.width, canvas.height)
-
-const scene = new Scene()
-//@ts-ignore
-window.r = renderer
-//@ts-ignore
-window.s = scene
 
 const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 10000)
 camera.position.set(0, 0, 500)
 //@ts-ignore
 window.c = camera
 
-const renderer = new Renderer({
-	camera,
-	scene,
-	canvas,
-	antiAlias: true,
-	clearColor: [0, 0, 0, 0.5]
+const scene = new Scene()
+//@ts-ignore
+window.s = scene
+const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearColor: [0, 0, 0, 0.5] })
+//@ts-ignore
+window.r = renderer
+
+// const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
+const num = 10000
+const pos = new Float32Array(num * 2)
+const color = new Uint8Array(num * 4)
+const size = new Float32Array(num)
+for (let i = 0; i < num; ++i) {
+	pos[2 * i] = (640 / num) * i - 320
+	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
+	color[i * 4 + 0] = 255
+	color[i * 4 + 1] = ((num - i) / num) * 255
+	color[i * 4 + 2] = 0
+	color[i * 4 + 3] = 255
+	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 15 + 15
+}
+
+const line = new Line({
+	positions: pos,
+	material: { color: [0.0, 0.0, 1, 0.5], lineWidth: 20, blending: 'normalBlending' }
 })
-
-// const num = 40000
-// const points = new Float32Array(num * 2)
-
-// points[0] = 0.2
-// points[1] = 0
-// points[2] = 0.5
-// points[3] = 0
-// for (let i = 2; i < num; ++i) {
-// 	points[i * 2] = Math.random() * 600 - 300
-// 	points[i * 2 + 1] = Math.random() * 200 - 100
-// }
-
-// const h = new Heatmap({
-// 	points,
+// const points = new Points({
+// 	positions: pos,
+// 	colors: color,
+// 	sizes: size,
 // 	material: {
-// 		radius: 6,
-// 		maxHeatValueRatio: 1
+// 		color: [1, 1, 0, 1],
+// 		blending: 'normalBlending',
+// 		size: 25,
+// 		highlightSize: 40,
+// 		highlightColor: [1, 0, 0, 0.5]
 // 	}
 // })
-
-// scene.addModel(h)
-//@ts-ignore
-// window.h = h
-
-const positions = new Float32Array([-100, 0, 0, 0, -50, 100, 0, 150, 200, 150])
-const l = new Line({ positions, material: { lineWidth: 35 } })
-scene.addModel(l)
+scene.addModel(line)
 
 renderer.render()
-
-// setTimeout(() => {
-// 	h.material.updateUniform('maxHeatValue', 2)
-// 	renderer.render(camera, scene)
-// }, 3000)

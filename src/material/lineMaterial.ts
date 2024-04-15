@@ -4,7 +4,6 @@ import { code } from './shaders/line'
 
 type IProps = {
 	positions: TypedArray
-	angles: TypedArray
 	color?: Color
 	lineWidth?: number
 	blending?: Blending
@@ -17,7 +16,7 @@ class LineMaterial extends Material {
 		super({
 			shaderCode: code,
 			blending: props.blending,
-			storages: { positions: props.positions, angles: props.angles },
+			storages: { positions: props.positions },
 			uniforms: { style: { color, lineWidth } }
 		})
 	}

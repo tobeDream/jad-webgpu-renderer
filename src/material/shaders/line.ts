@@ -1,7 +1,6 @@
 export const code = `
     const PI = radians(180.0);
     struct Vertex {
-        @location(0) side: f32,
         @builtin(vertex_index) vi: u32,
     };
 
@@ -15,26 +14,34 @@ export const code = `
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     @group(1) @binding(0) var<uniform> style: Style;
     @group(1) @binding(1) var<storage, read> positions: array<vec2f>;
-    @group(1) @binding(2) var<storage, read> angles: array<f32>;
 
     struct VSOutput {
         @builtin(position) position: vec4f
     };
 
+    fn getAngle(v: vec2f) -> f32 {
+        return (atan2(v.y, v.x) + 2 * PI) % (2 * PI);
+    }
+
     @vertex fn vs(vert: Vertex) -> VSOutput {
         var vsOut: VSOutput;
         let posLen = arrayLength(&positions);
-        let angleLen = arrayLength(&angles);
         let index = vert.vi % posLen;
-        let pos = positions[index % posLen];
-        let angle = angles[index % angleLen];
+        let p = positions[index % posLen];
+        let clipPos = projectionMatrix * viewMatrix * vec4f(p, 0, 1);
+        let side = f32(vert.vi / posLen) * -2 + 1;
+
         let pp = positions[(index - 1) % posLen];
-        let pp2pAngle = (atan2(pp.y - pos.y, pp.x - pos.x) + 2 * PI) % (2 * PI);
-        let lineWidth = select(style.lineWidth / abs(sin(pp2pAngle - angle)), style.lineWidth, index == 0);
-        let clipPos = projectionMatrix * viewMatrix * vec4f(pos, 0, 1);
-        let s = sin(angle);
-        let c = cos(angle);
-        let v = vert.side * vec2f(c, s) * lineWidth / resolution * clipPos.w;
+        let np = positions[(index + 1) % posLen];
+        let vnp = select(vec2f(np.x - p.x, np.y - p.y), vec2f(p.x - pp.x, p.y - pp.y), index == posLen - 1);
+        let vpp = select(vec2f(pp.x - p.x, pp.y - p.y), vec2f(p.x - np.x, p.y - np.y), index == 0);
+        let anp = getAngle(vnp);
+        let app = getAngle(vpp);
+        let angle = (app - anp + 2 * PI) % (2 * PI);//连线 pp -> p -> np 的左侧夹角
+        let lineWidth =  style.lineWidth / abs(sin(angle / 2));
+        let s = sin(angle / 2 + anp);
+        let c = cos(angle / 2 + anp);
+        let v = side * vec2f(c, s) * lineWidth / resolution * clipPos.w;
         vsOut.position = vec4f(clipPos.xy + v, clipPos.z, clipPos.w);
         return vsOut;
     }

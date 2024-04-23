@@ -9,7 +9,7 @@
 		"module": "commonjs", //tsc will throw ES6 module error if setting 'es6' in there
 		// Search under node_modules for non-relative imports.
 		"moduleResolution": "node",
-		"target": "esnext",
+		"target": "es6",
 		"jsx": "react",
 		"typeRoots": ["node_modules/@types", "./typings/*", "node_modules/@webgpu/types", "./src/types.ts"],
 		"baseUrl": "./",

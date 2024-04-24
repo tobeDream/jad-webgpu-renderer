@@ -22,7 +22,7 @@ class HeatmapMaterial extends Material {
 
 	constructor(props: IProps) {
 		super({
-			shaderCode: renderShaderCode,
+			renderCode: renderShaderCode,
 			blending: 'normalBlending'
 		})
 		this.colorList = props.colorList

@@ -64,8 +64,7 @@ abstract class PipelineBase {
 		storage.updateValue(value)
 	}
 
-	protected abstract createPipeline(renderer: Renderer): GPUPipelineBase
-	abstract getPipeline(renderer: Renderer, vertexBufferLayouts: GPUVertexBufferLayout[]): GPUPipelineBase
+	abstract getPipeline(renderer: Renderer, vertexBufferLayouts: GPUVertexBufferLayout[]): GPUPipelineBase | null
 	abstract getBindGroups(renderer: Renderer): { bindGroups: GPUBindGroup[]; groupIndexList: number[] }
 }
 

@@ -14,7 +14,7 @@ class LineMaterial extends Material {
 		const color = props.color || [1, 0, 0, 1]
 		const lineWidth = props.lineWidth || 5
 		super({
-			shaderCode: code,
+			renderCode: code,
 			blending: props.blending,
 			storages: { positions: props.positions },
 			uniforms: { style: { color, lineWidth } }
@@ -22,7 +22,7 @@ class LineMaterial extends Material {
 	}
 
 	public updateUniform(uniformName: string, value: any) {
-		const styleUniform = this.uniforms.style
+		const styleUniform = this.renderPipeline.getUniform('style')
 		if (!(uniformName in styleUniform.value)) return
 		styleUniform.updateValue({ ...styleUniform.value, [uniformName]: value })
 	}

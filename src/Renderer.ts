@@ -17,7 +17,6 @@ class Renderer {
 	private canvasCtx: GPUCanvasContext | null
 	private renderPassDescriptor: GPURenderPassDescriptor
 	private clearColor = [0, 0, 0, 0]
-	private presentationFormat: GPUTextureFormat
 	private _ready = false
 	private _multisampleTexture: GPUTexture | null
 	private _antialias: boolean
@@ -25,6 +24,7 @@ class Renderer {
 	public device: GPUDevice
 	public camera: IProps['camera']
 	public scene: Scene
+	public presentationFormat: GPUTextureFormat
 
 	precreatedUniformBuffers: Record<string, GPUBuffer>
 
@@ -167,14 +167,9 @@ class Renderer {
 			const vertexStateInfo = geometry.getVertexStateInfo()
 			const vertexBufferList = geometry.getVertexBufferList(this.device)
 
-			const pipelineDescriptor = material.getPipelineDescriptor(
-				this.device,
-				this.presentationFormat,
-				vertexStateInfo
-			)
-			if (!pipelineDescriptor) continue
-			const pipeline = this.createPipeline(pipelineDescriptor)
-			const { bindGroups, groupIndexList } = material.getBindGroups(this, device, pipeline)
+			const pipeline = material.getPipeline(this, vertexStateInfo)
+			if (!pipeline) continue
+			const { bindGroups, groupIndexList } = material.getBindGroups(this)
 			pass.setPipeline(pipeline)
 			for (let i = 0; i < bindGroups.length; ++i) {
 				pass.setBindGroup(groupIndexList[i], bindGroups[i])
@@ -217,15 +212,6 @@ class Renderer {
 			size: [outputCanvavTexture.width, outputCanvavTexture.height],
 			sampleCount: 4 //MSAA webgpu只支持采样率为1或者4的多重采样
 		})
-	}
-
-	private createPipeline(pipelineDescriptor: GPURenderPipelineDescriptor) {
-		if (this._antialias) {
-			pipelineDescriptor.multisample = { count: 4 }
-		} else {
-			delete pipelineDescriptor.multisample
-		}
-		return this.device.createRenderPipeline(pipelineDescriptor)
 	}
 
 	private updateCameraMatrix(camera: PerspectiveCamera | OrthographicCamera) {

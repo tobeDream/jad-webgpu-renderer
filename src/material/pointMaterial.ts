@@ -23,7 +23,7 @@ class PointMaterial extends Material {
 		const highlightColor = props.highlightColor || [1, 0, 0, 1]
 		const highlightSize = props.highlightSize || size * 1.2
 		super({
-			shaderCode: getShaderCode(props.hasColorAttribute, props.hasSizeAttribute),
+			renderCode: getShaderCode(props.hasColorAttribute, props.hasSizeAttribute),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props?.blending,
@@ -35,7 +35,7 @@ class PointMaterial extends Material {
 	}
 
 	public updateUniform(uniformName: string, value: any) {
-		const styleUniform = this.uniforms.style
+		const styleUniform = this.renderPipeline.getUniform('style')
 		if (!(uniformName in styleUniform.value)) return
 		styleUniform.updateValue({ ...styleUniform.value, [uniformName]: value })
 	}

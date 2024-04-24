@@ -20,18 +20,18 @@ export const computeShaderCode = `
         if(index >= arrayLength(&input)){
             return;
         }
-        let pointInClip = projectionMatrix * viewMatrix * vec4f(input[index], 0, 1);
-        //将裁剪空间下的 point 坐标转换为屏幕空间的像素坐标，其中像素坐标的原点位于屏幕的左下方
-        let pc = (pointInClip.xy / pointInClip.w + vec2f(1, 1)) / 2 * resolution ;
+        let point = projectionMatrix * viewMatrix * vec4f(input[index], 0, 1);
+        //将 ndc 坐标系下的 point 坐标转换为屏幕空间的像素坐标，其中像素坐标的原点位于屏幕的左下方
+        let pc = (point.xy / point.w + vec2f(1, 1)) / 2.0f * resolution ;
 
         //遍历 point 像素半径覆盖的各个像素
         let r = i32(radius);
         let w = i32(resolution.x);
         let h = i32(resolution.y);
         let si = max(0, i32(pc.x) - r);
-        let ei = min(w, i32(pc.x) + r);
+        let ei = min(w - 1, i32(pc.x) + r);
         let sj = max(0, i32(pc.y) - r);
-        let ej = min(h, i32(pc.y) + r);
+        let ej = min(h - 1, i32(pc.y) + r);
         for(var i = si; i <= ei; i++){
             for(var j = sj; j <= ej; j++){
                 let d = pow(pow(f32(i) - pc.x, 2) + pow(f32(j) - pc.y, 2), 0.5);

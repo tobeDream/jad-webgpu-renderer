@@ -16,11 +16,10 @@ class Storage {
 	protected _needsUpdate = true
 	protected def: VariableDefinition
 	protected view: TypedArray
-	protected buffer: GPUBuffer | null
+	protected buffer: GPUBuffer | null = null
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
-		this.buffer = null
 		this.view = props.value
 	}
 
@@ -56,7 +55,7 @@ class Storage {
 		this._needsUpdate = b
 	}
 
-	public udpateValue(value: TypedArray) {
+	public updateValue(value: TypedArray) {
 		this.view = value
 		this._needsUpdate = true
 	}
@@ -72,21 +71,15 @@ class Storage {
 	public getBuffer(device: GPUDevice) {
 		if (!this.buffer) {
 			this.createBuffer(device)
-			this.updateBuffer(device)
 		} else if (this._needsUpdate) {
 			this.updateBuffer(device)
 		}
 		return this.buffer
 	}
 
-	public dispose() {
-		if (this.buffer) this.buffer.destroy()
-	}
-
 	public updateBuffer(device: GPUDevice) {
 		if (!this.buffer) this.createBuffer(device)
 		if (!this.buffer) return
-		if (this.buffer.size <= this.arrayBuffer.byteLength) this.createBuffer(device)
 		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
 		this._needsUpdate = false
 	}
@@ -97,6 +90,11 @@ class Storage {
 			size: this.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
 		})
+		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
+	}
+
+	public dispose() {
+		if (this.buffer) this.buffer.destroy()
 	}
 }
 

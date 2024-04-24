@@ -19,20 +19,16 @@ class Material {
 	protected vsEntry = 'vs'
 	protected fsEntry = 'fs'
 	protected code: string
-	protected uniforms: Record<string, Uniform>
-	protected storages: Record<string, Storage>
+	protected uniforms: Record<string, Uniform> = {}
+	protected storages: Record<string, Storage> = {}
 	protected blending: Blending
-	protected pipelineDescriptor: GPURenderPipelineDescriptor | null
-	protected shaderModule: GPUShaderModule | null
+	protected pipelineDescriptor: GPURenderPipelineDescriptor | null = null
+	protected shaderModule: GPUShaderModule | null = null
 	protected _defs: ShaderDataDefinitions
 
 	constructor(props: IProps) {
 		this.blending = props.blending || 'none'
-		this.uniforms = {}
-		this.storages = {}
 		this.code = props.shaderCode
-		this.pipelineDescriptor = null
-		this.shaderModule = null
 		if (props.vertexShaderEntry) this.vsEntry = props.vertexShaderEntry
 		if (props.fragmentShaderEntry) this.fsEntry = props.fragmentShaderEntry
 		this.parseShaderCode(props)
@@ -67,7 +63,13 @@ class Material {
 	public updateUniform(uniformName: string, value: any) {
 		const uniform = this.uniforms[uniformName]
 		if (!uniform) return
-		uniform.udpateValue(value)
+		uniform.updateValue(value)
+	}
+
+	public updateStorage(storageName: string, value: TypedArray) {
+		const storage = this.storages[storageName]
+		if (!storage) return
+		storage.updateValue(value)
 	}
 
 	public replaceStorageBuffer(sn: string, buffer: GPUBuffer) {
@@ -75,12 +77,6 @@ class Material {
 		if (storage) {
 			storage.replaceBuffer(buffer)
 		}
-	}
-
-	public updateStorage(storageName: string, value: TypedArray) {
-		const storage = this.storages[storageName]
-		if (!storage) return
-		storage.udpateValue(value)
 	}
 
 	public getBindGroups(renderer: Renderer, device: GPUDevice, pipeline: GPURenderPipeline) {

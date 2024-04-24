@@ -12,13 +12,12 @@ class Uniform {
 	protected _needsUpdate = true
 	protected def: VariableDefinition
 	protected view: StructuredView
-	protected buffer: GPUBuffer | null
+	protected buffer: GPUBuffer | null = null
 	protected _value: any
 
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
-		this.buffer = null
 		this._value = props.value
 		this.initView(props)
 	}
@@ -59,7 +58,7 @@ class Uniform {
 		this._needsUpdate = b
 	}
 
-	public udpateValue(value: any) {
+	public updateValue(value: any) {
 		this.view.set(value)
 		this._value = value
 		this._needsUpdate = true

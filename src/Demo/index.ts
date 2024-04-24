@@ -25,7 +25,7 @@ const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearCol
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 64
+const num = 81
 const pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
 const size = new Float32Array(num)
@@ -61,6 +61,7 @@ const heat = new Heatmap({
 		radius: 36
 	}
 })
+
 scene.addModel(line)
 scene.addModel(points)
 scene.addModel(heat)

@@ -24,7 +24,7 @@ class LineMaterial extends Material {
 	public updateUniform(uniformName: string, value: any) {
 		const styleUniform = this.uniforms.style
 		if (!(uniformName in styleUniform.value)) return
-		styleUniform.udpateValue({ ...styleUniform.value, [uniformName]: value })
+		styleUniform.updateValue({ ...styleUniform.value, [uniformName]: value })
 	}
 }
 

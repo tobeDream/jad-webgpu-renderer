@@ -45,7 +45,7 @@ class Points extends Model {
 			const mask = 1 << j
 			highlightFlags[i] |= mask
 		}
-		storage.udpateValue(highlightFlags)
+		storage.updateValue(highlightFlags)
 		storage.needsUpdate = true
 	}
 

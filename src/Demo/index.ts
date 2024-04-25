@@ -64,6 +64,6 @@ const heat = new Heatmap({
 
 scene.addModel(line)
 scene.addModel(points)
-scene.addModel(heat)
+// scene.addModel(heat)
 
 renderer.render()

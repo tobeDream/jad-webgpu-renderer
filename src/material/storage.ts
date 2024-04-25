@@ -4,8 +4,12 @@ import { TypedArray } from '../types'
 type IProps = {
 	name: string
 	def: VariableDefinition
-	value: TypedArray
-}
+} & (
+	| {
+			value: TypedArray
+	  }
+	| { byteLength: number }
+)
 
 /**
  * shader中 storage 变量是动态数组，没有确定的长度，所以webgpu-utils 无法为 storage 创建 typedArray，
@@ -15,12 +19,17 @@ class Storage {
 	protected _name: string
 	protected _needsUpdate = true
 	protected def: VariableDefinition
-	protected view: TypedArray
-	protected buffer: GPUBuffer | null = null
+	protected _value: TypedArray
+	protected _size = 0
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
-		this.view = props.value
+		if ('value' in props) {
+			this._value = props.value
+		}
+		if ('byteLength' in props) {
+			this._size = props.byteLength
+		}
 	}
 
 	get name() {
@@ -28,7 +37,7 @@ class Storage {
 	}
 
 	get value() {
-		return this.view
+		return this._value
 	}
 
 	get binding() {
@@ -40,11 +49,7 @@ class Storage {
 	}
 
 	get byteLength() {
-		return this.view.byteLength
-	}
-
-	get arrayBuffer() {
-		return this.view.buffer
+		return this._value?.byteLength || this._size
 	}
 
 	get needsUpdate() {
@@ -56,45 +61,8 @@ class Storage {
 	}
 
 	public updateValue(value: TypedArray) {
-		this.view = value
+		this._value = value
 		this._needsUpdate = true
-	}
-
-	public replaceBuffer(buffer: GPUBuffer) {
-		if (this.buffer) {
-			this.buffer.destroy()
-		}
-		this.buffer = buffer
-		this._needsUpdate = false
-	}
-
-	public getBuffer(device: GPUDevice) {
-		if (!this.buffer) {
-			this.createBuffer(device)
-		} else if (this._needsUpdate) {
-			this.updateBuffer(device)
-		}
-		return this.buffer
-	}
-
-	public updateBuffer(device: GPUDevice) {
-		if (!this.buffer) this.createBuffer(device)
-		if (!this.buffer) return
-		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
-		this._needsUpdate = false
-	}
-
-	protected createBuffer(device: GPUDevice) {
-		if (this.buffer) this.buffer.destroy()
-		this.buffer = device.createBuffer({
-			size: this.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-		})
-		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
-	}
-
-	public dispose() {
-		if (this.buffer) this.buffer.destroy()
 	}
 }
 

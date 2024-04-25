@@ -1,3 +1,4 @@
+import { makeShaderDataDefinitions } from 'webgpu-utils'
 import Material from './material'
 import Renderer from '../Renderer'
 import { Color } from '../types'
@@ -56,6 +57,7 @@ class HeatmapMaterial extends Material {
 			label: 'compute shader demo',
 			code: computeShaderCode
 		})
+		console.log(makeShaderDataDefinitions(computeShaderCode))
 
 		const pipeline = device.createComputePipeline({
 			label: 'compute pipeline demo',
@@ -144,9 +146,8 @@ class HeatmapMaterial extends Material {
 		const maxValueBuffer = device.createBuffer({
 			label: 'maxValue buffer',
 			size: 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
 		})
-		device.queue.writeBuffer(maxValueBuffer, 0, new Float32Array([0]))
 		this.replaceStorageBuffer('actualMaxHeatValue', maxValueBuffer)
 
 		const computeMaxValueBindGroup = device.createBindGroup({

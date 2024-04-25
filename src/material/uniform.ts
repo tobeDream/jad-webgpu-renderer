@@ -12,14 +12,14 @@ class Uniform {
 	protected _needsUpdate = true
 	protected def: VariableDefinition
 	protected view: StructuredView
-	protected buffer: GPUBuffer | null = null
 	protected _value: any
 
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
 		this._value = props.value
-		this.initView(props)
+		this.view = makeStructuredView(this.def)
+		this.view.set(props.value)
 	}
 
 	get name() {
@@ -62,40 +62,6 @@ class Uniform {
 		this.view.set(value)
 		this._value = value
 		this._needsUpdate = true
-	}
-
-	public getBuffer(device: GPUDevice) {
-		if (!this.buffer) {
-			this.createBuffer(device)
-			this.updateBuffer(device)
-		} else if (this._needsUpdate) {
-			this.updateBuffer(device)
-		}
-		return this.buffer
-	}
-
-	public dispose() {
-		if (this.buffer) this.buffer.destroy()
-	}
-
-	public updateBuffer(device: GPUDevice) {
-		if (!this.buffer) this.createBuffer(device)
-		if (!this.buffer) return
-		device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer)
-		this._needsUpdate = false
-	}
-
-	protected initView(props: IProps) {
-		this.view = makeStructuredView(this.def)
-		this.view.set(props.value)
-	}
-
-	protected createBuffer(device: GPUDevice) {
-		if (this.buffer) this.buffer.destroy()
-		this.buffer = device.createBuffer({
-			size: this.byteLength,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		})
 	}
 }
 

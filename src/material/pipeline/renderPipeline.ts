@@ -1,3 +1,4 @@
+import BufferPool from '@/buffer/bufferPool'
 import PipelineBase, { IProps as BaseProps } from './pipelineBase'
 import Renderer from '@/Renderer'
 
@@ -15,8 +16,6 @@ class RenderPipeline extends PipelineBase {
 		this.vsEntry = props.vsEntry
 		this.fsEntry = props.fsEntry
 	}
-
-	private createShaderModule(device: GPUDevice) {}
 
 	private createPipeline(renderer: Renderer, vertexBufferLayouts: GPUVertexBufferLayout[]) {
 		const { device, presentationFormat } = renderer
@@ -76,46 +75,6 @@ class RenderPipeline extends PipelineBase {
 		const { device } = renderer
 		if (!this.pipeline) this.createPipeline(renderer, vertexBufferLayouts)
 		return this.pipeline
-	}
-
-	getBindGroups(renderer: Renderer): { bindGroups: GPUBindGroup[]; groupIndexList: number[] } {
-		if (!this.pipeline) return { bindGroups: [], groupIndexList: [] }
-
-		const { device } = renderer
-		const bindGroups: GPUBindGroup[] = []
-		const uniformGroupIndexs = Object.values(this.uniforms).map((u) => u.group)
-		const storageGroupIndexs = Object.values(this.storages).map((u) => u.group)
-
-		const groupIndexList = Array.from(new Set([...uniformGroupIndexs, ...storageGroupIndexs]))
-		for (let index of groupIndexList) {
-			const descriptor: GPUBindGroupDescriptor = {
-				layout: this.pipeline.getBindGroupLayout(index),
-				entries: []
-			}
-			const entries = descriptor.entries as GPUBindGroupEntry[]
-			for (let un in this.uniforms) {
-				const uniform = this.uniforms[un]
-				if (uniform.group !== index) continue
-				let buffer: GPUBuffer | null = null
-				if (renderer.precreatedUniformBuffers[uniform.name]) {
-					buffer = renderer.precreatedUniformBuffers[uniform.name]
-				} else {
-					buffer = uniform.getBuffer(device)
-				}
-				if (!buffer) continue
-				entries.push({ binding: uniform.binding, resource: { buffer } })
-			}
-			for (let sn in this.storages) {
-				const storage = this.storages[sn]
-				if (storage.group !== index) continue
-				const buffer = storage.getBuffer(device)
-				if (!buffer) continue
-				entries.push({ binding: storage.binding, resource: { buffer } })
-			}
-			const bindGroup = device.createBindGroup(descriptor)
-			bindGroups.push(bindGroup)
-		}
-		return { bindGroups, groupIndexList }
 	}
 }
 

@@ -25,32 +25,32 @@ const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearCol
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 1000000
+const num = 50000000
 const pos = new Float32Array(num * 2)
-const color = new Uint8Array(num * 4)
+// const color = new Uint8Array(num * 4)
 const size = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
 	pos[2 * i] = (800 / num) * i - 400
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
-	color[i * 4 + 0] = 255
-	color[i * 4 + 1] = ((num - i) / num) * 255
-	color[i * 4 + 2] = 0
-	color[i * 4 + 3] = 155
-	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 15 + 10
+	// color[i * 4 + 0] = 255
+	// color[i * 4 + 1] = ((num - i) / num) * 255
+	// color[i * 4 + 2] = 0
+	// color[i * 4 + 3] = 155
+	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 1 + 2
 }
 
-const line = new Line({
-	positions: pos,
-	material: { color: [0.0, 0.0, 1, 0.2], lineWidth: 10, blending: 'normalBlending' }
-})
+// const line = new Line({
+// 	positions: pos,
+// 	material: { color: [0.0, 0.0, 1, 0.2], lineWidth: 10, blending: 'normalBlending' }
+// })
 const points = new Points({
 	positions: pos,
-	colors: color,
+	// colors: color,
 	sizes: size,
 	material: {
-		color: [1, 1, 0, 0.7],
+		color: [1, 1, 0, 0.1],
 		blending: 'normalBlending',
-		size: 25,
+		size: 2,
 		highlightSize: 40,
 		highlightColor: [1, 0, 0, 0.5]
 	}
@@ -68,7 +68,7 @@ const points = new Points({
 scene.addModel(points)
 // scene.addModel(heat)
 
-renderer.render()
+// renderer.render()
 
 setTimeout(() => {
 	// points.highlights([1, 10, 30, 50])

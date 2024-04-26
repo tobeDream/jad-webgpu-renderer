@@ -21,7 +21,7 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
-    @group(1) @binding(0) var<storage, read> highlightFlags: array<u32>;
+    // @group(1) @binding(0) var<storage, read> highlightFlags: array<u32>;
     @group(1) @binding(1) var<uniform> style: Style;
     
 
@@ -43,14 +43,15 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
             vec2f( 1,  1),
         );
 
-        let i = vert.ii / 32u;
-        let j = vert.ii % 32u;
-        var highlight = f32((highlightFlags[i] >> j) & 1u);
-        vsOut.highlight = highlight;
+        // let i = vert.ii / 32u;
+        // let j = vert.ii % 32u;
+        // var highlight = f32((highlightFlags[i] >> j) & 1u);
+        // vsOut.highlight = highlight;
 
         let pos = points[vert.vi];
         let size = ${hasSize ? 'vert.size' : 'style.size'};
-        let s = mix(size, style.highlightSize, highlight);
+        let s = size;// mix(size, style.highlightSize, highlight);
+        // let s = mix(size, style.highlightSize, highlight);
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
         let pointPos = vec4f(pos * s / resolution * clipPos.w, 0, 0);
 

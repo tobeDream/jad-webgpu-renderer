@@ -4,16 +4,14 @@ import Buffer, { IProps as BufferProps } from './buffer'
 class BufferPool {
 	private bufferMap: Record<string, Buffer> = {}
 
-	public getGPUBuffer(id: string) {
-		const buffer = this.bufferMap[id]
-		if (!buffer) return null
-		return buffer.buffer
+	public getBuffer(id: string) {
+		return this.bufferMap[id]
 	}
 
 	public writeBuffer(device: GPUDevice, id: string, valueBuffer: ArrayBuffer) {
 		const buffer = this.bufferMap[id]
 		if (!buffer) return
-		device.queue.writeBuffer(buffer.buffer, buffer.offset, valueBuffer)
+		device.queue.writeBuffer(buffer.GPUBuffer, buffer.offset, valueBuffer)
 	}
 
 	public addBuffer(param: BufferProps) {

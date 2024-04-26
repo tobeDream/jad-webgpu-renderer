@@ -4,12 +4,9 @@ import { TypedArray } from '../types'
 type IProps = {
 	name: string
 	def: VariableDefinition
-} & (
-	| {
-			value: TypedArray
-	  }
-	| { byteLength: number }
-)
+	value?: TypedArray
+	byteLength?: number
+}
 
 /**
  * shader中 storage 变量是动态数组，没有确定的长度，所以webgpu-utils 无法为 storage 创建 typedArray，
@@ -24,12 +21,9 @@ class Storage {
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
-		if ('value' in props) {
-			this._value = props.value
-		}
-		if ('byteLength' in props) {
-			this._size = props.byteLength
-		}
+		if (props.value) this._value = props.value
+		else if (props.byteLength) this._size = props.byteLength
+		else this._size = 4
 	}
 
 	get name() {
@@ -50,6 +44,10 @@ class Storage {
 
 	get byteLength() {
 		return this._value?.byteLength || this._size
+	}
+
+	set byteLength(size: number) {
+		this._size = size
 	}
 
 	get needsUpdate() {

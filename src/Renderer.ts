@@ -156,7 +156,7 @@ class Renderer {
 		}
 
 		for (let model of scene.modelList) {
-			model.material.recordComputeCommand(this)
+			model.material.submitComputeCommand(this)
 		}
 
 		const encoder = device.createCommandEncoder()
@@ -200,6 +200,9 @@ class Renderer {
 			new Float32Array([this.width, this.height])
 		)
 		if (this._antialias) this.createMultisampleTexture()
+		for (let model of this.scene.modelList) {
+			model.onresize(this)
+		}
 	}
 
 	private createMultisampleTexture() {

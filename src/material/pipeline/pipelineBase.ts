@@ -90,19 +90,19 @@ abstract class PipelineBase {
 				if (renderer.precreatedUniformBuffers[uniform.name]) {
 					buffer = renderer.precreatedUniformBuffers[uniform.name]
 				} else {
-					if (!bufferPool.getGPUBuffer(un)) {
-						bufferPool.addBuffer({
+					buffer = bufferPool.getBuffer(un)?.GPUBuffer
+					if (!buffer) {
+						buffer = bufferPool.addBuffer({
 							id: un,
 							size: uniform.byteLength,
 							usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 							device
-						}).buffer
+						}).GPUBuffer
 					}
 					if (uniform.needsUpdate) {
 						bufferPool.writeBuffer(device, un, uniform.arrayBuffer)
 						uniform.needsUpdate = false
 					}
-					buffer = bufferPool.getGPUBuffer(uniform.name)
 				}
 				if (!buffer) continue
 				entries.push({ binding: uniform.binding, resource: { buffer } })
@@ -110,20 +110,24 @@ abstract class PipelineBase {
 			for (let sn in this.storages) {
 				const storage = this.storages[sn]
 				if (storage.group !== index) continue
-				if (!bufferPool.getGPUBuffer(sn)) {
-					bufferPool.addBuffer({
+				let buffer = bufferPool.getBuffer(sn)
+				if (!buffer) {
+					buffer = bufferPool.addBuffer({
 						id: sn,
 						size: storage.byteLength,
 						usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 						device
 					})
 				}
+				// //因为 storage buffer 长度可变，所以如果 TypedArray 长度变化需要重新分配 GPUBuffer
+				// if (storage.byteLength !== buffer.size) {
+				// 	buffer.reallocate(device, storage.byteLength)
+				// }
 				if (storage.needsUpdate && storage.value) {
 					bufferPool.writeBuffer(device, sn, storage.value.buffer)
 				}
-				const buffer = bufferPool.getGPUBuffer(sn)
 				if (!buffer) continue
-				entries.push({ binding: storage.binding, resource: { buffer } })
+				entries.push({ binding: storage.binding, resource: { buffer: buffer.GPUBuffer } })
 			}
 			const bindGroup = device.createBindGroup(descriptor)
 			bindGroups.push(bindGroup)

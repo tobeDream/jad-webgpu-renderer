@@ -1,4 +1,5 @@
 import { Object3D } from './Object3D'
+import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 
@@ -30,6 +31,10 @@ class Model extends Object3D {
 
 	set material(mat: Material) {
 		this._material = mat
+	}
+
+	public onresize(renderer: Renderer) {
+		this._material.onresize(renderer)
 	}
 }
 

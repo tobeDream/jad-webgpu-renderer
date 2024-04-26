@@ -2,8 +2,8 @@ export const heatValuePrec = 10000
 
 export const computeShaderCode = `
     const prec = ${heatValuePrec}f;
-    @group(0) @binding(0) var<storage> input: array<vec2f>;
-    @group(0) @binding(1) var<storage, read_write> output: array<atomic<u32>>;
+    @group(0) @binding(0) var<storage> points: array<vec2f>;
+    @group(0) @binding(1) var<storage, read_write> heatValueArr: array<atomic<u32>>;
     @group(0) @binding(2) var<uniform> grid: vec2u;
     @group(0) @binding(3) var<uniform> resolution: vec2f;
     @group(0) @binding(4) var<uniform> radius: f32;
@@ -17,10 +17,10 @@ export const computeShaderCode = `
     @compute @workgroup_size(1, 1, 1)
     fn main(@builtin(global_invocation_id) id: vec3u){
         let index = getIndex(id.xy);
-        if(index >= arrayLength(&input)){
+        if(index >= arrayLength(&points)){
             return;
         }
-        let point = projectionMatrix * viewMatrix * vec4f(input[index], 0, 1);
+        let point = projectionMatrix * viewMatrix * vec4f(points[index], 0, 1);
         //将 ndc 坐标系下的 point 坐标转换为屏幕空间的像素坐标，其中像素坐标的原点位于屏幕的左下方
         let pc = (point.xy / point.w + vec2f(1, 1)) / 2.0f * resolution ;
 
@@ -39,7 +39,7 @@ export const computeShaderCode = `
                 h = pow(h, 1.5);
                 let outIdx = u32(j) * u32(resolution.x) + u32(i);
                 let v = u32(step(0, h) * h * prec);
-                atomicAdd(&output[outIdx], v);
+                atomicAdd(&heatValueArr[outIdx], v);
             }
         }
     }
@@ -47,7 +47,7 @@ export const computeShaderCode = `
 
 export const computeMaxHeatValueShaderCode = `
     @group(0) @binding(0) var<storage, read> heatValueArr: array<u32>;
-    @group(0) @binding(1) var<storage, read_write> maxHeatValue: array<atomic<u32>>;
+    @group(0) @binding(1) var<storage, read_write> actualMaxHeat: array<atomic<u32>>;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
 
     @compute @workgroup_size(1, 1, 1)
@@ -59,7 +59,7 @@ export const computeMaxHeatValueShaderCode = `
             let index = (row % grid.y) * grid.x + u32(i);
             res = max(heatValueArr[index], res);
         }
-        atomicMax(&maxHeatValue[0], res);
+        atomicMax(&actualMaxHeat[0], res);
     }
 `
 
@@ -70,7 +70,7 @@ export const renderShaderCode = `
     //color.a 为 颜色插值时对应的 offset 取值范围为0到1
     @group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
     @group(0) @binding(4) var<uniform> maxHeatValueRatio: f32;
-    @group(0) @binding(5) var<storage, read> actualMaxHeatValue: array<u32>;
+    @group(0) @binding(5) var<storage, read> actualMaxHeat: array<u32>;
 
     fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
         let rl = abs(mid - low);
@@ -103,6 +103,8 @@ export const renderShaderCode = `
     }
 
     @vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+        _ = colors;
+        _ = maxHeatValueRatio;
         let positions = array(
             vec2f(-1, -1),
             vec2f(1, 1),
@@ -117,12 +119,13 @@ export const renderShaderCode = `
 
     @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         let index = u32(resolution.y - pos.y) * u32(resolution.x) + u32(pos.x);
-        let maxValue = select(f32(actualMaxHeatValue[0]) / ${heatValuePrec}, maxHeatValue, maxHeatValue > 0) * maxHeatValueRatio;
+        let maxValue = select(f32(actualMaxHeat[0]) / ${heatValuePrec}, maxHeatValue, maxHeatValue > 0) * maxHeatValueRatio;
         var val = f32(heatValueArr[index]) / maxValue / ${heatValuePrec}f;
         if(val == 0){
             discard;
         }
         let color = interpColor(val);
         return color * val;
+        // return vec4f(val, 0, 0, 1);
     }
 `

@@ -35,7 +35,7 @@ class PointMaterial extends Material {
 	}
 
 	public updateUniform(uniformName: string, value: any) {
-		const styleUniform = this.renderPipeline.getUniform('style')
+		const styleUniform = this.getUniform('style')
 		if (!(uniformName in styleUniform.value)) return
 		styleUniform.updateValue({ ...styleUniform.value, [uniformName]: value })
 	}

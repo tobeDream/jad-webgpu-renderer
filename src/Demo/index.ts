@@ -25,7 +25,7 @@ const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearCol
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 81
+const num = 100
 const pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
 const size = new Float32Array(num)
@@ -58,12 +58,19 @@ const points = new Points({
 const heat = new Heatmap({
 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 	material: {
-		radius: 36
+		radius: 45
 	}
 })
+//@ts-ignore
+window.h = heat
 
 scene.addModel(line)
 scene.addModel(points)
-// scene.addModel(heat)
+scene.addModel(heat)
 
 renderer.render()
+
+setTimeout(() => {
+	// points.highlights([1, 10, 30, 50])
+	// renderer.render()
+}, 2000)

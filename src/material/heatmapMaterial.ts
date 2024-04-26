@@ -1,4 +1,3 @@
-import { makeShaderDataDefinitions } from 'webgpu-utils'
 import Material from './material'
 import Renderer from '../Renderer'
 import { Color } from '../types'
@@ -16,7 +15,6 @@ type IProps = {
 class HeatmapMaterial extends Material {
 	private maxHeatValue: number
 	private maxHeatValueRatio = 1
-	private radius = 25
 	private points = new Float32Array([])
 	private colorList: Float32Array
 	private offsetList: Float32Array
@@ -24,7 +22,21 @@ class HeatmapMaterial extends Material {
 	constructor(props: IProps) {
 		super({
 			renderCode: renderShaderCode,
-			blending: 'normalBlending'
+			blending: 'normalBlending',
+			computeList: [
+				{
+					code: computeShaderCode,
+					entry: 'main',
+					workgroupCount: { x: 1, y: 1, z: 1 },
+					uniforms: { radius: props.radius || 15 },
+					storages: { points: props.points }
+				},
+				{
+					code: computeMaxHeatValueShaderCode,
+					entry: 'main',
+					workgroupCount: { x: 1, y: 1, z: 1 }
+				}
+			]
 		})
 		this.colorList = props.colorList
 			? new Float32Array(props.colorList.flat())
@@ -33,10 +45,19 @@ class HeatmapMaterial extends Material {
 		this.maxHeatValue = props.maxHeatValue || 1
 		if (props.maxHeatValueRatio) this.maxHeatValueRatio = props.maxHeatValueRatio
 		this.points = props.points
-		this.radius = props.radius || 15
 		this.updateUniform('maxHeatValue', props.maxHeatValue === undefined ? -1 : this.maxHeatValue)
 		this.updateUniform('maxHeatValueRatio', this.maxHeatValueRatio)
 		this.updateUniform('colors', this.colorOffsets)
+		// this.updateUniform('resolution_', [1215, 959])
+
+		const num = this.points.length / 2
+		const countX = Math.ceil(num ** 0.5)
+		const countY = Math.ceil(num / countX)
+		this.updateUniform('grid', [countX, countY])
+		this.computePipelines[0].setWorkgroupCount(countX, countY, 1)
+
+		console.log(this.points)
+		this.getStorage('actualMaxHeat').byteLength = 4
 	}
 
 	get colorOffsets() {
@@ -50,129 +71,16 @@ class HeatmapMaterial extends Material {
 		return res
 	}
 
-	public recordComputeCommand(renderer: Renderer) {
-		const device = renderer.device
-		const num = this.points.length / 2
-		const computeShaderModule = device.createShaderModule({
-			label: 'compute shader demo',
-			code: computeShaderCode
+	public onresize(renderer: Renderer): void {
+		const { width, height, device } = renderer
+		const heatValueArrStorageSize = width * height * 4
+		this.bufferPool.addBuffer({
+			device,
+			id: 'heatValueArr',
+			size: heatValueArrStorageSize,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
 		})
-		console.log(makeShaderDataDefinitions(computeShaderCode))
-
-		const pipeline = device.createComputePipeline({
-			label: 'compute pipeline demo',
-			layout: 'auto',
-			compute: {
-				module: computeShaderModule,
-				entryPoint: 'main'
-			}
-		})
-
-		const uniformUsage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		const storageUsage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-		const radiusValue = new Float32Array([this.radius])
-		const radiusBuffer = device.createBuffer({
-			label: 'Radius Uniforms',
-			size: radiusValue.byteLength,
-			usage: uniformUsage
-		})
-		device.queue.writeBuffer(radiusBuffer, 0, radiusValue)
-
-		const countX = Math.ceil(num ** 0.5)
-		const countY = Math.ceil(num / countX)
-		const gridValue = new Uint32Array([countX, countY])
-		const gridBuffer = device.createBuffer({
-			label: 'Grid Uniforms',
-			size: gridValue.byteLength,
-			usage: uniformUsage
-		})
-		device.queue.writeBuffer(gridBuffer, 0, gridValue)
-
-		const resolution = [renderer.width, renderer.height]
-		const resolutionValue = new Float32Array(resolution)
-		const resolutionBuffer = device.createBuffer({
-			label: 'Resolution Uniforms',
-			size: resolutionValue.byteLength,
-			usage: uniformUsage
-		})
-		device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
-
-		const inputBuffer = device.createBuffer({
-			label: 'input storage buffer',
-			size: this.points.byteLength,
-			usage: storageUsage
-		})
-		device.queue.writeBuffer(inputBuffer, 0, this.points)
-
-		const outputBuffer = device.createBuffer({
-			label: 'output storage buffer',
-			size: resolution[0] * resolution[1] * 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-		})
-		this.replaceStorageBuffer('heatValueArr', outputBuffer)
-
-		const readBuffer = device.createBuffer({
-			label: 'unmaped buffer',
-			size: outputBuffer.size,
-			usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-		})
-
-		const bindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{ binding: 0, resource: { buffer: inputBuffer } },
-				{ binding: 1, resource: { buffer: outputBuffer } },
-				{ binding: 2, resource: { buffer: gridBuffer } },
-				{ binding: 3, resource: { buffer: resolutionBuffer } },
-				{ binding: 4, resource: { buffer: radiusBuffer } },
-				{ binding: 5, resource: { buffer: renderer.precreatedUniformBuffers['projectionMatrix'] } },
-				{ binding: 6, resource: { buffer: renderer.precreatedUniformBuffers['viewMatrix'] } }
-			]
-		})
-
-		const computeMaxValueShaderModule = device.createShaderModule({
-			label: 'compute  max heat value shader',
-			code: computeMaxHeatValueShaderCode
-		})
-
-		const computeMaxValuePipeline = device.createComputePipeline({
-			label: 'compute max heat value pipeline',
-			layout: 'auto',
-			compute: {
-				module: computeMaxValueShaderModule,
-				entryPoint: 'main'
-			}
-		})
-		const maxValueBuffer = device.createBuffer({
-			label: 'maxValue buffer',
-			size: 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-		})
-		this.replaceStorageBuffer('actualMaxHeatValue', maxValueBuffer)
-
-		const computeMaxValueBindGroup = device.createBindGroup({
-			layout: computeMaxValuePipeline.getBindGroupLayout(0),
-			entries: [
-				{ binding: 0, resource: { buffer: outputBuffer } },
-				{ binding: 1, resource: { buffer: maxValueBuffer } },
-				{ binding: 2, resource: { buffer: resolutionBuffer } }
-			]
-		})
-
-		const encoder = device.createCommandEncoder()
-		const computePass = encoder.beginComputePass()
-		computePass.setPipeline(pipeline)
-		computePass.setBindGroup(0, bindGroup)
-		computePass.dispatchWorkgroups(countX, countY)
-
-		computePass.setPipeline(computeMaxValuePipeline)
-		computePass.setBindGroup(0, computeMaxValueBindGroup)
-		computePass.dispatchWorkgroups(resolution[1], 1)
-
-		computePass.end()
-
-		const commandBuffer = encoder.finish()
-		device.queue.submit([commandBuffer])
+		this.computePipelines[1].setWorkgroupCount(height, 1, 1)
 	}
 }
 

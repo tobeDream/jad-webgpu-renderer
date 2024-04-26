@@ -37,8 +37,14 @@ class Buffer {
 		return this._offset
 	}
 
-	get buffer() {
+	get GPUBuffer() {
 		return this._buffer
+	}
+
+	reallocate(device: GPUDevice, size: number) {
+		this.dispose()
+		this._size = size
+		this.createBuffer(device)
 	}
 
 	createBuffer(device: GPUDevice) {

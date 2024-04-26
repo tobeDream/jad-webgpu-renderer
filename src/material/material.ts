@@ -65,14 +65,24 @@ class Material {
 	}
 
 	public updateUniform(uniformName: string, value: any) {
-		const uniform = this.renderPipeline.getUniform(uniformName)
-		if (!uniform) return
+		let uniform = this.renderPipeline.getUniform(uniformName)
+		if (!uniform) {
+			for (let item of this.computePipelines) {
+				uniform = item.getUniform(uniformName)
+				if (uniform) break
+			}
+		}
 		uniform.updateValue(value)
 	}
 
 	public updateStorage(storageName: string, value: TypedArray) {
-		const storage = this.renderPipeline.getStorage(storageName)
-		if (!storage) return
+		let storage = this.renderPipeline.getStorage(storageName)
+		if (!storage) {
+			for (let item of this.computePipelines) {
+				storage = item.getStorage(storageName)
+				if (storage) break
+			}
+		}
 		storage.updateValue(value)
 	}
 
@@ -85,6 +95,7 @@ class Material {
 	}
 
 	public submitComputeCommand(renderer: Renderer) {
+		if (this.computePipelines.length === 0) return
 		const { device } = renderer
 		const encoder = device.createCommandEncoder()
 		const computePass = encoder.beginComputePass()
@@ -103,6 +114,8 @@ class Material {
 		const commandBuffer = encoder.finish()
 		device.queue.submit([commandBuffer])
 	}
+
+	public onresize(renderer: Renderer) {}
 }
 
 export default Material

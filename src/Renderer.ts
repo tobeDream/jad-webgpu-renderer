@@ -155,12 +155,15 @@ class Renderer {
 			colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
 		}
 
+		const s = performance.now()
 		for (let model of scene.modelList) {
 			model.material.submitComputeCommand(this)
 		}
+		console.log(performance.now() - s)
 
 		const encoder = device.createCommandEncoder()
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
+		encoder.pushDebugGroup('RenderFrame')
 		for (let model of scene.modelList) {
 			const { geometry, material } = model
 			// if (geometry.vertexCount === -1) continue
@@ -186,9 +189,14 @@ class Renderer {
 			if (index) pass.drawIndexed(index.length, instanceCount)
 			else pass.draw(geometry.vertexCount, instanceCount)
 		}
+		encoder.popDebugGroup()
 		pass.end()
 
 		const commandBuffer = encoder.finish()
+		const gpuTimerQuerySet = device.createQuerySet({
+			type: 'timestamp',
+			count: 2
+		})
 		this.device.queue.submit([commandBuffer])
 	}
 

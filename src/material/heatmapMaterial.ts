@@ -54,9 +54,8 @@ class HeatmapMaterial extends Material {
 		const countX = Math.ceil(num ** 0.5)
 		const countY = Math.ceil(num / countX)
 		this.updateUniform('grid', [countX, countY])
-		this.computePipelines[0].setWorkgroupCount(countX, countY, 1)
+		this.computePipelines[0].setWorkgroupCount(Math.ceil(countX / 16), Math.ceil(countY / 16), 1)
 
-		console.log(this.points)
 		this.getStorage('actualMaxHeat').byteLength = 4
 	}
 

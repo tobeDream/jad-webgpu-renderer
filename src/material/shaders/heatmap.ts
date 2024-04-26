@@ -14,7 +14,7 @@ export const computeShaderCode = `
         return (id.y % grid.y) * grid.x + (id.x % grid.x);
     }
 
-    @compute @workgroup_size(1, 1, 1)
+    @compute @workgroup_size(16, 16, 1)
     fn main(@builtin(global_invocation_id) id: vec3u){
         let index = getIndex(id.xy);
         if(index >= arrayLength(&points)){

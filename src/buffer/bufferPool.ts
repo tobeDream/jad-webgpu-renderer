@@ -9,6 +9,7 @@ class BufferPool {
 	}
 
 	public writeBuffer(device: GPUDevice, id: string, valueBuffer: ArrayBuffer) {
+		console.log('test')
 		const buffer = this.bufferMap[id]
 		if (!buffer) return
 		device.queue.writeBuffer(buffer.GPUBuffer, buffer.offset, valueBuffer)

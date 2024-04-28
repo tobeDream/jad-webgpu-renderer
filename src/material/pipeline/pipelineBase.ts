@@ -125,6 +125,7 @@ abstract class PipelineBase {
 				// }
 				if (storage.needsUpdate && storage.value) {
 					bufferPool.writeBuffer(device, sn, storage.value.buffer)
+					storage.needsUpdate = false
 				}
 				if (!buffer) continue
 				entries.push({ binding: storage.binding, resource: { buffer: buffer.GPUBuffer } })

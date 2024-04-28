@@ -3,6 +3,7 @@ export const heatValuePrec = 10000
 export const computeShaderCode = `
     const prec = ${heatValuePrec}f;
     @group(0) @binding(0) var<storage> points: array<vec2f>;
+    // @group(0) @binding(1) var<storage, read_write> heatValueArr: array<u32>;
     @group(0) @binding(1) var<storage, read_write> heatValueArr: array<atomic<u32>>;
     @group(0) @binding(2) var<uniform> grid: vec2u;
     @group(0) @binding(3) var<uniform> resolution: vec2f;
@@ -14,7 +15,7 @@ export const computeShaderCode = `
         return (id.y % grid.y) * grid.x + (id.x % grid.x);
     }
 
-    @compute @workgroup_size(16, 16, 1)
+    @compute @workgroup_size(8, 8, 1)
     fn main(@builtin(global_invocation_id) id: vec3u){
         let index = getIndex(id.xy);
         if(index >= arrayLength(&points)){
@@ -32,6 +33,9 @@ export const computeShaderCode = `
         let ei = min(w - 1, i32(pc.x) + r);
         let sj = max(0, i32(pc.y) - r);
         let ej = min(h - 1, i32(pc.y) + r);
+        // var a = array<u32, 6561>();
+        // var b = array<u32, 6561>();
+        // var n = 0i;
         for(var i = si; i <= ei; i++){
             for(var j = sj; j <= ej; j++){
                 let d = pow(pow(f32(i) - pc.x, 2) + pow(f32(j) - pc.y, 2), 0.5);
@@ -39,14 +43,28 @@ export const computeShaderCode = `
                 h = pow(h, 1.5);
                 let outIdx = u32(j) * u32(resolution.x) + u32(i);
                 let v = u32(step(0, h) * h * prec);
+                // heatValueArr[outIdx] += v;
                 atomicAdd(&heatValueArr[outIdx], v);
+                // a[n] = outIdx;
+                // b[n] = v;
+                // n++;
             }
         }
+        // for(var i = 0; i < 6561; i++){
+        //     let av = a[i];
+        //     if(b[i] > 0){
+        //         atomicAdd(&heatValueArr[av], b[i]);
+        //     }
+        //     // if(b[i] > 0){
+        //         // atomicAdd(&heatValueArr[av], b[i]);
+        //     // }
+        // }
     }
 `
 
 export const computeMaxHeatValueShaderCode = `
     @group(0) @binding(0) var<storage, read> heatValueArr: array<u32>;
+    // @group(0) @binding(1) var<storage, read_write> actualMaxHeat: array<u32>;
     @group(0) @binding(1) var<storage, read_write> actualMaxHeat: array<atomic<u32>>;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
 

@@ -33,7 +33,7 @@ class Renderer {
 		this.scene = props.scene
 		this.outputCanvas = props.canvas
 		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
-		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
+		this.outputCanvas.height = (this.outputCanvas.offsetHeight * window.devicePixelRatio) / 2
 		this.canvasCtx = this.outputCanvas.getContext('webgpu') || null
 		this._antialias = props.antiAlias || false
 		this._multisampleTexture = null
@@ -148,6 +148,7 @@ class Renderer {
 		const { device, canvasCtx, renderPassDescriptor } = this
 
 		const colorAttachment = (renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0]
+		console.log(canvasCtx.getCurrentTexture().format)
 		if (!this._antialias) {
 			colorAttachment.view = canvasCtx.getCurrentTexture().createView()
 			colorAttachment.resolveTarget = undefined
@@ -156,12 +157,11 @@ class Renderer {
 			colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
 		}
 
-		for (let model of scene.modelList) {
-			model.material.submitComputeCommand(this)
-		}
-		console.log(new Date().valueOf() - s)
-
 		const encoder = device.createCommandEncoder()
+		for (let model of scene.modelList) {
+			model.material.submitComputeCommand(this, encoder)
+		}
+
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
 			const { geometry, material } = model
@@ -192,6 +192,8 @@ class Renderer {
 
 		const commandBuffer = encoder.finish()
 		this.device.queue.submit([commandBuffer])
+		await this.device.queue.onSubmittedWorkDone()
+		console.log(new Date().valueOf() - s)
 	}
 
 	public resize() {

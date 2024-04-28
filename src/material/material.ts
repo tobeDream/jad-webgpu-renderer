@@ -94,10 +94,13 @@ class Material {
 		return this.renderPipeline.getBindGroups(renderer, this.bufferPool)
 	}
 
-	public submitComputeCommand(renderer: Renderer) {
+	public submitComputeCommand(renderer: Renderer, encoder: GPUCommandEncoder) {
 		if (this.computePipelines.length === 0) return
-		const { device } = renderer
-		const encoder = device.createCommandEncoder()
+		const s = new Date().valueOf()
+		const heatValueArrBuffer = this.bufferPool.getBuffer('heatValueArr')
+		if (heatValueArrBuffer) {
+			encoder.clearBuffer(heatValueArrBuffer.GPUBuffer)
+		}
 		const computePass = encoder.beginComputePass()
 		for (let item of this.computePipelines) {
 			const pipeline = item.getPipeline(renderer)
@@ -111,8 +114,6 @@ class Material {
 			computePass.dispatchWorkgroups(x, y, z)
 		}
 		computePass.end()
-		const commandBuffer = encoder.finish()
-		device.queue.submit([commandBuffer])
 	}
 
 	public onresize(renderer: Renderer) {}

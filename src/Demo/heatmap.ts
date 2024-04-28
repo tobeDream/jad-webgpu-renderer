@@ -36,20 +36,38 @@ async function computeHeatValues(
 				let r = i32(radius);
 				let w = i32(resolution.x);
 				let h = i32(resolution.y);
-				let si = max(0, i32(pc.x) - r);
-				let ei = min(w, i32(pc.x) + r);
-				let sj = max(0, i32(pc.y) - r);
-				let ej = min(h, i32(pc.y) + r);
+				let si = max(0, i32(pc.y) - r);
+				let ei = min(h, i32(pc.y) + r);
+				let sj = max(0, i32(pc.x) - r);
+				let ej = min(w, i32(pc.x) + r);
+				var a = array<u32, 25>();
+				var b = array<u32, 25>();
+				var n = 0i;
 				for(var i = si; i <= ei; i++){
 					for(var j = sj; j <= ej; j++){
-						let d = pow(pow(f32(i) - pc.x, 2) + pow(f32(j) - pc.y, 2), 0.5);
+						let d = pow(pow(f32(j) - pc.x, 2) + pow(f32(i) - pc.y, 2), 0.5);
 						var h = step(d / radius, 1) * (1 - d / radius);
 						h = pow(h, 1.5);
-						let outIdx = u32(j) * u32(resolution.x) + u32(i);
+						let outIdx = u32(i) * u32(resolution.x) + u32(j);
 						let v = u32(step(0, h) * h * prec);
-						atomicAdd(&output[outIdx], v);
+						// atomicAdd(&output[outIdx], v);
+						a[n] = outIdx;
+						b[n] = v;
+						n++;
 					}
 				}
+				for(var i = 0; i < 25; i++){
+					let ai = a[i];
+					atomicAdd(&output[ai], b[i]);
+					// atomicStore(&output[i], a[i]);
+					// atomicStore(&output[i + 25], b[i]);
+				}
+				// atomicStore(&output[8], u32(si));
+				// atomicStore(&output[9], u32(ei));
+				// atomicStore(&output[10], u32(sj));
+				// atomicStore(&output[11], u32(ej));
+				// atomicStore(&output[12], u32(pc.x));
+				// atomicStore(&output[13], u32(pc.y));
 			}
 		`
 	})
@@ -134,19 +152,20 @@ async function computeHeatValues(
 
 	readBuffer.mapAsync(GPUMapMode.READ).then(() => {
 		const data = new Uint32Array(readBuffer.getMappedRange())
-		let maxValue = -Infinity
-		for (let i = 0; i < data.length; ++i) {
-			if (maxValue < data[i]) maxValue = data[i]
-		}
-		readBuffer.unmap()
+		console.log(data)
+		// let maxValue = -Infinity
+		// for (let i = 0; i < data.length; ++i) {
+		// 	if (maxValue < data[i]) maxValue = data[i]
+		// }
+		// readBuffer.unmap()
 	})
-	return { maxHeatValue: 2, buffer: outputBuffer }
+	return { maxHeatValue: 1, buffer: outputBuffer }
 }
 
 async function main() {
 	const canvas = document.querySelector('#canvas') as HTMLCanvasElement
-	canvas.width = canvas.offsetWidth / 1
-	canvas.height = canvas.offsetHeight / 1
+	canvas.width = 16 //canvas.offsetWidth / 1
+	canvas.height = 16 //canvas.offsetHeight / 1
 
 	console.log(canvas.width, canvas.height)
 
@@ -167,8 +186,8 @@ async function main() {
 		alphaMode: 'premultiplied'
 	})
 
-	const num = 200
-	const radius = 20
+	const num = 1
+	const radius = 2
 	const points = new Float32Array(num * 2)
 
 	points[0] = 0
@@ -290,7 +309,7 @@ async function main() {
 		]
 	}
 
-	const maxHeatValueArr = new Float32Array([2])
+	const maxHeatValueArr = new Float32Array([maxHeatValue])
 	const maxHeatValueBuffer = device.createBuffer({
 		label: 'max heat value buffer',
 		size: maxHeatValueArr.byteLength,

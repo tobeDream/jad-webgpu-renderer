@@ -25,7 +25,7 @@ const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearCol
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 50000000
+const num = 5000000
 const pos = new Float32Array(num * 2)
 // const color = new Uint8Array(num * 4)
 const size = new Float32Array(num)
@@ -41,35 +41,33 @@ for (let i = 0; i < num; ++i) {
 
 // const line = new Line({
 // 	positions: pos,
-// 	material: { color: [0.0, 0.0, 1, 0.2], lineWidth: 10, blending: 'normalBlending' }
+// 	material: { color: [0.0, 0.0, 1, 0.7], lineWidth: 10, blending: 'normalBlending' }
 // })
-const points = new Points({
-	positions: pos,
-	// colors: color,
-	sizes: size,
-	material: {
-		color: [1, 1, 0, 0.1],
-		blending: 'normalBlending',
-		size: 2,
-		highlightSize: 40,
-		highlightColor: [1, 0, 0, 0.5]
-	}
-})
-// const heat = new Heatmap({
-// 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
+// const points = new Points({
+// 	positions: pos,
+// 	// colors: color,
+// 	sizes: size,
 // 	material: {
-// 		radius: 45
+// 		color: [1, 1, 0, 0.1],
+// 		blending: 'normalBlending',
+// 		size: 2,
+// 		highlightSize: 40,
+// 		highlightColor: [1, 0, 0, 0.5]
 // 	}
 // })
+const heat = new Heatmap({
+	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
+	material: {
+		radius: 40
+	}
+})
 //@ts-ignore
 // window.h = heat
 
 // scene.addModel(line)
-scene.addModel(points)
-// scene.addModel(heat)
-
+// scene.addModel(points)
+scene.addModel(heat)
 // renderer.render()
-
 setTimeout(() => {
 	// points.highlights([1, 10, 30, 50])
 	// renderer.render()

@@ -1,74 +1,125 @@
-import { PerspectiveCamera, Vector2 } from 'three'
-import Renderer from '../Renderer'
-import Scene from '../Scene'
-import Points from '../Points'
-import Line from '../Line'
-import Heatmap from '../Heatmap'
+export async function main(canvas: HTMLCanvasElement) {
+	// canvas.width = 32
+	// canvas.height = 32
+	const adapter = await navigator.gpu?.requestAdapter()
+	const device = await adapter?.requestDevice()
+	if (!device) {
+		throw 'need a browser that supports WebGPU'
+	}
 
-//@ts-ignore
-window.V = Vector2
+	const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
+	const ctx = canvas.getContext('webgpu')
+	if (!ctx) return
+	ctx.configure({
+		device,
+		format: presentationFormat
+	})
+
+	const code = `
+		@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+			let pos = array(
+				vec2f(-1.0, 1.0),
+				vec2f(-1.0, -1.0),
+				vec2f(1.0, -1.0),
+				vec2f(1.0, -1.0),
+				vec2f(1.0, 1.0),
+				vec2f(-1.0, 1.0)
+			);
+
+			let p = vec4f(pos[vi], 0, 1);
+			return p;
+		}
+
+		@fragment fn fs() -> @location(0) vec4<u32> {
+			return vec4<u32>(123, 1, 1, 1);
+		}
+	`
+	const module = device.createShaderModule({
+		label: 'triangle vertex shader with uniforms',
+		code
+	})
+
+	const texture = device.createTexture({
+		size: [canvas.width, canvas.height, 1],
+		format: 'rgba32uint',
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+	})
+
+	const pipeline = device.createRenderPipeline({
+		label: 'triangle with uniforms',
+		layout: 'auto',
+		vertex: {
+			module,
+			entryPoint: 'vs'
+		},
+		fragment: {
+			module,
+			entryPoint: 'fs',
+			targets: [{ format: 'rgba32uint' }]
+		}
+	})
+	console.log(presentationFormat)
+
+	const renderPassDescriptor: GPURenderPassDescriptor = {
+		label: 'our basic canvas renderPass',
+		colorAttachments: [
+			{
+				view: texture.createView(),
+				clearValue: [0.3, 0.3, 0.3, 1],
+				loadOp: 'clear',
+				storeOp: 'store'
+			}
+		]
+	}
+
+	const bytesPerRow = Math.ceil((canvas.width * 4 * 4) / 256) * 256
+	const readBuffer = device.createBuffer({
+		size: bytesPerRow * canvas.height,
+		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+	})
+
+	async function render() {
+		if (!device || !ctx) return
+
+		//@ts-ignore
+		renderPassDescriptor.colorAttachments[0].view = texture.createView()
+		const encoder = device.createCommandEncoder({ label: 'our encoder' })
+
+		const pass = encoder.beginRenderPass(renderPassDescriptor)
+		pass.setPipeline(pipeline)
+		pass.draw(6)
+		pass.end()
+
+		encoder.copyTextureToBuffer(
+			{ texture },
+			{
+				buffer: readBuffer,
+				bytesPerRow
+			},
+			[canvas.width, canvas.height, 1]
+		)
+		const commandBuffer = encoder.finish()
+		device.queue.submit([commandBuffer])
+
+		await readBuffer.mapAsync(GPUMapMode.READ)
+		const arrayBuffer = readBuffer.getMappedRange()
+		const data = new Uint32Array(arrayBuffer)
+		console.log(data)
+	}
+
+	render()
+	// const observer = new ResizeObserver((entries) => {
+	// 	for (const entry of entries) {
+	// 		canvas.width = canvas.offsetWidth
+	// 		canvas.height = canvas.offsetHeight
+	// 		render()
+	// 	}
+	// })
+	// observer.observe(canvas)
+}
 
 const canvas = document.querySelector('#canvas') as HTMLCanvasElement
 canvas.width = canvas.offsetWidth
 canvas.height = canvas.offsetHeight
 
-const camera = new PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 10000)
-camera.position.set(0, 0, 500)
-//@ts-ignore
-window.c = camera
-
-const scene = new Scene()
-//@ts-ignore
-window.s = scene
-const renderer = new Renderer({ camera, scene, canvas, antiAlias: true, clearColor: [0, 0, 0, 0.3] })
-//@ts-ignore
-window.r = renderer
-
-// const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 5000000
-const pos = new Float32Array(num * 2)
-// const color = new Uint8Array(num * 4)
-const size = new Float32Array(num)
-for (let i = 0; i < num; ++i) {
-	pos[2 * i] = (800 / num) * i - 400
-	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
-	// color[i * 4 + 0] = 255
-	// color[i * 4 + 1] = ((num - i) / num) * 255
-	// color[i * 4 + 2] = 0
-	// color[i * 4 + 3] = 155
-	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 1 + 2
-}
-
-// const line = new Line({
-// 	positions: pos,
-// 	material: { color: [0.0, 0.0, 1, 0.7], lineWidth: 10, blending: 'normalBlending' }
-// })
-// const points = new Points({
-// 	positions: pos,
-// 	// colors: color,
-// 	sizes: size,
-// 	material: {
-// 		color: [1, 1, 0, 0.1],
-// 		blending: 'normalBlending',
-// 		size: 2,
-// 		highlightSize: 40,
-// 		highlightColor: [1, 0, 0, 0.5]
-// 	}
-// })
-const heat = new Heatmap({
-	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
-	material: {
-		radius: 40
-	}
-})
-//@ts-ignore
-// window.h = heat
-
-// scene.addModel(line)
-// scene.addModel(points)
-scene.addModel(heat)
-// renderer.render()
-setTimeout(() => {
-	// points.highlights([1, 10, 30, 50])
-	// renderer.render()
-}, 2000)
+main(canvas)

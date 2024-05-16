@@ -26,12 +26,12 @@ export async function main(canvas: HTMLCanvasElement) {
 				vec2f(-1.0, 1.0)
 			);
 
-			let p = vec4f(pos[vi], 0, 1);
+			let p = vec4f(pos[vi % 6], 0, 1);
 			return p;
 		}
 
-		@fragment fn fs() -> @location(0) vec4<u32> {
-			return vec4<u32>(123, 1, 1, 1);
+		@fragment fn fs() -> @location(0) vec4f {
+			return vec4f(1, 1, 1, 1);
 		}
 	`
 	const module = device.createShaderModule({
@@ -41,7 +41,7 @@ export async function main(canvas: HTMLCanvasElement) {
 
 	const texture = device.createTexture({
 		size: [canvas.width, canvas.height, 1],
-		format: 'rgba32uint',
+		format: 'rgba16float',
 		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
 	})
 
@@ -55,7 +55,21 @@ export async function main(canvas: HTMLCanvasElement) {
 		fragment: {
 			module,
 			entryPoint: 'fs',
-			targets: [{ format: 'rgba32uint' }]
+			targets: [
+				{
+					format: 'rgba16float',
+					blend: {
+						color: {
+							srcFactor: 'one',
+							dstFactor: 'one'
+						},
+						alpha: {
+							srcFactor: 'one',
+							dstFactor: 'one'
+						}
+					}
+				}
+			]
 		}
 	})
 	console.log(presentationFormat)
@@ -72,7 +86,7 @@ export async function main(canvas: HTMLCanvasElement) {
 		]
 	}
 
-	const bytesPerRow = Math.ceil((canvas.width * 4 * 4) / 256) * 256
+	const bytesPerRow = Math.ceil((canvas.width * 4 * 2) / 256) * 256
 	const readBuffer = device.createBuffer({
 		size: bytesPerRow * canvas.height,
 		usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
@@ -103,7 +117,7 @@ export async function main(canvas: HTMLCanvasElement) {
 
 		await readBuffer.mapAsync(GPUMapMode.READ)
 		const arrayBuffer = readBuffer.getMappedRange()
-		const data = new Uint32Array(arrayBuffer)
+		const data = new Uint16Array(arrayBuffer)
 		console.log(data)
 	}
 

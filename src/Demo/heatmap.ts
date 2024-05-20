@@ -1,150 +1,3 @@
-async function computeHeatValues(
-	device: GPUDevice,
-	points: Float32Array,
-	radius: number,
-	resolution: [number, number]
-) {
-	const num = points.length / 2
-	const computeShaderModule = device.createShaderModule({
-		label: 'compute shader demo',
-		code: `
-			const prec = 10000f;
-			@group(0) @binding(0) var<storage> input: array<vec2f>;
-			@group(0) @binding(1) var<storage, read_write> output: array<atomic<u32>>;
-			@group(0) @binding(2) var<uniform> grid: vec2u;
-			@group(0) @binding(3) var<uniform> resolution: vec2f;
-			@group(0) @binding(4) var<uniform> radius: f32;
-
-			fn getIndex(id: vec2u) -> u32 {
-				return (id.y % grid.y) * grid.x + (id.x % grid.x);
-			}
-
-			@compute @workgroup_size(1, 1, 1)
-			fn main(@builtin(global_invocation_id) id: vec3u){
-				let index = getIndex(id.xy);
-				if(index >= arrayLength(&input)){
-					return;
-				}
-				let point = input[index];
-				//将 ndc 坐标系下的 point 坐标转换为屏幕空间的像素坐标，其中像素坐标的原点位于屏幕的左下方
-				let pc = (point + vec2f(1, 1)) / 2.0f * resolution;
-
-				// _ = radius;
-				// atomicStore(&output_x[index], u32(pc.x));
-
-				//遍历 point 像素半径覆盖的各个像素
-				let r = i32(radius);
-				let w = i32(resolution.x);
-				let h = i32(resolution.y);
-				let si = max(0, i32(pc.x) - r);
-				let ei = min(w, i32(pc.x) + r);
-				let sj = max(0, i32(pc.y) - r);
-				let ej = min(h, i32(pc.y) + r);
-				for(var i = si; i <= ei; i++){
-					for(var j = sj; j <= ej; j++){
-						let d = pow(pow(f32(i) - pc.x, 2) + pow(f32(j) - pc.y, 2), 0.5);
-						var h = step(d / radius, 1) * (1 - d / radius);
-						h = pow(h, 1.5);
-						let outIdx = u32(j) * u32(resolution.x) + u32(i);
-						let v = u32(step(0, h) * h * prec);
-						atomicAdd(&output[outIdx], v);
-					}
-				}
-			}
-		`
-	})
-
-	const pipeline = device.createComputePipeline({
-		label: 'compute pipeline demo',
-		layout: 'auto',
-		compute: {
-			module: computeShaderModule,
-			entryPoint: 'main'
-		}
-	})
-
-	const radiusValue = new Float32Array([radius])
-	const radiusBuffer = device.createBuffer({
-		label: 'Radius Uniforms',
-		size: radiusValue.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(radiusBuffer, 0, radiusValue)
-
-	const countX = Math.ceil(num ** 0.5)
-	const countY = Math.ceil(num / countX)
-	const gridValue = new Uint32Array([countX, countY])
-	const gridBuffer = device.createBuffer({
-		label: 'Grid Uniforms',
-		size: gridValue.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(gridBuffer, 0, gridValue)
-
-	const resolutionValue = new Float32Array(resolution)
-	const resolutionBuffer = device.createBuffer({
-		label: 'Resolution Uniforms',
-		size: resolutionValue.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
-
-	const inputBuffer = device.createBuffer({
-		label: 'input storage buffer',
-		size: points.byteLength,
-		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(inputBuffer, 0, points)
-
-	const outputBuffer = device.createBuffer({
-		label: 'output storage buffer',
-		size: resolution[0] * resolution[1] * 4,
-		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-	})
-
-	const readBuffer = device.createBuffer({
-		label: 'unmaped buffer',
-		size: outputBuffer.size,
-		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-	})
-
-	const bindGroup = device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{ binding: 0, resource: { buffer: inputBuffer } },
-			{ binding: 1, resource: { buffer: outputBuffer } },
-			{ binding: 2, resource: { buffer: gridBuffer } },
-			{ binding: 3, resource: { buffer: resolutionBuffer } },
-			{ binding: 4, resource: { buffer: radiusBuffer } }
-		]
-	})
-
-	const s = new Date().valueOf()
-	const encoder = device.createCommandEncoder()
-	const computePass = encoder.beginComputePass()
-	computePass.setPipeline(pipeline)
-	computePass.setBindGroup(0, bindGroup)
-
-	computePass.dispatchWorkgroups(countX, countY)
-	computePass.end()
-
-	// encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, readBuffer.size)
-
-	const commandBuffer = encoder.finish()
-	device.queue.submit([commandBuffer])
-	await device.queue.onSubmittedWorkDone()
-	console.log(new Date().valueOf() - s)
-
-	// await readBuffer.mapAsync(GPUMapMode.READ)
-	// const data = new Uint32Array(readBuffer.getMappedRange())
-	// let maxValue = -Infinity
-	// for (let i = 0; i < data.length; ++i) {
-	// 	if (maxValue < data[i]) maxValue = data[i]
-	// }
-	// readBuffer.unmap()
-	return { maxHeatValue: 600, buffer: outputBuffer }
-}
-
 async function main() {
 	const canvas = document.querySelector('#canvas') as HTMLCanvasElement
 	canvas.width = canvas.offsetWidth / 1
@@ -182,19 +35,147 @@ async function main() {
 		points[i * 2 + 1] = Math.random() * 2 - 1
 	}
 
-	const { maxHeatValue, buffer } = await computeHeatValues(device, points, radius, [canvas.width, canvas.height])
 	const s = new Date().valueOf()
-	console.log(maxHeatValue)
 
-	//render pipeline
-	const shaderModule = device.createShaderModule({
-		label: 'render shader module',
+	const heatShaderModule = device.createShaderModule({
+		label: 'heat shader module',
 		code: `
-			@group(0) @binding(0) var<storage, read> heatmap: array<u32>;
-			@group(0) @binding(1) var<uniform> max_heat_value: f32;
-			@group(0) @binding(2) var<uniform> resolution: vec2f;
-			//color.a 为 颜色插值时对应的 offset 取值范围为0到1
-			@group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
+			struct Vertex {
+				@builtin(vertex_index) vi: u32,
+				@location(0) position: vec2f,
+			};
+
+			struct VSOutput {
+				@builtin(position) position: vec4f,
+				@location(0) pointCoord: vec2f,
+			};
+
+			@group(0) @binding(0) var<uniform> resolution: vec2f;
+			@group(0) @binding(1) var<uniform> size: f32;
+
+			@vertex fn vs(vert: Vertex) ->  VSOutput{
+				let points = array(
+					vec2f(-1, -1),
+					vec2f( 1, -1),
+					vec2f(-1,  1),
+					vec2f(-1,  1),
+					vec2f( 1, -1),
+					vec2f( 1,  1),
+				);
+
+        		let pos = points[vert.vi];
+				let pointPos = pos * size / resolution;
+
+        		var vsOut: VSOutput;
+				vsOut.position = vec4f(vert.position + pointPos, 0, 1);
+				vsOut.pointCoord = pos;
+
+				return vsOut;
+			}
+
+			@fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
+				let coord = vsOut.pointCoord;
+				let dis = length(coord);
+				if(dis >= 1) {
+					discard;
+				}
+				let h = pow(1.0 - dis, 1.5) / 1000000;
+				return vec4f(h, 0, 0, 0);
+			}
+		`
+	})
+
+	const heatPipeline = device.createRenderPipeline({
+		label: 'heat pipeline',
+		layout: 'auto',
+		vertex: {
+			module: heatShaderModule,
+			entryPoint: 'vs',
+			buffers: [
+				{
+					arrayStride: 4 * 2,
+					stepMode: 'instance',
+					attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
+				}
+			]
+		},
+		fragment: {
+			module: heatShaderModule,
+			entryPoint: 'fs',
+			targets: [
+				{
+					format: 'rgba16float',
+					blend: {
+						color: {
+							srcFactor: 'one',
+							dstFactor: 'one'
+						},
+						alpha: {
+							srcFactor: 'one',
+							dstFactor: 'one'
+						}
+					}
+				}
+			]
+		}
+	})
+
+	const vertexBuffer = device.createBuffer({
+		label: 'points buffer',
+		size: points.byteLength,
+		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+	})
+	device.queue.writeBuffer(vertexBuffer, 0, points)
+
+	const resolutionValue = new Float32Array([canvas.width, canvas.height])
+	const resolutionBuffer = device.createBuffer({
+		label: 'Resolution Uniforms',
+		size: resolutionValue.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	})
+	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
+
+	const sizeVal = new Float32Array([radius])
+	const sizeBuffer = device.createBuffer({
+		size: sizeVal.byteLength,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+	})
+	device.queue.writeBuffer(sizeBuffer, 0, sizeVal)
+	const bindGroup = device.createBindGroup({
+		layout: heatPipeline.getBindGroupLayout(0),
+		entries: [
+			{
+				binding: 0,
+				resource: { buffer: resolutionBuffer }
+			},
+			{
+				binding: 1,
+				resource: { buffer: sizeBuffer }
+			}
+		]
+	})
+
+	const texture = device.createTexture({
+		size: [canvas.width, canvas.height, 1],
+		format: 'rgba16float',
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+	})
+
+	const heatRenderPassDesc: GPURenderPassDescriptor = {
+		label: 'heat renderPass',
+		colorAttachments: [
+			{
+				view: texture.createView(),
+				clearValue: [0, 0, 0, 0],
+				loadOp: 'clear',
+				storeOp: 'store'
+			}
+		]
+	}
+
+	const renderCode = `
+			@group(0) @binding(0) var tex: texture_2d<f32>;
+			@group(0) @binding(1) var<uniform> colors: array<vec4f, 5>;
 
 			fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
 				let rl = abs(mid - low);
@@ -226,62 +207,78 @@ async function main() {
 				return vec4f(color, 1);
 			}
 
-			@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
-				let positions = array(
-					vec2f(-1, -1),
-					vec2f(1, 1),
-					vec2f(-1, 1),
-					vec2f(-1, -1),
-					vec2f(1, -1),
-					vec2f(1, 1),
-				);
+		@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+			let pos = array(
+				vec2f(-1.0, 1.0),
+				vec2f(-1.0, -1.0),
+				vec2f(1.0, -1.0),
+				vec2f(1.0, -1.0),
+				vec2f(1.0, 1.0),
+				vec2f(-1.0, 1.0)
+			);
 
-				return vec4f(positions[vi], 0, 1);
-			}
+			let p = vec4f(pos[vi % 6], 0, 1);
+			return p;
+		}
 
-			@fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
-				let index = u32(resolution.y - pos.y) * u32(resolution.x) + u32(pos.x);
-				var val = f32(heatmap[index]) / max_heat_value / 10000f;
-				if(val == 0){
-					discard;
-				}
-				let color = interpColor(val);
-				return color * val;
-				// return vec4f(val, 0, 0, 1);
+		@fragment fn fs(@builtin(position) coord: vec4f) ->  @location(0) vec4f {
+			var heatValue = textureLoad(tex, vec2i(floor(coord.xy)), 0).r;
+			if(heatValue == 0){
+				discard;
 			}
-		`
+			heatValue = clamp(heatValue * 1000000 / 130, 0, 1);
+			let color = interpColor(heatValue) * heatValue;
+
+			return color;
+		}
+	`
+
+	const renderModule = device.createShaderModule({
+		label: 'deferred render module',
+		code: renderCode
 	})
 
 	const renderPipeline = device.createRenderPipeline({
-		label: 'hardcoded checkerboard triangle pipeline',
-		layout: 'auto',
+		label: 'deferred pipeline',
+		layout: device.createPipelineLayout({
+			bindGroupLayouts: [
+				device.createBindGroupLayout({
+					entries: [
+						{
+							binding: 0,
+							visibility: GPUShaderStage.FRAGMENT,
+							texture: {
+								sampleType: 'unfilterable-float'
+							}
+						},
+						{
+							binding: 1,
+							visibility: GPUShaderStage.FRAGMENT,
+							buffer: {
+								type: 'uniform'
+							}
+						}
+					]
+				})
+			]
+		}),
 		vertex: {
-			module: shaderModule,
+			module: renderModule,
 			entryPoint: 'vs'
 		},
 		fragment: {
-			module: shaderModule,
+			module: renderModule,
 			entryPoint: 'fs',
 			targets: [
 				{
-					format: presentationFormat,
-					blend: {
-						color: {
-							srcFactor: 'one',
-							dstFactor: 'one-minus-src-alpha'
-						},
-						alpha: {
-							srcFactor: 'one',
-							dstFactor: 'one-minus-src-alpha'
-						}
-					}
+					format: presentationFormat
 				}
 			]
 		}
 	})
 
 	const renderPassDescriptor: GPURenderPassDescriptor = {
-		label: 'our basic canvas renderPass',
+		label: 'deferred render pass desc',
 		colorAttachments: [
 			{
 				view: context.getCurrentTexture().createView(),
@@ -291,22 +288,6 @@ async function main() {
 			}
 		]
 	}
-
-	const maxHeatValueArr = new Float32Array([maxHeatValue])
-	const maxHeatValueBuffer = device.createBuffer({
-		label: 'max heat value buffer',
-		size: maxHeatValueArr.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(maxHeatValueBuffer, 0, maxHeatValueArr)
-
-	const resolutionValue = new Float32Array([canvas.width, canvas.height])
-	const resolutionBuffer = device.createBuffer({
-		label: 'Resolution Uniforms',
-		size: resolutionValue.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-	})
-	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
 
 	const colorList = new Float32Array([1, 0, 0, 1, 1, 1, 0, 0.85, 0, 1, 0, 0.55, 0, 0, 1, 0.35, 0, 0, 0, 0])
 	const colorListBuffer = device.createBuffer({
@@ -321,29 +302,28 @@ async function main() {
 		entries: [
 			{
 				binding: 0,
-				resource: { buffer }
+				resource: texture.createView()
 			},
 			{
 				binding: 1,
-				resource: { buffer: maxHeatValueBuffer }
-			},
-			{
-				binding: 2,
-				resource: { buffer: resolutionBuffer }
-			},
-			{
-				binding: 3,
 				resource: { buffer: colorListBuffer }
 			}
 		]
 	})
 
 	const encoder = device.createCommandEncoder()
-	const renderPass = encoder.beginRenderPass(renderPassDescriptor)
-	renderPass.setPipeline(renderPipeline)
-	renderPass.setBindGroup(0, renderBindGroup)
-	renderPass.draw(6)
+	const renderPass = encoder.beginRenderPass(heatRenderPassDesc)
+	renderPass.setPipeline(heatPipeline)
+	renderPass.setVertexBuffer(0, vertexBuffer)
+	renderPass.setBindGroup(0, bindGroup)
+	renderPass.draw(6, num)
 	renderPass.end()
+
+	const renderPass1 = encoder.beginRenderPass(renderPassDescriptor)
+	renderPass1.setPipeline(renderPipeline)
+	renderPass1.setBindGroup(0, renderBindGroup)
+	renderPass1.draw(6)
+	renderPass1.end()
 
 	const commandBuffer = encoder.finish()
 	device.queue.submit([commandBuffer])

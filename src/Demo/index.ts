@@ -31,7 +31,7 @@ export async function main(canvas: HTMLCanvasElement) {
 		}
 
 		@fragment fn fs() -> @location(0) vec4f {
-			return vec4f(0.5, 0.2, 0, 1);
+			return vec4f(0.25, 0, 0, 1);
 		}
 	`
 
@@ -52,8 +52,9 @@ export async function main(canvas: HTMLCanvasElement) {
 
 		@group(0) @binding(0) var tex: texture_2d<f32>;
 		@fragment fn fs(@builtin(position) coord: vec4f) ->  @location(0) vec4f {
-			let color = textureLoad(tex, vec2i(floor(coord.xy)), 0).rgb;
-			return vec4f(color, 1);
+			let color = textureLoad(tex, vec2i(floor(coord.xy)), 0);
+			return color;
+			// return vec4f(color.g, 0, 0, 1);
 		}
 	`
 
@@ -138,7 +139,7 @@ export async function main(canvas: HTMLCanvasElement) {
 		colorAttachments: [
 			{
 				view: texture.createView(),
-				clearValue: [0.3, 0.3, 0.3, 1],
+				clearValue: [0, 0, 0, 0],
 				loadOp: 'clear',
 				storeOp: 'store'
 			}
@@ -182,7 +183,7 @@ export async function main(canvas: HTMLCanvasElement) {
 
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		pass.setPipeline(pipeline)
-		pass.draw(6)
+		pass.draw(24)
 		pass.end()
 
 		const deferredPass = encoder.beginRenderPass(deferredRenderPassDescriptor)

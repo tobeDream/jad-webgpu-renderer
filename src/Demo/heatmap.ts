@@ -79,7 +79,7 @@ async function main() {
 				if(dis >= 1) {
 					discard;
 				}
-				let h = pow(1.0 - dis, 1.5) / 1000000;
+				let h = pow(1.0 - dis, 1.5) / 100;
 				return vec4f(h, 0, 0, 0);
 			}
 		`
@@ -173,9 +173,129 @@ async function main() {
 		]
 	}
 
+	const maxHeatCode = `
+		@group(0) @binding(0) var tex: texture_2d<f32>;
+		@group(0) @binding(1) var<uniform> resolution: vec2f;
+
+		struct VSOut {
+			@location(0) vi: f32,
+			@builtin(position) position: vec4f
+		}
+
+		@vertex fn vs(@builtin(vertex_index) vii: u32) -> VSOut {
+			var vsOut: VSOut;
+			vsOut.vi = f32(vii);
+			vsOut.position = vec4f(0, 0, 0, 1);
+			return vsOut;
+		}
+
+		@fragment fn fs(vsOut: VSOut) -> @location(0) vec4f {
+			let vi = i32(vsOut.vi);
+			let y = vi / i32(resolution.x);
+			let x = vi - i32(resolution.x) * y;
+			let color = textureLoad(tex, vec2i(x, y), 0);
+			return color;
+		}
+	`
+
+	const maxHeatModule = device.createShaderModule({
+		code: maxHeatCode
+	})
+
+	const maxValueTex = device.createTexture({
+		size: [1, 1, 1],
+		format: 'rgba16float',
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+	})
+
+	const maxHeatPipeline = device.createRenderPipeline({
+		label: 'max heat pipeline',
+		layout: device.createPipelineLayout({
+			bindGroupLayouts: [
+				device.createBindGroupLayout({
+					entries: [
+						{
+							binding: 0,
+							visibility: GPUShaderStage.FRAGMENT,
+							texture: {
+								sampleType: 'unfilterable-float'
+							}
+						},
+						{
+							binding: 1,
+							visibility: GPUShaderStage.FRAGMENT,
+							buffer: {
+								type: 'uniform'
+							}
+						}
+					]
+				})
+			]
+		}),
+		vertex: {
+			module: maxHeatModule,
+			entryPoint: 'vs'
+		},
+		fragment: {
+			module: maxHeatModule,
+			entryPoint: 'fs',
+			targets: [
+				{
+					format: 'rgba16float',
+					blend: {
+						color: {
+							srcFactor: 'one',
+							dstFactor: 'one',
+							operation: 'max'
+						},
+						alpha: {
+							srcFactor: 'one',
+							dstFactor: 'one',
+							operation: 'max'
+						}
+					}
+				}
+			]
+		},
+		primitive: { topology: 'point-list' }
+	})
+
+	const maxHeatRenderPassDesc: GPURenderPassDescriptor = {
+		label: 'max heat renderPass',
+		colorAttachments: [
+			{
+				view: maxValueTex.createView(),
+				clearValue: [0, 0, 0, 0],
+				loadOp: 'clear',
+				storeOp: 'store'
+			}
+		]
+	}
+
+	const maxHeatBindGroup = device.createBindGroup({
+		layout: maxHeatPipeline.getBindGroupLayout(0),
+		entries: [
+			{
+				binding: 0,
+				resource: texture.createView()
+			},
+			{
+				binding: 1,
+				resource: { buffer: resolutionBuffer }
+			}
+		]
+	})
+
+	const readBuffer = device.createBuffer({
+		label: 'read buffer',
+		size: 4 * 2 * 1,
+		usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+	})
+
 	const renderCode = `
 			@group(0) @binding(0) var tex: texture_2d<f32>;
 			@group(0) @binding(1) var<uniform> colors: array<vec4f, 5>;
+			@group(0) @binding(2) var maxValTex: texture_2d<f32>;
 
 			fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
 				let rl = abs(mid - low);
@@ -226,7 +346,8 @@ async function main() {
 			if(heatValue == 0){
 				discard;
 			}
-			heatValue = clamp(heatValue * 1000000 / 130, 0, 1);
+			let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * 90;
+			heatValue = clamp(heatValue * 100 / maxHeatValue, 0, 1);
 			let color = interpColor(heatValue) * heatValue;
 
 			return color;
@@ -256,6 +377,13 @@ async function main() {
 							visibility: GPUShaderStage.FRAGMENT,
 							buffer: {
 								type: 'uniform'
+							}
+						},
+						{
+							binding: 2,
+							visibility: GPUShaderStage.FRAGMENT,
+							texture: {
+								sampleType: 'unfilterable-float'
 							}
 						}
 					]
@@ -307,6 +435,10 @@ async function main() {
 			{
 				binding: 1,
 				resource: { buffer: colorListBuffer }
+			},
+			{
+				binding: 2,
+				resource: maxValueTex.createView()
 			}
 		]
 	})
@@ -319,6 +451,12 @@ async function main() {
 	renderPass.draw(6, num)
 	renderPass.end()
 
+	const maxHeatRenderPass = encoder.beginRenderPass(maxHeatRenderPassDesc)
+	maxHeatRenderPass.setPipeline(maxHeatPipeline)
+	maxHeatRenderPass.setBindGroup(0, maxHeatBindGroup)
+	maxHeatRenderPass.draw(canvas.width * canvas.height)
+	maxHeatRenderPass.end()
+
 	const renderPass1 = encoder.beginRenderPass(renderPassDescriptor)
 	renderPass1.setPipeline(renderPipeline)
 	renderPass1.setBindGroup(0, renderBindGroup)
@@ -327,6 +465,9 @@ async function main() {
 
 	const commandBuffer = encoder.finish()
 	device.queue.submit([commandBuffer])
+	// await readBuffer.mapAsync(GPUMapMode.READ)
+	// const data = new Float32Array(readBuffer.getMappedRange())
+	// console.log(data)
 	await device.queue.onSubmittedWorkDone()
 	console.log(new Date().valueOf() - s)
 }

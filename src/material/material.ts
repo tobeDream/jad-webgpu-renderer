@@ -94,7 +94,7 @@ class Material {
 		return this.renderPipeline.getBindGroups(renderer, this.bufferPool)
 	}
 
-	public submitComputeCommand(renderer: Renderer, encoder: GPUCommandEncoder) {
+	public recordComputeCommand(renderer: Renderer, encoder: GPUCommandEncoder) {
 		if (this.computePipelines.length === 0) return
 		const s = new Date().valueOf()
 		const heatValueArrBuffer = this.bufferPool.getBuffer('heatValueArr')

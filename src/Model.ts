@@ -1,3 +1,4 @@
+import { Camera } from './camera/camera'
 import { Object3D } from './Object3D'
 import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
@@ -33,8 +34,31 @@ class Model extends Object3D {
 		this._material = mat
 	}
 
-	public onresize(renderer: Renderer) {
-		this._material.onresize(renderer)
+	public render(renderer: Renderer, encoder: GPUCommandEncoder, pass: GPURenderPassEncoder, camera: Camera) {
+		const { geometry, material } = this
+		const { device } = renderer
+		// if (geometry.vertexCount === -1) continue
+		const vertexStateInfo = geometry.getVertexStateInfo()
+		const vertexBufferList = geometry.getVertexBufferList(device)
+
+		const pipeline = material.getPipeline(renderer, vertexStateInfo)
+		if (!pipeline) return
+		const { bindGroups, groupIndexList } = material.getBindGroups(renderer, camera)
+		pass.setPipeline(pipeline)
+		for (let i = 0; i < bindGroups.length; ++i) {
+			pass.setBindGroup(groupIndexList[i], bindGroups[i])
+		}
+		for (let i = 0; i < vertexBufferList.length; ++i) {
+			pass.setVertexBuffer(i, vertexBufferList[i])
+		}
+		const indexBuffer = geometry.getIndexBuffer(device)
+		if (indexBuffer) {
+			pass.setIndexBuffer(indexBuffer, 'uint32')
+		}
+		const instanceCount = geometry.instanceCount > -1 ? geometry.instanceCount : undefined
+		const index = geometry.getIndex()
+		if (index) pass.drawIndexed(index.length, instanceCount)
+		else pass.draw(geometry.vertexCount, instanceCount)
 	}
 }
 

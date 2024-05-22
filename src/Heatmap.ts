@@ -1,7 +1,8 @@
 import Model from './Model'
 import Geometry from './geometry/geometry'
-import HeatmapMaterial from './material/heatmapMaterial'
+import Material from './material/material'
 import { Color } from './types'
+import { renderShaderCode } from './material/shaders/heatmap'
 
 type IProps = {
 	points: Float32Array
@@ -15,6 +16,8 @@ type IProps = {
 }
 
 class Heatmap extends Model {
+	private colorList: Float32Array
+	private offsetList: Float32Array
 	/**
 	 * points 为热力点的二维坐标
 	 * material.colorList 为将浮点数的热力值插值为 rgb 颜色时的插值颜色数组
@@ -27,9 +30,21 @@ class Heatmap extends Model {
 	constructor(props: IProps) {
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
-		const material = new HeatmapMaterial({ points: props.points, ...props.material })
+		const { material, points } = props
+		const colorList = material?.colorList
+			? new Float32Array(material.colorList.flat())
+			: new Float32Array([1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
+		const offsetList = material?.offsets
+			? new Float32Array(material?.offsets)
+			: new Float32Array([1, 0.85, 0.55, 0.35, 0])
 
-		super(geometry, material)
+		const mat = new Material({
+			renderCode: renderShaderCode,
+			vertexShaderEntry: 'vs',
+			fragmentShaderEntry: 'fs'
+		})
+
+		super(geometry, mat)
 	}
 }
 

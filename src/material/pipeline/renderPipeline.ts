@@ -1,16 +1,17 @@
-import BufferPool from '@/buffer/bufferPool'
 import PipelineBase, { IProps as BaseProps } from './pipelineBase'
 import Renderer from '@/Renderer'
 
 type IProps = BaseProps & {
 	vsEntry: string
 	fsEntry: string
+	renderTarget?: GPUTexture
 }
 
 class RenderPipeline extends PipelineBase {
 	protected pipeline: GPURenderPipeline | null = null
 	private vsEntry: string
 	private fsEntry: string
+	private renderTarget?: GPUTexture //if undefined, render to canvas
 	constructor(props: IProps) {
 		super(props)
 		this.vsEntry = props.vsEntry
@@ -75,6 +76,10 @@ class RenderPipeline extends PipelineBase {
 		const { device } = renderer
 		if (!this.pipeline) this.createPipeline(renderer, vertexBufferLayouts)
 		return this.pipeline
+	}
+
+	getRenderTarget() {
+		return this.renderTarget
 	}
 }
 

@@ -4,11 +4,13 @@ import { Blending, TypedArray } from '../../types'
 import Uniform from '../uniform'
 import Storage from '../storage'
 import BufferPool from '@/buffer/bufferPool'
+import { Camera } from '@/camera/camera'
 
 export type IProps = {
 	shaderCode: string
 	uniforms?: Record<string, any>
 	storages?: Record<string, TypedArray>
+	textures?: Record<string, GPUTexture>
 	blending?: Blending
 }
 
@@ -16,6 +18,7 @@ abstract class PipelineBase {
 	protected code: string
 	protected uniforms: Record<string, Uniform> = {}
 	protected storages: Record<string, Storage> = {}
+	protected textures: Record<string, GPUTexture> = {}
 	protected blending: Blending = 'none'
 	protected pipeline: GPUPipelineBase | null = null
 	protected shaderModule: GPUShaderModule | null = null
@@ -67,7 +70,8 @@ abstract class PipelineBase {
 
 	public getBindGroups(
 		renderer: Renderer,
-		bufferPool: BufferPool
+		bufferPool: BufferPool,
+		camera: Camera
 	): { bindGroups: GPUBindGroup[]; groupIndexList: number[] } {
 		if (!this.pipeline) return { bindGroups: [], groupIndexList: [] }
 
@@ -87,8 +91,12 @@ abstract class PipelineBase {
 				const uniform = this.uniforms[un]
 				if (uniform.group !== index) continue
 				let buffer: GPUBuffer | null = null
-				if (renderer.precreatedUniformBuffers[uniform.name]) {
-					buffer = renderer.precreatedUniformBuffers[uniform.name]
+				if (uniform.name === 'projectionMatrix') {
+					buffer = camera.getProjectionMatBuf(device)
+				} else if (uniform.name === 'viewMatrix') {
+					buffer = camera.getViewMatBuf(device)
+				} else if (uniform.name === 'resolution') {
+					buffer = renderer.resolutionBuf
 				} else {
 					buffer = bufferPool.getBuffer(un)?.GPUBuffer
 					if (!buffer) {

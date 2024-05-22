@@ -1,76 +1,80 @@
-export const heatValuePrec = 10000
+//因为保存热力值的纹理 format 为 rgba16float, 计算出来的像素热力值可能超过 f16的取值上限，所以在将热力值写入纹理前先将热力值除以 heatValuePrec
+export const heatValuePrec = 100
 
-export const computeShaderCode = `
-    const prec = ${heatValuePrec}f;
-    @group(0) @binding(0) var<storage> points: array<vec2f>;
-    @group(0) @binding(1) var<storage, read_write> heatValueArr: array<atomic<u32>>;
-    @group(0) @binding(2) var<uniform> grid: vec2u;
-    @group(0) @binding(3) var<uniform> resolution: vec2f;
-    @group(0) @binding(4) var<uniform> radius: f32;
-    @group(0) @binding(5) var<uniform> projectionMatrix: mat4x4f;
-    @group(0) @binding(6) var<uniform> viewMatrix: mat4x4f;
+export const computeHeatValueShaderCode = `
+    struct Vertex {
+        @builtin(vertex_index) vi: u32,
+        @location(0) position: vec2f,
+    };
 
-    fn getIndex(id: vec2u) -> u32 {
-        return (id.y % grid.y) * grid.x + (id.x % grid.x);
+    struct VSOutput {
+        @builtin(position) position: vec4f,
+        @location(0) pointCoord: vec2f,
+    };
+
+    @group(0) @binding(0) var<uniform> resolution: vec2f;
+    @group(0) @binding(1) var<uniform> size: f32;
+
+    @vertex fn vs(vert: Vertex) ->  VSOutput{
+        let points = array(
+            vec2f(-1, -1),
+            vec2f( 1, -1),
+            vec2f(-1,  1),
+            vec2f(-1,  1),
+            vec2f( 1, -1),
+            vec2f( 1,  1),
+        );
+
+        let pos = points[vert.vi];
+        let pointPos = pos * size / resolution;
+
+        var vsOut: VSOutput;
+        vsOut.position = vec4f(vert.position + pointPos, 0, 1);
+        vsOut.pointCoord = pos;
+
+        return vsOut;
     }
 
-    @compute @workgroup_size(8, 8, 1)
-    fn main(@builtin(global_invocation_id) id: vec3u){
-        let index = getIndex(id.xy);
-        if(index >= arrayLength(&points)){
-            return;
+    @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
+        let coord = vsOut.pointCoord;
+        let dis = length(coord);
+        if(dis >= 1) {
+            discard;
         }
-        let point = projectionMatrix * viewMatrix * vec4f(points[index], 0, 1);
-        //将 ndc 坐标系下的 point 坐标转换为屏幕空间的像素坐标，其中像素坐标的原点位于屏幕的左下方
-        let pc = (point.xy / point.w + vec2f(1, 1)) / 2.0f * resolution ;
-
-        //遍历 point 像素半径覆盖的各个像素
-        let r = i32(radius);
-        let w = i32(resolution.x);
-        let h = i32(resolution.y);
-        let si = max(0, i32(pc.x) - r);
-        let ei = min(w - 1, i32(pc.x) + r);
-        let sj = max(0, i32(pc.y) - r);
-        let ej = min(h - 1, i32(pc.y) + r);
-        for(var i = si; i <= ei; i++){
-            for(var j = sj; j <= ej; j++){
-                let d = pow(pow(f32(i) - pc.x, 2) + pow(f32(j) - pc.y, 2), 0.5);
-                var h = step(d / radius, 1) * (1 - d / radius);
-                h = pow(h, 1.5);
-                let outIdx = u32(j) * u32(resolution.x) + u32(i);
-                let v = u32(step(0, h) * h * prec);
-                atomicAdd(&heatValueArr[outIdx], v);
-            }
-        }
+        let h = pow(1.0 - dis, 1.5) / 100;
+        return vec4f(h, 0, 0, 0);
     }
 `
 
 export const computeMaxHeatValueShaderCode = `
-    @group(0) @binding(0) var<storage, read> heatValueArr: array<u32>;
-    @group(0) @binding(1) var<storage, read_write> actualMaxHeat: array<atomic<u32>>;
-    @group(0) @binding(2) var<uniform> resolution: vec2f;
+    @group(0) @binding(0) var heatValTex: texture_2d<f32>;
+    @group(0) @binding(1) var<uniform> resolution: vec2f;
 
-    @compute @workgroup_size(1, 1, 1)
-    fn main(@builtin(global_invocation_id) id: vec3u){
-        let grid = vec2u(u32(resolution.x), u32(resolution.y));
-        let row = id.x;
-        var res = 0u;
-        for(var i = 0; i < i32(grid.x); i++){
-            let index = (row % grid.y) * grid.x + u32(i);
-            res = max(heatValueArr[index], res);
-        }
-        atomicMax(&actualMaxHeat[0], res);
+    struct VSOut {
+        @location(0) vi: f32,
+        @builtin(position) position: vec4f
+    }
+
+    @vertex fn vs(@builtin(vertex_index) vii: u32) -> VSOut {
+        var vsOut: VSOut;
+        vsOut.vi = f32(vii);
+        vsOut.position = vec4f(0, 0, 0, 1);
+        return vsOut;
+    }
+
+    @fragment fn fs(vsOut: VSOut) -> @location(0) vec4f {
+        let vi = i32(vsOut.vi);
+        let y = vi / i32(resolution.x);
+        let x = vi - i32(resolution.x) * y;
+        let color = textureLoad(heatValTex, vec2i(x, y), 0);
+        return color;
     }
 `
 
 export const renderShaderCode = `
-    @group(0) @binding(0) var<storage, read> heatValueArr: array<u32>;
-    @group(0) @binding(1) var<uniform> maxHeatValue: f32;
-    @group(0) @binding(2) var<uniform> resolution: vec2f;
-    //color.a 为 颜色插值时对应的 offset 取值范围为0到1
-    @group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
-    @group(0) @binding(4) var<uniform> maxHeatValueRatio: f32;
-    @group(0) @binding(5) var<storage, read> actualMaxHeat: array<u32>;
+    @group(0) @binding(0) var heatValTex: texture_2d<f32>;
+    @group(0) @binding(1) var<uniform> colors: array<vec4f, 5>;
+    @group(0) @binding(2) var maxValTex: texture_2d<f32>;
 
     fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
         let rl = abs(mid - low);
@@ -103,28 +107,28 @@ export const renderShaderCode = `
     }
 
     @vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
-        _ = colors;
-        _ = maxHeatValueRatio;
-        let positions = array(
-            vec2f(-1, -1),
-            vec2f(1, 1),
-            vec2f(-1, 1),
-            vec2f(-1, -1),
-            vec2f(1, -1),
-            vec2f(1, 1),
+        let pos = array(
+            vec2f(-1.0, 1.0),
+            vec2f(-1.0, -1.0),
+            vec2f(1.0, -1.0),
+            vec2f(1.0, -1.0),
+            vec2f(1.0, 1.0),
+            vec2f(-1.0, 1.0)
         );
 
-        return vec4f(positions[vi], 0, 1);
+        let p = vec4f(pos[vi % 6], 0, 1);
+        return p;
     }
 
-    @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
-        let index = u32(resolution.y - pos.y) * u32(resolution.x) + u32(pos.x);
-        let maxValue = select(f32(actualMaxHeat[0]) / ${heatValuePrec}, maxHeatValue, maxHeatValue > 0) * maxHeatValueRatio;
-        var val = f32(heatValueArr[index]) / maxValue / ${heatValuePrec}f;
-        if(val == 0){
+    @fragment fn fs(@builtin(position) coord: vec4f) ->  @location(0) vec4f {
+        var heatValue = textureLoad(heatValTex, vec2i(floor(coord.xy)), 0).r;
+        if(heatValue == 0){
             discard;
         }
-        let color = interpColor(val);
-        return color * val;
+        let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * 90;
+        heatValue = clamp(heatValue * 100 / maxHeatValue, 0, 1);
+        let color = interpColor(heatValue) * heatValue;
+
+        return color;
     }
 `

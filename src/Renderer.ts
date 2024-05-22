@@ -1,9 +1,7 @@
-import { OrthographicCamera, PerspectiveCamera } from 'three'
 import Scene from './Scene'
+import { Camera } from './camera/camera'
 
 type IProps = {
-	camera: OrthographicCamera | PerspectiveCamera
-	scene: Scene
 	canvas: HTMLCanvasElement
 	antiAlias?: boolean
 	clearColor?: [number, number, number, number]
@@ -22,15 +20,11 @@ class Renderer {
 	private _antialias: boolean
 
 	public device: GPUDevice
-	public camera: IProps['camera']
-	public scene: Scene
 	public presentationFormat: GPUTextureFormat
 
-	precreatedUniformBuffers: Record<string, GPUBuffer>
+	resolutionBuf: GPUBuffer
 
 	constructor(props: IProps) {
-		this.camera = props.camera
-		this.scene = props.scene
 		this.outputCanvas = props.canvas
 		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
 		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
@@ -83,23 +77,10 @@ class Renderer {
 				}
 			]
 		}
-		const projectionMatrix = device.createBuffer({
-			size: 16 * 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		})
-		const viewMatrix = device.createBuffer({
-			size: 16 * 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-		})
-		const resolution = device.createBuffer({
+		this.resolutionBuf = device.createBuffer({
 			size: 2 * 4,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 		})
-		this.precreatedUniformBuffers = {
-			projectionMatrix,
-			viewMatrix,
-			resolution
-		}
 		this._ready = true
 		this.resize()
 		if (this._antialias) this.createMultisampleTexture()
@@ -134,7 +115,7 @@ class Renderer {
 	 * @param camera
 	 * @param scene
 	 */
-	public async render() {
+	public async render(scene: Scene, camera: Camera, renderTarget?: GPUTexture) {
 		let wait = 0
 		while (!this.ready) {
 			await delay(20)
@@ -143,49 +124,30 @@ class Renderer {
 		}
 		const s = new Date().valueOf()
 		if (!this.device || !this.canvasCtx) return
-		const { camera, scene } = this
-		this.updateCameraMatrix(camera)
+		camera.updateMatrixBuffers(this.device)
 		const { device, canvasCtx, renderPassDescriptor } = this
 
 		const colorAttachment = (renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0]
-		if (!this._antialias) {
-			colorAttachment.view = canvasCtx.getCurrentTexture().createView()
-			colorAttachment.resolveTarget = undefined
-		} else if (this._multisampleTexture) {
-			colorAttachment.view = this._multisampleTexture?.createView()
-			colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
+		if (!renderTarget) {
+			if (!this._antialias) {
+				colorAttachment.view = canvasCtx.getCurrentTexture().createView()
+				colorAttachment.resolveTarget = undefined
+			} else if (this._multisampleTexture) {
+				colorAttachment.view = this._multisampleTexture?.createView()
+				colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
+			}
+		} else {
+			colorAttachment.view = renderTarget.createView()
 		}
 
 		const encoder = device.createCommandEncoder()
-		for (let model of scene.modelList) {
-			model.material.recordComputeCommand(this, encoder)
-		}
+		// for (let model of scene.modelList) {
+		// 	model.material.recordComputeCommand(this, encoder)
+		// }
 
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
-			const { geometry, material } = model
-			// if (geometry.vertexCount === -1) continue
-			const vertexStateInfo = geometry.getVertexStateInfo()
-			const vertexBufferList = geometry.getVertexBufferList(this.device)
-
-			const pipeline = material.getPipeline(this, vertexStateInfo)
-			if (!pipeline) continue
-			const { bindGroups, groupIndexList } = material.getBindGroups(this)
-			pass.setPipeline(pipeline)
-			for (let i = 0; i < bindGroups.length; ++i) {
-				pass.setBindGroup(groupIndexList[i], bindGroups[i])
-			}
-			for (let i = 0; i < vertexBufferList.length; ++i) {
-				pass.setVertexBuffer(i, vertexBufferList[i])
-			}
-			const indexBuffer = geometry.getIndexBuffer(device)
-			if (indexBuffer) {
-				pass.setIndexBuffer(indexBuffer, 'uint32')
-			}
-			const instanceCount = geometry.instanceCount > -1 ? geometry.instanceCount : undefined
-			const index = geometry.getIndex()
-			if (index) pass.drawIndexed(index.length, instanceCount)
-			else pass.draw(geometry.vertexCount, instanceCount)
+			model.render(this, encoder, pass, camera)
 		}
 		pass.end()
 
@@ -197,15 +159,8 @@ class Renderer {
 
 	public resize() {
 		if (!this.ready || !this.device) return
-		this.device.queue.writeBuffer(
-			this.precreatedUniformBuffers.resolution,
-			0,
-			new Float32Array([this.width, this.height])
-		)
+		this.device.queue.writeBuffer(this.resolutionBuf, 0, new Float32Array([this.width, this.height]))
 		if (this._antialias) this.createMultisampleTexture()
-		for (let model of this.scene.modelList) {
-			model.onresize(this)
-		}
 	}
 
 	private createMultisampleTexture() {
@@ -218,20 +173,6 @@ class Renderer {
 			size: [outputCanvavTexture.width, outputCanvavTexture.height],
 			sampleCount: 4 //MSAA webgpu只支持采样率为1或者4的多重采样
 		})
-	}
-
-	private updateCameraMatrix(camera: PerspectiveCamera | OrthographicCamera) {
-		if (!this.device || !this.ready) camera.updateProjectionMatrix()
-		camera.updateMatrixWorld()
-		const projectionMat = camera.projectionMatrix
-		const viewMat = camera.matrixWorldInverse
-
-		this.device.queue.writeBuffer(
-			this.precreatedUniformBuffers.projectionMatrix,
-			0,
-			new Float32Array(projectionMat.elements)
-		)
-		this.device.queue.writeBuffer(this.precreatedUniformBuffers.viewMatrix, 0, new Float32Array(viewMat.elements))
 	}
 }
 

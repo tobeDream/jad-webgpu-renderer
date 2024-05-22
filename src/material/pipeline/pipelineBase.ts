@@ -10,7 +10,6 @@ export type IProps = {
 	shaderCode: string
 	uniforms?: Record<string, any>
 	storages?: Record<string, TypedArray>
-	textures?: Record<string, GPUTexture>
 	blending?: Blending
 }
 
@@ -18,16 +17,17 @@ abstract class PipelineBase {
 	protected code: string
 	protected uniforms: Record<string, Uniform> = {}
 	protected storages: Record<string, Storage> = {}
-	protected textures: Record<string, GPUTexture> = {}
 	protected blending: Blending = 'none'
 	protected pipeline: GPUPipelineBase | null = null
 	protected shaderModule: GPUShaderModule | null = null
 	protected _defs: ShaderDataDefinitions
+	protected textureInfos: Record<string, { group: number; binding: number }>
 
 	constructor(props: IProps) {
 		this.code = props.shaderCode
 		this.blending = props.blending || 'none'
 		this._defs = this.parseShaderCode(props)
+		this.textureInfos = {}
 	}
 
 	get defs() {
@@ -42,6 +42,9 @@ abstract class PipelineBase {
 		}
 		for (let sn in defs.storages) {
 			this.storages[sn] = new Storage({ name: sn, def: defs.storages[sn], value: storages[sn] })
+		}
+		for (let tn in defs.textures) {
+			this.textureInfos[tn] = { group: defs.textures[tn].group, binding: defs.textures[tn].binding }
 		}
 		return defs
 	}

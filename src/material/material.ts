@@ -18,6 +18,7 @@ type IProps = {
 class Material {
 	protected renderPipeline: RenderPipeline
 	protected bufferPool = new BufferPool()
+	protected textures: Record<string, GPUTexture> = {}
 
 	constructor(props: IProps) {
 		this.renderPipeline = new RenderPipeline({
@@ -38,6 +39,15 @@ class Material {
 	public getStorage(name: string) {
 		const storage = this.renderPipeline.getStorage(name)
 		return storage
+	}
+
+	public getTexture(name: string) {
+		return this.textures[name]
+	}
+
+	public updateTexture(name: string, texture: GPUTexture) {
+		if (this.textures[name]) this.textures[name].destroy()
+		this.textures[name] = texture
 	}
 
 	public updateUniform(uniformName: string, value: any) {

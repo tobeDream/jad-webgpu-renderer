@@ -8,6 +8,6 @@ export type TypedArray =
 	| Int16Array
 	| Int32Array
 
-export type Blending = 'normalBlending' | 'additiveBlending' | 'none'
+export type Blending = 'normalBlending' | 'additiveBlending' | 'max' | 'min' | 'none'
 
 export type Color = [number, number, number, number]

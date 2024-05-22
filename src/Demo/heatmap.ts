@@ -1,3 +1,5 @@
+import { makeShaderDataDefinitions } from 'webgpu-utils'
+
 async function main() {
 	const canvas = document.querySelector('#canvas') as HTMLCanvasElement
 	canvas.width = canvas.offsetWidth / 1
@@ -22,7 +24,7 @@ async function main() {
 		alphaMode: 'premultiplied'
 	})
 
-	const num = 2000000
+	const num = 10000000
 	const radius = 20
 	const points = new Float32Array(num * 2)
 
@@ -346,13 +348,15 @@ async function main() {
 			if(heatValue == 0){
 				discard;
 			}
-			let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * 90;
-			heatValue = clamp(heatValue * 100 / maxHeatValue, 0, 1);
+			let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r;
+			heatValue = clamp(heatValue / maxHeatValue, 0, 1);
 			let color = interpColor(heatValue) * heatValue;
 
 			return color;
 		}
 	`
+
+	console.log(makeShaderDataDefinitions(renderCode))
 
 	const renderModule = device.createShaderModule({
 		label: 'deferred render module',

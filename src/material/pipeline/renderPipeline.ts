@@ -64,6 +64,22 @@ class RenderPipeline extends PipelineBase {
 				}
 				break
 			}
+			case 'max':
+			case 'min': {
+				//@ts-ignore
+				pipelineDescriptor.fragment.targets[0].blend = {
+					color: {
+						srcFactor: 'one',
+						dstFactor: 'one',
+						operation: this.blending
+					},
+					alpha: {
+						srcFactor: 'one',
+						dstFactor: 'one',
+						operation: this.blending
+					}
+				}
+			}
 			default: {
 				break
 			}

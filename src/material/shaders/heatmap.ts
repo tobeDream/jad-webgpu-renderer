@@ -41,7 +41,7 @@ export const computeHeatValueShaderCode = `
         if(dis >= 1) {
             discard;
         }
-        let h = pow(1.0 - dis, 1.5) / 100;
+        let h = pow(1.0 - dis, 1.5) / ${heatValuePrec};
         return vec4f(h, 0, 0, 0);
     }
 `
@@ -73,8 +73,9 @@ export const computeMaxHeatValueShaderCode = `
 
 export const renderShaderCode = `
     @group(0) @binding(0) var heatValTex: texture_2d<f32>;
-    @group(0) @binding(1) var<uniform> colors: array<vec4f, 5>;
-    @group(0) @binding(2) var maxValTex: texture_2d<f32>;
+    @group(0) @binding(1) var maxValTex: texture_2d<f32>;
+    @group(0) @binding(2) var<uniform> maxHeatValueRatio: f32;
+    @group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
 
     fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
         let rl = abs(mid - low);
@@ -125,8 +126,8 @@ export const renderShaderCode = `
         if(heatValue == 0){
             discard;
         }
-        let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * 90;
-        heatValue = clamp(heatValue * 100 / maxHeatValue, 0, 1);
+        let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * maxHeatValueRatio;
+        heatValue = clamp(heatValue / maxHeatValue, 0, 1);
         let color = interpColor(heatValue) * heatValue;
 
         return color;

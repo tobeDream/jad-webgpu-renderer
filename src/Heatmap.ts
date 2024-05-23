@@ -2,11 +2,15 @@ import Model from './Model'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 import { Color } from './types'
-import { renderShaderCode, computeHeatValueShaderCode, computeMaxHeatValueShaderCode } from './material/shaders/heatmap'
+import {
+	renderShaderCode,
+	computeHeatValueShaderCode,
+	computeMaxHeatValueShaderCode,
+	sampleRate
+} from './material/shaders/heatmap'
 import Renderer from './Renderer'
 import { Camera } from './camera/camera'
 import Attribute from './geometry/attribute'
-import Scene from './Scene'
 
 type IProps = {
 	points: Float32Array
@@ -45,41 +49,7 @@ class Heatmap extends Model {
 			renderCode: renderShaderCode,
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
-			blending: 'normalBlending',
-			renderBindGroupLayoutDescriptors: [
-				{
-					entries: [
-						{
-							binding: 0,
-							visibility: GPUShaderStage.FRAGMENT,
-							texture: {
-								sampleType: 'unfilterable-float'
-							}
-						},
-						{
-							binding: 1,
-							visibility: GPUShaderStage.FRAGMENT,
-							texture: {
-								sampleType: 'unfilterable-float'
-							}
-						},
-						{
-							binding: 2,
-							visibility: GPUShaderStage.FRAGMENT,
-							buffer: {
-								type: 'uniform'
-							}
-						},
-						{
-							binding: 3,
-							visibility: GPUShaderStage.FRAGMENT,
-							buffer: {
-								type: 'uniform'
-							}
-						}
-					]
-				}
-			]
+			blending: 'normalBlending'
 		})
 
 		super(geometry, mat)
@@ -148,7 +118,7 @@ class Heatmap extends Model {
 	private createMaxHeatValueModel(renderer: Renderer) {
 		const { width, height } = renderer
 		const geo = new Geometry()
-		geo.vertexCount = width * height
+		geo.vertexCount = (width * height) / sampleRate / sampleRate
 		const mat = new Material({
 			id: 'compute max heat value',
 			renderCode: computeMaxHeatValueShaderCode,
@@ -157,27 +127,7 @@ class Heatmap extends Model {
 			blending: 'max',
 			presentationFormat: 'rgba16float',
 			multisampleCount: 1,
-			primitive: { topology: 'point-list' },
-			renderBindGroupLayoutDescriptors: [
-				{
-					entries: [
-						{
-							binding: 0,
-							visibility: GPUShaderStage.FRAGMENT,
-							texture: {
-								sampleType: 'unfilterable-float'
-							}
-						},
-						{
-							binding: 1,
-							visibility: GPUShaderStage.FRAGMENT,
-							buffer: {
-								type: 'uniform'
-							}
-						}
-					]
-				}
-			]
+			primitive: { topology: 'point-list' }
 		})
 		this.maxHeatValueModel = new Model(geo, mat)
 	}

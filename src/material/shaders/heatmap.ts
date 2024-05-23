@@ -1,5 +1,6 @@
 //因为保存热力值的纹理 format 为 rgba16float, 计算出来的像素热力值可能超过 f16的取值上限，所以在将热力值写入纹理前先将热力值除以 heatValuePrec
 export const heatValuePrec = 1
+export const sampleRate = 4
 
 export const computeHeatValueShaderCode = `
     struct Vertex {
@@ -67,9 +68,9 @@ export const computeMaxHeatValueShaderCode = `
 
     @fragment fn fs(vsOut: VSOut) -> @location(0) vec4f {
         let vi = i32(vsOut.vi);
-        let y = vi / i32(resolution.x);
-        let x = vi - i32(resolution.x) * y;
-        let color = textureLoad(heatValTex, vec2i(x, y), 0);
+        let y = vi / i32(resolution.x / ${sampleRate});
+        let x = vi - i32(resolution.x / ${sampleRate}) * y;
+        let color = textureLoad(heatValTex, vec2i(x * ${sampleRate}, y * ${sampleRate}), 0);
         return color;
     }
 `

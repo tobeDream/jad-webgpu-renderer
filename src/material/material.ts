@@ -112,9 +112,9 @@ class Material {
 				module: this.shaderModule,
 				entryPoint: this.fsEntry,
 				targets: [{ format: this.presentationFormat || presentationFormat }]
-			},
+			}
 		}
-		if(this.primitive){
+		if (this.primitive) {
 			pipelineDescriptor.primitive = this.primitive
 		}
 		switch (this.blending) {
@@ -231,10 +231,6 @@ class Material {
 						device
 					})
 				}
-				// //因为 storage buffer 长度可变，所以如果 TypedArray 长度变化需要重新分配 GPUBuffer
-				// if (storage.byteLength !== buffer.size) {
-				// 	buffer.reallocate(device, storage.byteLength)
-				// }
 				if (storage.needsUpdate && storage.value) {
 					bufferPool.writeBuffer(device, sn, storage.value.buffer)
 					storage.needsUpdate = false

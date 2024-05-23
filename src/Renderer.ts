@@ -38,6 +38,9 @@ class Renderer {
 			throw 'your browser not supports WebGPU'
 		}
 		if (props.clearColor) this.clearColor = props.clearColor.slice()
+
+		console.log(this.width, this.height)
+
 		this.initWebGPU(props)
 	}
 

@@ -24,7 +24,7 @@ async function main() {
 		alphaMode: 'premultiplied'
 	})
 
-	const num = 10000000
+	const num = 2000000
 	const radius = 20
 	const points = new Float32Array(num * 2)
 

@@ -1,5 +1,5 @@
 //因为保存热力值的纹理 format 为 rgba16float, 计算出来的像素热力值可能超过 f16的取值上限，所以在将热力值写入纹理前先将热力值除以 heatValuePrec
-export const heatValuePrec = 100
+export const heatValuePrec = 1
 
 export const computeHeatValueShaderCode = `
     struct Vertex {
@@ -12,8 +12,10 @@ export const computeHeatValueShaderCode = `
         @location(0) pointCoord: vec2f,
     };
 
-    @group(0) @binding(0) var<uniform> resolution: vec2f;
-    @group(0) @binding(1) var<uniform> size: f32;
+    @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
+    @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
+    @group(0) @binding(2) var<uniform> resolution: vec2f;
+    @group(0) @binding(3) var<uniform> size: f32;
 
     @vertex fn vs(vert: Vertex) ->  VSOutput{
         let points = array(
@@ -26,10 +28,11 @@ export const computeHeatValueShaderCode = `
         );
 
         let pos = points[vert.vi];
-        let pointPos = pos * size / resolution;
+        let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
+        let pointPos = vec4f(pos * size / resolution * clipPos.w, 0, 0);
 
         var vsOut: VSOutput;
-        vsOut.position = vec4f(vert.position + pointPos, 0, 1);
+        vsOut.position = clipPos + pointPos;
         vsOut.pointCoord = pos;
 
         return vsOut;
@@ -42,7 +45,7 @@ export const computeHeatValueShaderCode = `
             discard;
         }
         let h = pow(1.0 - dis, 1.5) / ${heatValuePrec};
-        return vec4f(h, 0, 0, 0);
+        return vec4f(h, 0, 0, 1);
     }
 `
 
@@ -73,9 +76,11 @@ export const computeMaxHeatValueShaderCode = `
 
 export const renderShaderCode = `
     @group(0) @binding(0) var heatValTex: texture_2d<f32>;
-    @group(0) @binding(1) var maxValTex: texture_2d<f32>;
-    @group(0) @binding(2) var<uniform> maxHeatValueRatio: f32;
-    @group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
+    @group(0) @binding(1) var<uniform> maxHeatValueRatio: f32;
+    @group(0) @binding(2) var<uniform> colors: array<vec4f, 5>;
+    // @group(0) @binding(1) var maxValTex: texture_2d<f32>;
+    // @group(0) @binding(2) var<uniform> maxHeatValueRatio: f32;
+    // @group(0) @binding(3) var<uniform> colors: array<vec4f, 5>;
 
     fn fade(low: f32, mid: f32, high: f32, value: f32, ) -> f32 {
         let rl = abs(mid - low);
@@ -126,10 +131,12 @@ export const renderShaderCode = `
         if(heatValue == 0){
             discard;
         }
-        let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * maxHeatValueRatio;
-        heatValue = clamp(heatValue / maxHeatValue, 0, 1);
+        // let maxHeatValue = textureLoad(maxValTex, vec2i(0, 0), 0).r * maxHeatValueRatio;
+        // heatValue = clamp(heatValue / maxHeatValue, 0, 1);
+        heatValue = clamp(heatValue / 50, 0, 1);
         let color = interpColor(heatValue) * heatValue;
 
         return color;
+        // return vec4f(heatValue, 0, 0, 1);
     }
 `

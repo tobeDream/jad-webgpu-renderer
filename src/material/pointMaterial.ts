@@ -23,6 +23,7 @@ class PointMaterial extends Material {
 		const highlightColor = props.highlightColor || [1, 0, 0, 1]
 		const highlightSize = props.highlightSize || size * 1.2
 		super({
+			id: 'point',
 			renderCode: getShaderCode(props.hasColorAttribute, props.hasSizeAttribute),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',

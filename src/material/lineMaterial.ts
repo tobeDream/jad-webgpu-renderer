@@ -14,6 +14,7 @@ class LineMaterial extends Material {
 		const color = props.color || [1, 0, 0, 1]
 		const lineWidth = props.lineWidth || 5
 		super({
+			id: 'line',
 			renderCode: code,
 			blending: props.blending,
 			storages: { positions: props.positions },

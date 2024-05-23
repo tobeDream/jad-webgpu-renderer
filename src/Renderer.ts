@@ -108,6 +108,23 @@ class Renderer {
 		else if (this._multisampleTexture) this._multisampleTexture.destroy()
 	}
 
+	private updateRenderPassDescriptor(renderTarget?: GPUTexture) {
+		if (!this.canvasCtx) return
+		const colorAttachment = (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0]
+		if (!renderTarget) {
+			if (!this._antialias) {
+				colorAttachment.view = this.canvasCtx.getCurrentTexture().createView()
+				colorAttachment.resolveTarget = undefined
+			} else if (this._multisampleTexture) {
+				colorAttachment.view = this._multisampleTexture?.createView()
+				colorAttachment.resolveTarget = this.canvasCtx.getCurrentTexture().createView()
+			}
+		} else {
+			colorAttachment.view = renderTarget.createView()
+			colorAttachment.resolveTarget = undefined
+		}
+	}
+
 	/**
 	 * 根据camera获取projectionMatrix和viewMatrix，遍历scene.children。
 	 * 从children[i]中获取到geometry和material。从geometry中获取顶点数据，从material中获取渲染管线（包含着色器）
@@ -115,7 +132,7 @@ class Renderer {
 	 * @param camera
 	 * @param scene
 	 */
-	public async render(scene: Scene, camera: Camera, renderTarget?: GPUTexture) {
+	public async render(scene: Scene, camera: Camera) {
 		let wait = 0
 		while (!this.ready) {
 			await delay(20)
@@ -125,25 +142,15 @@ class Renderer {
 		const s = new Date().valueOf()
 		if (!this.device || !this.canvasCtx) return
 		camera.updateMatrixBuffers(this.device)
-		const { device, canvasCtx, renderPassDescriptor } = this
+		const { device, renderPassDescriptor } = this
 
-		const colorAttachment = (renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0]
-		if (!renderTarget) {
-			if (!this._antialias) {
-				colorAttachment.view = canvasCtx.getCurrentTexture().createView()
-				colorAttachment.resolveTarget = undefined
-			} else if (this._multisampleTexture) {
-				colorAttachment.view = this._multisampleTexture?.createView()
-				colorAttachment.resolveTarget = canvasCtx.getCurrentTexture().createView()
-			}
-		} else {
-			colorAttachment.view = renderTarget.createView()
-		}
+		this.updateRenderPassDescriptor()
 
 		const encoder = device.createCommandEncoder()
-		// for (let model of scene.modelList) {
-		// 	model.material.recordComputeCommand(this, encoder)
-		// }
+
+		for (let model of scene.modelList) {
+			model.prevRender(this, encoder, camera)
+		}
 
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {

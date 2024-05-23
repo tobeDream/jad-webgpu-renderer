@@ -1,9 +1,10 @@
-import { PerspectiveCamera, Vector2 } from 'three'
+import { Vector2 } from 'three'
+import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
-import Points from '../Points'
+// import Points from '../Points'
 // import Line from '../Line'
-// import Heatmap from '../Heatmap'
+import Heatmap from '../Heatmap'
 
 //@ts-ignore
 window.V = Vector2
@@ -20,50 +21,54 @@ window.c = camera
 const scene = new Scene()
 //@ts-ignore
 window.s = scene
-const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0.3] })
+const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0] })
 //@ts-ignore
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 100
+const num = 2000000
 const pos = new Float32Array(num * 2)
 // const color = new Uint8Array(num * 4)
-const size = new Float32Array(num)
+// const size = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
-	pos[2 * i] = (800 / num) * i - 400
-	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
+	// pos[2 * i] = (800 / num) * i - 400
+	// pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
+	pos[2 * i] = (Math.random() * 2 - 1) * 400
+	pos[2 * i + 1] = (Math.random() * 2 - 1) * 150
 	// color[i * 4 + 0] = 255
 	// color[i * 4 + 1] = ((num - i) / num) * 255
 	// color[i * 4 + 2] = 0
 	// color[i * 4 + 3] = 155
-	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 1 + 2
+	// size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 1 + 2
 }
 
 // const line = new Line({
 // 	positions: pos,
 // 	material: { color: [0.0, 0.0, 1, 0.7], lineWidth: 10, blending: 'normalBlending' }
 // })
-const points = new Points({
-	positions: pos,
-	// colors: color,
-	sizes: size,
-	material: {
-		color: [1, 1, 0, 0.1],
-		blending: 'normalBlending',
-		size: 2,
-		highlightSize: 40,
-		highlightColor: [1, 0, 0, 0.5]
-	}
-})
-// const heat = new Heatmap({
-// 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
+// const points = new Points({
+// 	positions: pos,
+// 	// colors: color,
+// 	sizes: size,
 // 	material: {
-// 		radius: 40
+// 		color: [1, 1, 0, 0.1],
+// 		blending: 'normalBlending',
+// 		size: 2,
+// 		highlightSize: 40,
+// 		highlightColor: [1, 0, 0, 0.5]
 // 	}
 // })
+const heat = new Heatmap({
+	points: pos,
+	material: {
+		radius: 20
+	}
+})
 //@ts-ignore
 // window.h = heat
 
 // scene.addModel(line)
-scene.addModel(points)
-// scene.addModel(heat)
+// scene.addModel(points)
+scene.addModel(heat)
+
+renderer.render(scene, camera)

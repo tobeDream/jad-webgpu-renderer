@@ -34,6 +34,8 @@ class Model extends Object3D {
 		this._material = mat
 	}
 
+	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
+
 	public render(renderer: Renderer, encoder: GPUCommandEncoder, pass: GPURenderPassEncoder, camera: Camera) {
 		const { geometry, material } = this
 		const { device } = renderer

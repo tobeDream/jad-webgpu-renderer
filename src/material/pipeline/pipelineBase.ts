@@ -7,6 +7,7 @@ import BufferPool from '@/buffer/bufferPool'
 import { Camera } from '@/camera/camera'
 
 export type IProps = {
+	id: string
 	shaderCode: string
 	uniforms?: Record<string, any>
 	storages?: Record<string, TypedArray>
@@ -14,6 +15,7 @@ export type IProps = {
 }
 
 abstract class PipelineBase {
+	protected id: string
 	protected code: string
 	protected uniforms: Record<string, Uniform> = {}
 	protected storages: Record<string, Storage> = {}
@@ -24,10 +26,11 @@ abstract class PipelineBase {
 	protected textureInfos: Record<string, { group: number; binding: number }>
 
 	constructor(props: IProps) {
+		this.id = props.id
 		this.code = props.shaderCode
 		this.blending = props.blending || 'none'
-		this._defs = this.parseShaderCode(props)
 		this.textureInfos = {}
+		this._defs = this.parseShaderCode(props)
 	}
 
 	get defs() {
@@ -74,7 +77,8 @@ abstract class PipelineBase {
 	public getBindGroups(
 		renderer: Renderer,
 		bufferPool: BufferPool,
-		camera: Camera
+		camera: Camera,
+		textures: Record<string, GPUTexture>
 	): { bindGroups: GPUBindGroup[]; groupIndexList: number[] } {
 		if (!this.pipeline) return { bindGroups: [], groupIndexList: [] }
 
@@ -140,6 +144,13 @@ abstract class PipelineBase {
 				}
 				if (!buffer) continue
 				entries.push({ binding: storage.binding, resource: { buffer: buffer.GPUBuffer } })
+			}
+			for (let tn in this.textureInfos) {
+				const { group, binding } = this.textureInfos[tn]
+				if (group !== index) continue
+				const texture = textures[tn]
+				if (!texture) continue
+				entries.push({ binding, resource: texture.createView() })
 			}
 			const bindGroup = device.createBindGroup(descriptor)
 			bindGroups.push(bindGroup)

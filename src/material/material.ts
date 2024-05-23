@@ -6,6 +6,7 @@ import { TypedArray } from '../types'
 import { Camera } from '@/camera/camera'
 
 type IProps = {
+	id: string
 	renderCode: string
 	vertexShaderEntry?: string
 	fragmentShaderEntry?: string
@@ -13,22 +14,30 @@ type IProps = {
 	storages?: Record<string, TypedArray>
 	blending?: Blending
 	textures?: Record<string, GPUTexture>
+	presentationFormat?: GPUTextureFormat
+	renderBindGroupLayoutDescriptors?: GPUBindGroupLayoutDescriptor[]
 }
 
 class Material {
+	protected id: string
 	protected renderPipeline: RenderPipeline
 	protected bufferPool = new BufferPool()
 	protected textures: Record<string, GPUTexture> = {}
 
 	constructor(props: IProps) {
+		this.id = props.id
 		this.renderPipeline = new RenderPipeline({
+			id: this.id,
 			vsEntry: props.vertexShaderEntry || 'vs',
 			fsEntry: props.fragmentShaderEntry || 'fs',
 			shaderCode: props.renderCode,
 			uniforms: props.uniforms,
 			storages: props.storages,
-			blending: props.blending
+			blending: props.blending,
+			presentationFormat: props.presentationFormat,
+			bindGroupLayoutDescriptors: props.renderBindGroupLayoutDescriptors
 		})
+		this.textures = { ...props.textures }
 	}
 
 	public getUniform(name: string) {
@@ -65,7 +74,7 @@ class Material {
 	}
 
 	public getBindGroups(renderer: Renderer, camera: Camera) {
-		return this.renderPipeline.getBindGroups(renderer, this.bufferPool, camera)
+		return this.renderPipeline.getBindGroups(renderer, this.bufferPool, camera, this.textures)
 	}
 }
 

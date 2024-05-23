@@ -2,9 +2,11 @@ import Model from './Model'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 import { Color } from './types'
-import { renderShaderCode } from './material/shaders/heatmap'
+import { renderShaderCode, computeHeatValueShaderCode } from './material/shaders/heatmap'
 import Renderer from './Renderer'
 import { Camera } from './camera/camera'
+import Attribute from './geometry/attribute'
+import Scene from './Scene'
 
 type IProps = {
 	points: Float32Array
@@ -22,6 +24,7 @@ class Heatmap extends Model {
 	private maxHeatValueRatio: number
 	private points: Float32Array
 	private radius: number
+	private heatPointModal: Scene
 	/**
 	 * points 为热力点的二维坐标
 	 * material.colorList 为将浮点数的热力值插值为 rgb 颜色时的插值颜色数组
@@ -35,11 +38,40 @@ class Heatmap extends Model {
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
 		const { material, points } = props
+
 		const mat = new Material({
+			id: 'heat',
 			renderCode: renderShaderCode,
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
-			blending: 'normalBlending'
+			blending: 'normalBlending',
+			renderBindGroupLayoutDescriptors: [
+				{
+					entries: [
+						{
+							binding: 0,
+							visibility: GPUShaderStage.FRAGMENT,
+							texture: {
+								sampleType: 'unfilterable-float'
+							}
+						},
+						{
+							binding: 1,
+							visibility: GPUShaderStage.FRAGMENT,
+							buffer: {
+								type: 'uniform'
+							}
+						},
+						{
+							binding: 2,
+							visibility: GPUShaderStage.FRAGMENT,
+							buffer: {
+								type: 'uniform'
+							}
+						}
+					]
+				}
+			]
 		})
 
 		super(geometry, mat)
@@ -57,6 +89,8 @@ class Heatmap extends Model {
 
 		this.points = points
 		this.radius = material?.radius || 10
+
+		this.heatPointModal = new Scene()
 	}
 
 	private createHeatValueTexture(renderer: Renderer) {
@@ -70,7 +104,30 @@ class Heatmap extends Model {
 		this.material.updateTexture('heatValTex', heatValueTexture)
 	}
 
-	private createHeatPointsModel() {}
+	private createHeatPointsModel(renderer: Renderer) {
+		const { device } = renderer
+		const geo = new Geometry()
+		const positionAttribute = new Attribute('position', this.points, 2, {
+			stepMode: 'instance',
+			shaderLocation: 0
+		})
+		geo.setAttribute('position', positionAttribute)
+		geo.vertexCount = 6
+
+		const mat = new Material({
+			id: 'compute heat value',
+			renderCode: computeHeatValueShaderCode,
+			vertexShaderEntry: 'vs',
+			fragmentShaderEntry: 'fs',
+			blending: 'additiveBlending',
+			presentationFormat: 'rgba16float',
+			uniforms: {
+				size: this.radius
+			}
+		})
+		const heatPointModal = new Model(geo, mat)
+		this.heatPointModal.addModel(heatPointModal)
+	}
 
 	get colorOffsets() {
 		const res = new Float32Array(4 * 4)
@@ -83,7 +140,25 @@ class Heatmap extends Model {
 		return res
 	}
 
-	public render(renderer: Renderer, encoder: GPUCommandEncoder, pass: GPURenderPassEncoder, camera: Camera): void {}
+	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {
+		if (!this.material.getTexture('heatValTex')) this.createHeatValueTexture(renderer)
+		if (this.heatPointModal.modelList.length === 0) this.createHeatPointsModel(renderer)
+		const heatValTex = this.material.getTexture('heatValTex')
+		const heatRenderPassDesc: GPURenderPassDescriptor = {
+			label: 'heat renderPass',
+			colorAttachments: [
+				{
+					view: heatValTex.createView(),
+					clearValue: [0, 0, 0, 0],
+					loadOp: 'clear',
+					storeOp: 'store'
+				}
+			]
+		}
+		const pass = encoder.beginRenderPass(heatRenderPassDesc)
+		this.heatPointModal.modelList[0].render(renderer, encoder, pass, camera)
+		pass.end()
+	}
 }
 
 export default Heatmap

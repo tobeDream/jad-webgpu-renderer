@@ -4,26 +4,34 @@ import Renderer from '@/Renderer'
 type IProps = BaseProps & {
 	vsEntry: string
 	fsEntry: string
-	renderTarget?: GPUTexture
+	presentationFormat?: GPUTextureFormat
+	bindGroupLayoutDescriptors?: GPUBindGroupLayoutDescriptor[]
 }
 
 class RenderPipeline extends PipelineBase {
 	protected pipeline: GPURenderPipeline | null = null
 	private vsEntry: string
 	private fsEntry: string
-	private renderTarget?: GPUTexture //if undefined, render to canvas
+	private bindGroupLayoutDescriptors?: GPUBindGroupLayoutDescriptor[]
+	private presentationFormat?: GPUTextureFormat
 	constructor(props: IProps) {
 		super(props)
 		this.vsEntry = props.vsEntry
 		this.fsEntry = props.fsEntry
+		this.presentationFormat = props.presentationFormat
+		this.bindGroupLayoutDescriptors = props.bindGroupLayoutDescriptors
 	}
 
 	private createPipeline(renderer: Renderer, vertexBufferLayouts: GPUVertexBufferLayout[]) {
 		const { device, presentationFormat } = renderer
 		if (!this.shaderModule) this.shaderModule = device.createShaderModule({ code: this.code })
 		const pipelineDescriptor: GPURenderPipelineDescriptor = {
-			label: 'pipeline',
-			layout: 'auto',
+			label: 'pipeline-' + this.id,
+			layout: this.bindGroupLayoutDescriptors
+				? device.createPipelineLayout({
+						bindGroupLayouts: this.bindGroupLayoutDescriptors.map((d) => device.createBindGroupLayout(d))
+					})
+				: 'auto',
 			vertex: {
 				module: this.shaderModule,
 				entryPoint: this.vsEntry,
@@ -32,7 +40,7 @@ class RenderPipeline extends PipelineBase {
 			fragment: {
 				module: this.shaderModule,
 				entryPoint: this.fsEntry,
-				targets: [{ format: presentationFormat }]
+				targets: [{ format: this.presentationFormat || presentationFormat }]
 			}
 		}
 		switch (this.blending) {
@@ -92,10 +100,6 @@ class RenderPipeline extends PipelineBase {
 		const { device } = renderer
 		if (!this.pipeline) this.createPipeline(renderer, vertexBufferLayouts)
 		return this.pipeline
-	}
-
-	getRenderTarget() {
-		return this.renderTarget
 	}
 }
 

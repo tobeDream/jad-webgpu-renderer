@@ -1,19 +1,19 @@
 import { Camera } from './camera/camera'
+import BufferPool from './buffer/bufferPool'
 import { Object3D } from './Object3D'
 import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 
-type Options = {
-	id?: string
-}
+type Options = {}
 
-class Model extends Object3D {
-	private _geometry: Geometry
-	private _material: Material
+class Model {
+	protected _geometry: Geometry
+	protected _material: Material
+	protected bufferPool = new BufferPool()
+	protected textures: Record<string, GPUTexture> = {}
 
 	constructor(geometry: Geometry, material: Material, opts?: Options) {
-		super()
 		this._geometry = geometry
 		this._material = material
 	}
@@ -34,9 +34,19 @@ class Model extends Object3D {
 		this._material = mat
 	}
 
+	public updateTexture(tn: string, texture: GPUTexture) {
+		if (this.textures[tn]) this.textures[tn].destroy()
+		this.textures[tn] = texture
+	}
+
 	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
 
-	public render(renderer: Renderer, encoder: GPUCommandEncoder, pass: GPURenderPassEncoder, camera: Camera) {
+	public render(
+		renderer: Renderer,
+		pass: GPURenderPassEncoder,
+		camera: Camera,
+		textures?: Record<string, GPUTexture>
+	) {
 		const { geometry, material } = this
 		const { device } = renderer
 		// if (geometry.vertexCount === -1) continue
@@ -45,7 +55,12 @@ class Model extends Object3D {
 
 		const pipeline = material.getPipeline(renderer, vertexStateInfo)
 		if (!pipeline) return
-		const { bindGroups, groupIndexList } = material.getBindGroups(renderer, camera)
+		const { bindGroups, groupIndexList } = material.getBindGroups(
+			renderer,
+			camera,
+			this.bufferPool,
+			textures || this.textures
+		)
 		pass.setPipeline(pipeline)
 		for (let i = 0; i < bindGroups.length; ++i) {
 			pass.setBindGroup(groupIndexList[i], bindGroups[i])

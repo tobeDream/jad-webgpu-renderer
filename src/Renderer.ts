@@ -26,8 +26,8 @@ class Renderer {
 
 	constructor(props: IProps) {
 		this.outputCanvas = props.canvas
-		this.outputCanvas.width = this.outputCanvas.offsetWidth * window.devicePixelRatio
-		this.outputCanvas.height = this.outputCanvas.offsetHeight * window.devicePixelRatio
+		this.outputCanvas.width = this.outputCanvas.offsetWidth
+		this.outputCanvas.height = this.outputCanvas.offsetHeight
 		this.canvasCtx = this.outputCanvas.getContext('webgpu') || null
 		this._antialias = props.antiAlias || false
 		this._multisampleTexture = null
@@ -154,7 +154,7 @@ class Renderer {
 
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
-			model.render(this, encoder, pass, camera)
+			model.render(this, pass, camera)
 		}
 		pass.end()
 

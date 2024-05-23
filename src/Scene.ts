@@ -1,4 +1,4 @@
-import {Object3D} from './Object3D'
+import { Object3D } from './Object3D'
 import Model from './Model'
 
 class Scene extends Object3D {
@@ -22,6 +22,8 @@ class Scene extends Object3D {
 			this._modelList.splice(index, 1)
 		}
 	}
+
+	public getModel(id: string) {}
 }
 
 export default Scene

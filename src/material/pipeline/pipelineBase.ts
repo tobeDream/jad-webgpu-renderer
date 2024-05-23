@@ -20,10 +20,10 @@ abstract class PipelineBase {
 	protected uniforms: Record<string, Uniform> = {}
 	protected storages: Record<string, Storage> = {}
 	protected blending: Blending = 'none'
-	protected pipeline: GPUPipelineBase | null = null
 	protected shaderModule: GPUShaderModule | null = null
 	protected _defs: ShaderDataDefinitions
 	protected textureInfos: Record<string, { group: number; binding: number }>
+	protected pipeline: GPUPipelineBase | null = null
 
 	constructor(props: IProps) {
 		this.id = props.id

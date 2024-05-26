@@ -26,7 +26,7 @@ const renderer = new Renderer({ canvas, antiAlias: false, clearColor: [0, 0, 0, 
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 100000
+const num = 200000
 const pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
 const size = new Float32Array(num)
@@ -61,7 +61,8 @@ for (let i = 0; i < num; ++i) {
 const heat = new Heatmap({
 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 	material: {
-		radius: 40
+		radius: 20,
+		maxHeatValueRatio: 0.8
 	}
 })
 //@ts-ignore
@@ -73,7 +74,13 @@ scene.addModel(heat)
 
 renderer.render(scene, camera)
 
-setTimeout(() => {
-	// points.highlights([1, 10, 30, 50])
-	// renderer.render(scene, camera)
+// setTimeout(() => {
+// points.highlights([1, 10, 30, 50])
+// renderer.render(scene, camera)
+// }, 2000)
+
+setInterval(() => {
+	renderer.render(scene, camera)
 }, 2000)
+
+window.addEventListener('resize', renderer.resize)

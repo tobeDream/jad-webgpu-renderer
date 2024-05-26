@@ -132,6 +132,18 @@ class Heatmap extends Model {
 		this.maxHeatValueModel = new Model(geo, mat)
 	}
 
+	lastResolution = { width: 0, height: 0 }
+	private checkCreateHeatValueTexture(renderer: Renderer) {
+		const { width, height } = renderer
+		if (
+			!this.textures['heatValTex'] ||
+			width !== this.lastResolution.width ||
+			height !== this.lastResolution.height
+		)
+			this.createHeatValueTexture(renderer)
+		this.lastResolution = { width, height }
+	}
+
 	get colorOffsets() {
 		const res = new Float32Array(4 * 4)
 		for (let i = 0; i < 4; ++i) {
@@ -144,7 +156,7 @@ class Heatmap extends Model {
 	}
 
 	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {
-		if (!this.textures['heatValTex']) this.createHeatValueTexture(renderer)
+		this.checkCreateHeatValueTexture(renderer)
 		if (!this.textures['maxValTex']) this.createMaxHeatValueTexture(renderer)
 		if (!this.heatPointsModel) this.createHeatPointsModel(renderer)
 		if (!this.maxHeatValueModel) this.createMaxHeatValueModel(renderer)

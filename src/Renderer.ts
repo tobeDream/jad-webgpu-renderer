@@ -59,7 +59,7 @@ class Renderer {
 		}
 		this.device = device
 		//@ts-ignore
-		window.limits = device.limits
+		window.r = this
 		if (!this.canvasCtx) {
 			throw 'your browser not supports WebGPU'
 		}
@@ -167,8 +167,10 @@ class Renderer {
 		console.log(new Date().valueOf() - s)
 	}
 
-	public resize() {
+	resize = () => {
 		if (!this.ready || !this.device) return
+		this.outputCanvas.width = this.outputCanvas.offsetWidth
+		this.outputCanvas.height = this.outputCanvas.offsetHeight
 		this.device.queue.writeBuffer(this.resolutionBuf, 0, new Float32Array([this.width, this.height]))
 		if (this._antialias) this.createMultisampleTexture()
 	}

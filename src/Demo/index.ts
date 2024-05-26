@@ -77,3 +77,9 @@ setTimeout(() => {
 	// points.highlights([1, 10, 30, 50])
 	// renderer.render(scene, camera)
 }, 2000)
+
+setInterval(() => {
+	renderer.render(scene, camera)
+}, 50)
+
+window.addEventListener('resize', renderer.resize)

@@ -1,7 +1,7 @@
 import Model from './Model'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
-import { Color } from './types'
+import { Color, Blending } from './types'
 import {
 	renderShaderCode,
 	computeHeatValueShaderCode,
@@ -19,6 +19,7 @@ type IProps = {
 		offsets?: [number, number, number, number, number]
 		maxHeatValueRatio?: number
 		radius?: number
+		blending?: Blending
 	}
 }
 
@@ -49,7 +50,7 @@ class Heatmap extends Model {
 			renderCode: renderShaderCode,
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
-			blending: 'normalBlending'
+			blending: props.material?.blending
 		})
 
 		super(geometry, mat)

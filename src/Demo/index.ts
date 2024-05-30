@@ -3,7 +3,7 @@ import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points'
-import Line from '../Line'
+import Path from '../Path'
 import Heatmap from '../Heatmap'
 
 //@ts-ignore
@@ -42,12 +42,12 @@ for (let i = 0; i < num; ++i) {
 	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 25 + 10
 }
 
-const line = new Line({
+const path = new Path({
 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
 	material: {
 		color: [0.0, 0.9, 1, 0.7],
-		lineWidth: 10
-		// blending: 'normalBlending'
+		lineWidth: 10,
+		blending: 'normalBlending'
 	}
 })
 const points = new Points({
@@ -56,7 +56,7 @@ const points = new Points({
 	sizes: size,
 	material: {
 		color: [1, 1, 0, 0.7],
-		// blending: 'normalBlending',
+		blending: 'normalBlending',
 		// size: 10,
 		highlightSize: 40,
 		highlightColor: [1, 0, 0, 0.5]
@@ -66,8 +66,8 @@ const heat = new Heatmap({
 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 	material: {
 		radius: 20,
-		maxHeatValueRatio: 0.8
-		// blending: 'normalBlending'
+		maxHeatValueRatio: 0.8,
+		blending: 'normalBlending'
 	}
 })
 //@ts-ignore
@@ -76,10 +76,10 @@ const heat = new Heatmap({
 // line.visible = false
 heat.renderOrder = 0
 points.renderOrder = 1
-line.renderOrder = 2
+path.renderOrder = 2
 scene.addModel(heat)
 scene.addModel(points)
-scene.addModel(line)
+scene.addModel(path)
 
 renderer.render(scene, camera)
 

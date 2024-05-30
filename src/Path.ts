@@ -1,9 +1,8 @@
 import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
-import LineMaterial from './material/lineMaterial'
+import PathMaterial from './material/pathMaterial'
 import Model from './Model'
 import { Blending, Color } from './types'
-import { Vector2 } from 'three'
 
 type IProps = {
 	positions: Float32Array
@@ -14,14 +13,14 @@ type IProps = {
 	}
 }
 
-class Line extends Model {
+class Path extends Model {
 	constructor(props: IProps) {
-		const res = Line.extendLineToMesh(props.positions)
+		const res = Path.extendLineToMesh(props.positions)
 		if (!res) return
 		const { indexArr } = res
 
 		const geometry = new Geometry()
-		const material = new LineMaterial({
+		const material = new PathMaterial({
 			...props.material,
 			positions: props.positions
 		})
@@ -51,4 +50,4 @@ class Line extends Model {
 	}
 }
 
-export default Line
+export default Path

@@ -1,6 +1,6 @@
 import Material from './material'
 import { Blending, TypedArray, Color } from '../types'
-import { code } from './shaders/line'
+import { code } from './shaders/path'
 
 type IProps = {
 	positions: TypedArray
@@ -9,12 +9,12 @@ type IProps = {
 	blending?: Blending
 }
 
-class LineMaterial extends Material {
+class PathMaterial extends Material {
 	constructor(props: IProps) {
 		const color = props.color || [1, 0, 0, 1]
 		const lineWidth = props.lineWidth || 5
 		super({
-			id: 'line',
+			id: 'path',
 			renderCode: code,
 			blending: props.blending,
 			storages: { positions: props.positions },
@@ -29,4 +29,4 @@ class LineMaterial extends Material {
 	}
 }
 
-export default LineMaterial
+export default PathMaterial

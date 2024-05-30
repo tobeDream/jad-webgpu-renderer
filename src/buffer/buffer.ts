@@ -1,10 +1,10 @@
 import { genId } from '@/utils'
 
 export type IProps = {
-	id: string
 	usage: number
 	size: number
 	device: GPUDevice
+	bufferViewIds: string[]
 }
 
 class Buffer {
@@ -19,6 +19,7 @@ class Buffer {
 		this._usage = props.usage
 		this._size = props.size
 		this._buffer = this.createBuffer(props.device)
+		this._bufferViewIds = props.bufferViewIds
 	}
 
 	get id() {
@@ -63,6 +64,7 @@ class Buffer {
 
 	dispose() {
 		this._buffer.destroy()
+		this._bufferViewIds = []
 	}
 }
 

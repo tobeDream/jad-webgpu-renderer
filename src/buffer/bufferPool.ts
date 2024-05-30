@@ -2,6 +2,7 @@ import Buffer, { IProps as BufferProps } from './buffer'
 
 class BufferPool {
 	private bufferMap: Record<string, Buffer> = {}
+	private gpuBufferMap: Record<string, GPUBuffer> = {}
 
 	public getBuffer(id: string) {
 		return this.bufferMap[id]

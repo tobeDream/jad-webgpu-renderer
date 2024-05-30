@@ -1,7 +1,5 @@
-import { makeBindGroupLayoutDescriptors, makeShaderDataDefinitions } from 'webgpu-utils'
+import * as moment from 'moment'
 
-export const generateBindGroupsFromShaderCode = (code: string) => {
-	const defs = makeShaderDataDefinitions(code)
+export const genId = () => {
+	return moment().valueOf() + '_' + ((Math.random() * 1000000) | 0)
 }
-
-export const precreatedUniforms = ['projectionMatrix', 'viewMatrix', 'resolution']

@@ -10,12 +10,16 @@ type Options = {}
 class Model {
 	protected _geometry: Geometry
 	protected _material: Material
+	protected _visible: boolean
+	protected _renderOrder: number
 	protected bufferPool = new BufferPool()
 	protected textures: Record<string, GPUTexture> = {}
 
 	constructor(geometry: Geometry, material: Material, opts?: Options) {
 		this._geometry = geometry
 		this._material = material
+		this._visible = true
+		this._renderOrder = 0
 	}
 
 	get geometry() {
@@ -32,6 +36,22 @@ class Model {
 
 	set material(mat: Material) {
 		this._material = mat
+	}
+
+	get visible() {
+		return this._visible
+	}
+
+	set visible(v: boolean) {
+		this._visible = v
+	}
+
+	get renderOrder() {
+		return this._renderOrder
+	}
+
+	set renderOrder(r: number) {
+		this._renderOrder = r
 	}
 
 	public updateTexture(tn: string, texture: GPUTexture) {
@@ -76,6 +96,16 @@ class Model {
 		const index = geometry.getIndex()
 		if (index) pass.drawIndexed(index.length, instanceCount)
 		else pass.draw(geometry.vertexCount, instanceCount)
+	}
+
+	public dispose() {
+		this._geometry.dispose()
+		this._material.dispose()
+		this.bufferPool.dispose()
+		for (let tid in this.textures) {
+			this.textures[tid].destroy()
+		}
+		this.textures = {}
 	}
 }
 

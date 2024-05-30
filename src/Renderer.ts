@@ -157,7 +157,7 @@ class Renderer {
 
 		const pass = encoder.beginRenderPass(renderPassDescriptor)
 		for (let model of scene.modelList) {
-			model.render(this, pass, camera)
+			if (model.visible) model.render(this, pass, camera)
 		}
 		pass.end()
 

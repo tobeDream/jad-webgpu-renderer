@@ -250,6 +250,8 @@ class Material {
 		}
 		return { bindGroups, groupIndexList }
 	}
+
+	public dispose() {}
 }
 
 export default Material

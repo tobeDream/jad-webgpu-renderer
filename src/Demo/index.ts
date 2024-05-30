@@ -44,7 +44,11 @@ for (let i = 0; i < num; ++i) {
 
 const line = new Line({
 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-	material: { color: [0.0, 0.9, 1, 0.7], lineWidth: 10, blending: 'normalBlending' }
+	material: {
+		color: [0.0, 0.9, 1, 0.7],
+		lineWidth: 10
+		// blending: 'normalBlending'
+	}
 })
 const points = new Points({
 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
@@ -52,7 +56,7 @@ const points = new Points({
 	sizes: size,
 	material: {
 		color: [1, 1, 0, 0.7],
-		blending: 'normalBlending',
+		// blending: 'normalBlending',
 		// size: 10,
 		highlightSize: 40,
 		highlightColor: [1, 0, 0, 0.5]
@@ -62,16 +66,20 @@ const heat = new Heatmap({
 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 	material: {
 		radius: 20,
-		maxHeatValueRatio: 0.8,
-		blending: 'normalBlending'
+		maxHeatValueRatio: 0.8
+		// blending: 'normalBlending'
 	}
 })
 //@ts-ignore
 // window.h = heat
 
-scene.addModel(line)
-scene.addModel(points)
+// line.visible = false
+heat.renderOrder = 0
+points.renderOrder = 1
+line.renderOrder = 2
 scene.addModel(heat)
+scene.addModel(points)
+scene.addModel(line)
 
 renderer.render(scene, camera)
 

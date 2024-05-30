@@ -196,6 +196,12 @@ class Heatmap extends Model {
 			pass.end()
 		}
 	}
+
+	public dispose() {
+		super.dispose()
+		if (this.maxHeatValueModel) this.maxHeatValueModel.dispose()
+		if (this.heatPointsModel) this.heatPointsModel.dispose()
+	}
 }
 
 export default Heatmap

@@ -143,9 +143,9 @@ setTimeout(() => {
 ## TODO
 
 -   [x] 测试vertex attribute 是否支持8位或16位长度的数值  
-        （支持uint8，sint8，float16等，但受限于js不支持Float16Array并且webgpu要求vertex buffer的arrayStride必须为4的整数倍，所以只能选择uint8x4或者sint8\*4）
--   [ ] Model 添加 dispose 方法
--   [ ] Model 添加 visible 属性并通过 visible 控制 Model 是否参与渲染
--   [ ] Model 添加 renderOrder 属性，控制 Model 的渲染顺序
+         （支持uint8，sint8，float16等，但受限于js不支持Float16Array并且webgpu要求vertex buffer的arrayStride必须为4的整数倍，所以只能选择uint8x4或者sint8\*4）
+-   [x] Model 添加 dispose 方法
+-   [x] Model 添加 visible 属性并通过 visible 控制 Model 是否参与渲染
+-   [x] Model 添加 renderOrder 属性，控制 Model 的渲染顺序
 -   [ ] Line Model 支持 line 图元渲染，并支持拖尾特效、按时间播放以及头部顶点
 -   [ ] Point Model 支持用纹理代替圆点

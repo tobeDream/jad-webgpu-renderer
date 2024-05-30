@@ -6,3 +6,4 @@ dist/
 diff.log
 lib/*
 typings/*
+**/*.js

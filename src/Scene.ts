@@ -9,7 +9,7 @@ class Scene extends Object3D {
 	}
 
 	get modelList() {
-		return this._modelList
+		return this._modelList.sort((m, n) => (m.renderOrder > n.renderOrder ? -1 : 1))
 	}
 
 	public addModel(model: Model) {

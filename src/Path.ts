@@ -2,7 +2,11 @@ import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
 import PathMaterial from './material/pathMaterial'
 import Model from './Model'
-import { Blending, Color } from './types'
+import { Blending, Color, IRenderable } from './types'
+import BufferPool from './buffer/bufferPool'
+import Renderer from './Renderer'
+import { Camera } from './camera/camera'
+import BufferView from './buffer/bufferView'
 
 type IProps = {
 	positions: Float32Array
@@ -11,9 +15,10 @@ type IProps = {
 		lineWidth?: number
 		blending?: Blending
 	}
+	bufferPool?: BufferPool
 }
 
-class Path extends Model {
+export class Path extends Model {
 	constructor(props: IProps) {
 		const res = Path.extendLineToMesh(props.positions)
 		if (!res) return
@@ -26,6 +31,11 @@ class Path extends Model {
 		})
 
 		super(geometry, material)
+
+		if (props.bufferPool) {
+			this.bufferPool.dispose()
+			this.bufferPool = props.bufferPool
+		}
 
 		this.geometry.setIndex(indexArr)
 	}
@@ -50,4 +60,50 @@ class Path extends Model {
 	}
 }
 
-export default Path
+export class Paths implements IRenderable {
+	protected _visible: boolean
+	protected _renderOrder: number
+	protected bufferPool = new BufferPool()
+	protected pathModelList: Path[]
+
+	constructor(paths: IProps[]) {
+		this.bufferPool = new BufferPool()
+		this.pathModelList = []
+		this._visible = true
+		this._renderOrder = 0
+		for (let p of paths) {
+			this.pathModelList.push(new Path({ ...p, bufferPool: this.bufferPool }))
+		}
+	}
+
+	get visible() {
+		return this._visible
+	}
+
+	set visible(v: boolean) {
+		this._visible = v
+	}
+
+	get renderOrder() {
+		return this._renderOrder
+	}
+
+	set renderOrder(r: number) {
+		this._renderOrder = r
+	}
+
+	prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
+
+	render(renderer: Renderer, pass: GPURenderPassEncoder, camera: Camera) {
+		if (!this.bufferPool.initialed) {
+			const bufferViews: BufferView[] = []
+			for (let path of this.pathModelList) {
+				bufferViews.push(...path.material.getBufferViews())
+			}
+			this.bufferPool.createBuffers(renderer.device, bufferViews)
+		}
+		for (let path of this.pathModelList) {
+			path.render(renderer, pass, camera)
+		}
+	}
+}

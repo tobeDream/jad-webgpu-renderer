@@ -1,13 +1,13 @@
 import { Camera } from './camera/camera'
 import BufferPool from './buffer/bufferPool'
-import { Object3D } from './Object3D'
 import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
+import { IRenderable } from '@/types'
 
 type Options = {}
 
-class Model {
+class Model implements IRenderable {
 	protected _geometry: Geometry
 	protected _material: Material
 	protected _visible: boolean

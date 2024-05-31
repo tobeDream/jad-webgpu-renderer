@@ -61,6 +61,11 @@ class Model {
 
 	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
 
+	private initBufferPool(device: GPUDevice) {
+		const { material } = this
+		this.bufferPool.createBuffers(device, material.getBufferViews())
+	}
+
 	public render(
 		renderer: Renderer,
 		pass: GPURenderPassEncoder,
@@ -69,7 +74,7 @@ class Model {
 	) {
 		const { geometry, material } = this
 		const { device } = renderer
-		// if (geometry.vertexCount === -1) continue
+		if (!this.bufferPool.initialed) this.initBufferPool(device)
 		const vertexStateInfo = geometry.getVertexStateInfo()
 		const vertexBufferList = geometry.getVertexBufferList(device)
 

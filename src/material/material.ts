@@ -6,6 +6,7 @@ import { TypedArray } from '../types'
 import { Camera } from '@/camera/camera'
 import Uniform from './uniform'
 import Storage from './storage'
+import BufferView from '@/buffer/bufferView'
 
 type IProps = {
 	id: string
@@ -55,10 +56,18 @@ class Material {
 		const defs = makeShaderDataDefinitions(this.code)
 		const { uniforms = {}, storages = {} } = props
 		for (let un in defs.uniforms) {
-			this.uniforms[un] = new Uniform({ name: un, def: defs.uniforms[un], value: uniforms[un] })
+			this.uniforms[un] = new Uniform({
+				name: un,
+				def: defs.uniforms[un],
+				value: uniforms[un]
+			})
 		}
 		for (let sn in defs.storages) {
-			this.storages[sn] = new Storage({ name: sn, def: defs.storages[sn], value: storages[sn] })
+			this.storages[sn] = new Storage({
+				name: sn,
+				def: defs.storages[sn],
+				value: storages[sn]
+			})
 		}
 		for (let tn in defs.textures) {
 			this.textureInfos[tn] = { group: defs.textures[tn].group, binding: defs.textures[tn].binding }
@@ -86,6 +95,18 @@ class Material {
 		const storage = this.storages[storageName]
 		if (!storage) return
 		storage.updateValue(value)
+	}
+
+	public getBufferViews() {
+		const res: BufferView[] = []
+		for (let un in this.uniforms) {
+			if (['projectionMatrix', 'viewMatrix', 'resolution'].includes(un)) continue
+			res.push(this.uniforms[un].bufferView)
+		}
+		for (let sn in this.storages) {
+			res.push(this.storages[sn].bufferView)
+		}
+		return res
 	}
 
 	public getPipeline(renderer: Renderer, vertexBufferLayouts: GPUVertexBufferLayout[]) {
@@ -202,41 +223,25 @@ class Material {
 				} else if (uniform.name === 'resolution') {
 					buffer = renderer.resolutionBuf
 				} else {
-					buffer = bufferPool.getBuffer(un)?.GPUBuffer
-					if (!buffer) {
-						buffer = bufferPool.addBuffer({
-							id: un,
-							size: uniform.byteLength,
-							usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-							device
-						}).GPUBuffer
-					}
-					if (uniform.needsUpdate) {
-						bufferPool.writeBuffer(device, un, uniform.arrayBuffer)
-						uniform.needsUpdate = false
-					}
+					if (uniform.needsUpdate) uniform.updateBuffer(device)
+					buffer = uniform.bufferView.buffer?.GPUBuffer || null
 				}
 				if (!buffer) continue
-				entries.push({ binding: uniform.binding, resource: { buffer } })
+				entries.push({
+					binding: uniform.binding,
+					resource: { buffer, offset: uniform.bufferView.offset, size: uniform.size }
+				})
 			}
 			for (let sn in this.storages) {
 				const storage = this.storages[sn]
 				if (storage.group !== index) continue
-				let buffer = bufferPool.getBuffer(sn)
-				if (!buffer) {
-					buffer = bufferPool.addBuffer({
-						id: sn,
-						size: storage.byteLength,
-						usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-						device
-					})
-				}
-				if (storage.needsUpdate && storage.value) {
-					bufferPool.writeBuffer(device, sn, storage.value.buffer)
-					storage.needsUpdate = false
-				}
+				if (storage.needsUpdate) storage.updateBuffer(device)
+				const buffer = storage.bufferView.buffer?.GPUBuffer
 				if (!buffer) continue
-				entries.push({ binding: storage.binding, resource: { buffer: buffer.GPUBuffer } })
+				entries.push({
+					binding: storage.binding,
+					resource: { buffer, offset: storage.bufferView.offset, size: storage.size }
+				})
 			}
 			for (let tn in this.textureInfos) {
 				const { group, binding } = this.textureInfos[tn]
@@ -251,7 +256,10 @@ class Material {
 		return { bindGroups, groupIndexList }
 	}
 
-	public dispose() {}
+	public dispose() {
+		//@ts-ignore
+		this.bufferPool = undefined
+	}
 }
 
 export default Material

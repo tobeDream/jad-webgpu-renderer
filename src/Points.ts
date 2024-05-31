@@ -38,7 +38,7 @@ class Points extends Model {
 
 	public highlights(indexList: number[]) {
 		const storage = this.material.getStorage('highlightFlags')
-		const highlightFlags = new Uint32Array(storage.byteLength / 4)
+		const highlightFlags = new Uint32Array(storage.size / 4)
 		for (let index of indexList) {
 			const i = (index / 32) | 0
 			const j = index % 32

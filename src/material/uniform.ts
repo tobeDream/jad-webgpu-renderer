@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+import BufferView from '@/buffer/bufferView'
 import { makeStructuredView, StructuredView, VariableDefinition } from 'webgpu-utils'
 
 export type IProps = {
@@ -13,6 +14,7 @@ class Uniform {
 	protected def: VariableDefinition
 	protected view: StructuredView
 	protected _value: any
+	protected _bufferView: BufferView
 
 	constructor(props: IProps) {
 		this._name = props.name
@@ -20,6 +22,11 @@ class Uniform {
 		this._value = props.value
 		this.view = makeStructuredView(this.def)
 		this.view.set(props.value)
+		this._bufferView = new BufferView({
+			offset: 0,
+			size: this.view.arrayBuffer.byteLength,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		})
 	}
 
 	get name() {
@@ -38,16 +45,12 @@ class Uniform {
 		return this.def.group
 	}
 
-	get byteLength() {
-		return this.view.arrayBuffer.byteLength
+	get size() {
+		return this._bufferView.size
 	}
 
-	get arrayBuffer() {
-		return this.view.arrayBuffer
-	}
-
-	set arrayBuffer(ab: ArrayBuffer) {
-		this.view.arrayBuffer = ab
+	get bufferView() {
+		return this._bufferView
 	}
 
 	get needsUpdate() {
@@ -62,6 +65,13 @@ class Uniform {
 		this.view.set(value)
 		this._value = value
 		this._needsUpdate = true
+	}
+
+	public updateBuffer(device: GPUDevice) {
+		if (this._needsUpdate && this.view.arrayBuffer) {
+			const res = this.bufferView.udpateBuffer(device, this.view.arrayBuffer)
+			if (res) this._needsUpdate = false
+		}
 	}
 }
 

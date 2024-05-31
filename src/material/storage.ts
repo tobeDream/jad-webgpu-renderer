@@ -1,5 +1,6 @@
 import { VariableDefinition } from 'webgpu-utils'
 import { TypedArray } from '../types'
+import BufferView from '@/buffer/bufferView'
 
 type IProps = {
 	name: string
@@ -13,17 +14,26 @@ type IProps = {
  * 需要我们自己设置typedArray。而且 storage buffer的大小是可变的
  */
 class Storage {
+	protected _bufferView: BufferView
 	protected _name: string
 	protected _needsUpdate = true
 	protected def: VariableDefinition
-	protected _value: TypedArray
-	protected _size = 0
+	protected _value?: TypedArray
 	constructor(props: IProps) {
 		this._name = props.name
 		this.def = props.def
-		if (props.value) this._value = props.value
-		else if (props.byteLength) this._size = props.byteLength
-		else this._size = 4
+		let size = 4
+		if (props.value) {
+			this._value = props.value
+			size = this._value.byteLength
+		} else if (props.byteLength) {
+			size = props.byteLength
+		}
+		this._bufferView = new BufferView({
+			size,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+			offset: 0
+		})
 	}
 
 	get name() {
@@ -42,12 +52,12 @@ class Storage {
 		return this.def.group
 	}
 
-	get byteLength() {
-		return this._value?.byteLength || this._size
+	get size() {
+		return this._bufferView.size
 	}
 
-	set byteLength(size: number) {
-		this._size = size
+	get bufferView() {
+		return this._bufferView
 	}
 
 	get needsUpdate() {
@@ -61,6 +71,13 @@ class Storage {
 	public updateValue(value: TypedArray) {
 		this._value = value
 		this._needsUpdate = true
+	}
+
+	public updateBuffer(device: GPUDevice) {
+		if (this._needsUpdate && this._value) {
+			const res = this.bufferView.udpateBuffer(device, this._value.buffer)
+			if (res) this._needsUpdate = false
+		}
 	}
 }
 

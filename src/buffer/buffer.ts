@@ -57,11 +57,6 @@ class Buffer {
 		return res
 	}
 
-	addBufferView(bufferViewId: string) {
-		if (this._bufferViewIds.includes(bufferViewId)) return
-		this._bufferViewIds.push(bufferViewId)
-	}
-
 	dispose() {
 		this._buffer.destroy()
 		this._bufferViewIds = []

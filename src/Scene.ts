@@ -1,8 +1,9 @@
 import { Object3D } from './Object3D'
 import Model from './Model'
+import { IRenderable } from './types'
 
 class Scene extends Object3D {
-	private _modelList: Model[]
+	private _modelList: IRenderable[]
 	constructor() {
 		super()
 		this._modelList = []
@@ -12,7 +13,7 @@ class Scene extends Object3D {
 		return this._modelList.sort((m, n) => (m.renderOrder > n.renderOrder ? -1 : 1))
 	}
 
-	public addModel(model: Model) {
+	public addModel(model: IRenderable) {
 		if (!this._modelList.includes(model)) this._modelList.push(model)
 	}
 

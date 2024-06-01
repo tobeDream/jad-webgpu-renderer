@@ -70,18 +70,18 @@ const paths = new Paths([
 	}
 ])
 
-// const points = new Points({
-// 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-// 	colors: color,
-// 	sizes: size,
-// 	material: {
-// 		color: [1, 1, 0, 0.7],
-// 		blending: 'normalBlending',
-// 		// size: 10,
-// 		highlightSize: 40,
-// 		highlightColor: [1, 0, 0, 0.5]
-// 	}
-// })
+const points = new Points({
+	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
+	colors: color,
+	sizes: size,
+	material: {
+		color: [1, 1, 0, 0.7],
+		blending: 'normalBlending',
+		// size: 10,
+		highlightSize: 40,
+		highlightColor: [1, 0, 0, 0.5]
+	}
+})
 // const heat = new Heatmap({
 // 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 // 	material: {
@@ -98,7 +98,7 @@ const paths = new Paths([
 // points.renderOrder = 1
 // path.renderOrder = 2
 // scene.addModel(heat)
-// scene.addModel(points)
+scene.addModel(points)
 scene.addModel(paths)
 
 renderer.render(scene, camera)

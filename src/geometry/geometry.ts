@@ -1,17 +1,14 @@
 import Attribute from './attribute'
+import Index from './index'
 
 class Geometry {
 	private attributes: Record<string, Attribute>
 	private _vertexCount = -1
 	private _instanceCount = -1
-	private _indexBuffer: GPUBuffer | null
-	private _indexArr: Uint32Array | null
-	private _indexBufferNeedsUpdate = true
+	private index: Index | null = null
 
 	constructor() {
 		this.attributes = {}
-		this._indexBuffer = null
-		this._indexArr = null
 	}
 
 	set vertexCount(v: number) {
@@ -28,15 +25,6 @@ class Geometry {
 
 	get instanceCount() {
 		return this._instanceCount
-	}
-
-	public setIndex(arr: Uint32Array) {
-		this._indexArr = arr
-		this._indexBufferNeedsUpdate = true
-	}
-
-	public getIndex() {
-		return this._indexArr
 	}
 
 	public getAttribute(name: string) {
@@ -64,6 +52,15 @@ class Geometry {
 			attr.dispose()
 			delete this.attributes[attribtueName]
 		}
+	}
+
+	public setIndex(arr: Uint32Array) {
+		if (this.index) this.index.dispose()
+		this.index = new Index(arr)
+	}
+
+	public getIndex() {
+		return this.index?.array || null
 	}
 
 	public getVertexStateInfo() {
@@ -96,10 +93,9 @@ class Geometry {
 	}
 
 	public getIndexBuffer(device: GPUDevice) {
-		if (!this._indexArr) return
-		if (this._indexBufferNeedsUpdate) this.udpateIndexBuffer(device)
-		this._indexBufferNeedsUpdate = false
-		return this._indexBuffer
+		if (!this.index) return
+		if (!this.index.buffer) this.index.createBuffer(device)
+		return this.index.buffer
 	}
 
 	public dispose() {
@@ -107,24 +103,7 @@ class Geometry {
 			this.attributes[name].dispose()
 		}
 		this.attributes = {}
-		if (this._indexBuffer) this._indexBuffer.destroy()
-	}
-
-	private createIndexBuffer(device: GPUDevice) {
-		if (!this._indexArr) return
-		if (this._indexBuffer) this._indexBuffer.destroy()
-		this._indexBuffer = device.createBuffer({
-			label: 'index buffer',
-			size: this._indexArr.byteLength,
-			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-		})
-	}
-
-	private udpateIndexBuffer(device: GPUDevice) {
-		if (!this._indexArr) return
-		if (!this._indexBuffer) this.createIndexBuffer(device)
-		if (!this._indexBuffer) return
-		device.queue.writeBuffer(this._indexBuffer, 0, this._indexArr)
+		if (this.index) this.index.dispose()
 	}
 }
 

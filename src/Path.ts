@@ -18,6 +18,7 @@ type IProps = {
 		tailDuration?: number
 	}
 	bufferPool?: BufferPool
+	drawLine?: boolean
 }
 
 export class Path extends Model {
@@ -29,15 +30,14 @@ export class Path extends Model {
 	 * @returns
 	 */
 	constructor(props: IProps) {
-		const res = Path.extendLineToMesh(props.positions)
-		if (!res) return
-		const { indexArr } = res
+		const drawLine = !!props.drawLine
 
 		const geometry = new Geometry()
 		const material = new PathMaterial({
 			...props.material,
 			positions: props.positions,
-			timestamps: props.timestamps
+			timestamps: props.timestamps,
+			drawLine: props.drawLine
 		})
 
 		super(geometry, material)
@@ -47,7 +47,14 @@ export class Path extends Model {
 			this.bufferPool = props.bufferPool
 		}
 
-		this.geometry.setIndex(indexArr)
+		if (!drawLine) {
+			const pathIndexRes = Path.extendLineToMesh(props.positions)
+			if (!pathIndexRes) return
+			const { indexArr } = pathIndexRes
+			this.geometry.setIndex(indexArr)
+		} else {
+			this.geometry.vertexCount = props.positions.length / 2
+		}
 	}
 
 	get material() {

@@ -59,6 +59,7 @@ const paths = new Paths([
 	{
 		positions: pos,
 		timestamps,
+		drawLine: true,
 		material: {
 			color: [1, 0.3, 0.2, 0.7],
 			lineWidth: 10,
@@ -68,7 +69,7 @@ const paths = new Paths([
 	},
 	{
 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-		// timestamps,
+		timestamps,
 		material: {
 			color: [0.0, 0.9, 1, 0.7],
 			lineWidth: 15,
@@ -77,18 +78,18 @@ const paths = new Paths([
 	}
 ])
 
-const points = new Points({
-	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-	colors: color,
-	sizes: size,
-	material: {
-		color: [1, 1, 0, 0.7],
-		blending: 'normalBlending',
-		// size: 10,
-		highlightSize: 40,
-		highlightColor: [1, 0, 0, 0.5]
-	}
-})
+// const points = new Points({
+// 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
+// 	colors: color,
+// 	sizes: size,
+// 	material: {
+// 		color: [1, 1, 0, 0.7],
+// 		blending: 'normalBlending',
+// 		// size: 10,
+// 		highlightSize: 40,
+// 		highlightColor: [1, 0, 0, 0.5]
+// 	}
+// })
 // const heat = new Heatmap({
 // 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 // 	material: {
@@ -105,7 +106,7 @@ const points = new Points({
 // points.renderOrder = 1
 // path.renderOrder = 2
 // scene.addModel(heat)
-scene.addModel(points)
+// scene.addModel(points)
 scene.addModel(paths)
 
 // let interval = 60
@@ -119,9 +120,9 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	paths.updateTime((time - start) * 5)
+	paths.updateTime(((time - start) * 5) % timestamps[num - 1])
 	renderer.render(scene, camera)
-	lastTimestamp = time
+	// lastTimestamp = time
 	// }
 	requestAnimationFrame(animate)
 }

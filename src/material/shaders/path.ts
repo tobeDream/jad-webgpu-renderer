@@ -54,6 +54,19 @@ export const genShaderCode = (hasTime: boolean, hasTail: boolean) => `
         return vsOut;
     }
 
+    @vertex fn lineVs(vert: Vertex) -> VSOutput {
+        _ = resolution;
+        var vsOut: VSOutput;
+        let posLen = arrayLength(&positions);
+        let index = vert.vi % posLen;
+        let p = positions[index % posLen];
+        ${hasTime ? 'let time = timestamps[index % posLen];' : ''}
+
+        vsOut.position = vec4f(projectionMatrix * viewMatrix * vec4f(p, 0, 1));
+        ${hasTime ? 'vsOut.startTime = time;' : ''}
+        return vsOut;
+    }
+
     @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
         ${
 			hasTail && hasTime

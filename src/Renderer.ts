@@ -163,8 +163,8 @@ class Renderer {
 
 		const commandBuffer = encoder.finish()
 		this.device.queue.submit([commandBuffer])
-		await this.device.queue.onSubmittedWorkDone()
-		console.log(new Date().valueOf() - s)
+		// await this.device.queue.onSubmittedWorkDone()
+		// console.log(new Date().valueOf() - s)
 	}
 
 	resize = () => {

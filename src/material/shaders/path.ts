@@ -1,4 +1,4 @@
-export const code = `
+export const genShaderCode = (hasTime: boolean, hasTail: boolean) => `
     const PI = radians(180.0);
     struct Vertex {
         @builtin(vertex_index) vi: u32,
@@ -6,7 +6,8 @@ export const code = `
 
     struct Style {
         color:  vec4f,
-        lineWidth: f32
+        lineWidth: f32,
+        ${hasTime ? 'unplayedColor: vec4f,' : ''}
     };
 
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
@@ -14,9 +15,13 @@ export const code = `
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     @group(1) @binding(0) var<uniform> style: Style;
     @group(1) @binding(1) var<storage, read> positions: array<vec2f>;
+    ${hasTime ? '@group(1) @binding(2) var<uniform> time: f32;' : ''} 
+    ${hasTime ? '@group(1) @binding(3) var<storage, read> timestamps: array<f32>;' : ''}
+    ${hasTime && hasTail ? '@group(1) @binding(4) var<uniform> tailDuration: f32;' : ''} 
 
     struct VSOutput {
-        @builtin(position) position: vec4f
+        @builtin(position) position: vec4f,
+        ${hasTime ? '@location(0) startTime: f32' : ''}
     };
 
     fn getAngle(v: vec2f) -> f32 {
@@ -28,8 +33,9 @@ export const code = `
         let posLen = arrayLength(&positions);
         let index = vert.vi % posLen;
         let p = positions[index % posLen];
+        ${hasTime ? 'let time = timestamps[index % posLen];' : ''}
         let clipPos = projectionMatrix * viewMatrix * vec4f(p, 0, 1);
-        let side = f32(vert.vi / posLen) * -2 + 1;
+        let side = f32(vert.vi / posLen) * -2 + 1; //-1 or 1
 
         let pp = positions[(index - 1) % posLen];
         let np = positions[(index + 1) % posLen];
@@ -42,12 +48,33 @@ export const code = `
         let s = sin(angle / 2 + anp);
         let c = cos(angle / 2 + anp);
         let v = side * vec2f(c, s) * lineWidth / resolution * clipPos.w;
+
         vsOut.position = vec4f(clipPos.xy + v, clipPos.z, clipPos.w);
+        ${hasTime ? 'vsOut.startTime = time;' : ''}
         return vsOut;
     }
 
     @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
-        let color = style.color;
-        return vec4f(color.rgb * color.a, color.a);
+        ${
+			hasTail && hasTime
+				? `
+            if(time - vsOut.startTime > tailDuration){
+                discard;
+            }
+            let tailOpacity = clamp((vsOut.startTime - time + tailDuration) / tailDuration, 0, 1);
+        `
+				: ''
+		}
+        ${
+			hasTime
+				? 'let color = mix(style.color, style.unplayedColor, step(0f, vsOut.startTime - time));'
+				: 'let color = style.color;'
+		}
+        ${
+			hasTail && hasTime
+				? 'return vec4f(color.rgb * color.a * tailOpacity, color.a * tailOpacity);'
+				: 'return vec4f(color.rgb * color.a, color.a);'
+		}
+        
     }
 `

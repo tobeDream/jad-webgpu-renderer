@@ -23,6 +23,7 @@ class Uniform {
 		this.view = makeStructuredView(this.def)
 		this.view.set(props.value)
 		this._bufferView = new BufferView({
+			resourceName: this._name,
 			offset: 0,
 			size: this.view.arrayBuffer.byteLength,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -69,7 +70,7 @@ class Uniform {
 
 	public updateBuffer(device: GPUDevice) {
 		if (this._needsUpdate && this.view.arrayBuffer) {
-			const res = this.bufferView.udpateBuffer(device, this.view.arrayBuffer)
+			const res = this.bufferView.updateBuffer(device, this.view.arrayBuffer)
 			if (res) this._needsUpdate = false
 		}
 	}

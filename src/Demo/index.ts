@@ -5,6 +5,7 @@ import Scene from '../Scene'
 import Points from '../Points'
 import { Path, Paths } from '../Path'
 import Heatmap from '../Heatmap'
+import * as moment from 'moment'
 
 //@ts-ignore
 window.V = Vector2
@@ -21,7 +22,7 @@ window.c = camera
 const scene = new Scene()
 //@ts-ignore
 window.s = scene
-const renderer = new Renderer({ canvas, antiAlias: false, clearColor: [0, 0, 0, 0.3] })
+const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0.3] })
 //@ts-ignore
 window.r = renderer
 
@@ -30,6 +31,7 @@ const num = 200
 const pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
 const size = new Float32Array(num)
+const timestamps = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
 	pos[2 * i] = (800 / num) * i - 400
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
@@ -40,10 +42,12 @@ for (let i = 0; i < num; ++i) {
 	color[i * 4 + 2] = 0
 	color[i * 4 + 3] = 155
 	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 25 + 10
+	timestamps[i] = 200 * i
 }
 
 const path = new Path({
 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+	timestamps,
 	material: {
 		color: [0.0, 0.9, 1, 0.7],
 		lineWidth: 10,
@@ -54,14 +58,17 @@ const path = new Path({
 const paths = new Paths([
 	{
 		positions: pos,
+		timestamps,
 		material: {
 			color: [1, 0.3, 0.2, 0.7],
 			lineWidth: 10,
-			blending: 'normalBlending'
+			blending: 'normalBlending',
+			tailDuration: 5000
 		}
 	},
 	{
 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+		// timestamps,
 		material: {
 			color: [0.0, 0.9, 1, 0.7],
 			lineWidth: 15,
@@ -101,7 +108,24 @@ const points = new Points({
 scene.addModel(points)
 scene.addModel(paths)
 
-renderer.render(scene, camera)
+// let interval = 60
+let lastTimestamp = 0
+let start = 0
+const animate = (time: number) => {
+	// console.log(time)
+	if (start === 0) {
+		// lastTimestamp = time
+		start = lastTimestamp
+	}
+	// const timeElapsed = time - lastTimestamp
+	// if (timeElapsed >= interval) {
+	paths.updateTime((time - start) * 5)
+	renderer.render(scene, camera)
+	lastTimestamp = time
+	// }
+	requestAnimationFrame(animate)
+}
+requestAnimationFrame(animate)
 
 // setTimeout(() => {
 // 	points.highlights([1, 10, 30, 50])

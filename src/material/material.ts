@@ -14,7 +14,7 @@ type IProps = {
 	vertexShaderEntry?: string
 	fragmentShaderEntry?: string
 	uniforms?: Record<string, any>
-	storages?: Record<string, TypedArray>
+	storages?: Record<string, TypedArray | undefined>
 	blending?: Blending
 	presentationFormat?: GPUTextureFormat
 	renderBindGroupLayoutDescriptors?: GPUBindGroupLayoutDescriptor[]

@@ -2,6 +2,7 @@ import { genId } from '@/utils/index'
 import Buffer from './buffer'
 
 type IProps = {
+	resourceName: string
 	offset: number
 	size: number
 	usage: number
@@ -9,6 +10,7 @@ type IProps = {
 
 class BufferView {
 	private _id: string
+	private _resourceName: string
 	private _offset: number
 	private _size: number
 	private _usage: number
@@ -19,10 +21,15 @@ class BufferView {
 		this._offset = props.offset
 		this._size = props.size
 		this._usage = props.usage
+		this._resourceName = props.resourceName
 	}
 
 	get id() {
 		return this._id
+	}
+
+	get resourceName() {
+		return this._resourceName
 	}
 
 	get offset() {
@@ -49,7 +56,15 @@ class BufferView {
 		this._buffer = b
 	}
 
-	public udpateBuffer(device: GPUDevice, valueBuffer: ArrayBuffer) {
+	get usedInUniform() {
+		return !!(this._usage & GPUBufferUsage.UNIFORM)
+	}
+
+	get usedInStorage() {
+		return !!(this._usage & GPUBufferUsage.STORAGE)
+	}
+
+	public updateBuffer(device: GPUDevice, valueBuffer: ArrayBuffer) {
 		if (!this._buffer) return false
 		device.queue.writeBuffer(this._buffer.GPUBuffer, this.offset, valueBuffer)
 		return true

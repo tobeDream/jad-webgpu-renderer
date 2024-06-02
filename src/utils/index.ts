@@ -5,3 +5,5 @@ export const genId = () => {
 }
 
 export const minUniformBufferOffsetAlignment = 256
+
+export const minStorageBufferOffsetAlignment = 256

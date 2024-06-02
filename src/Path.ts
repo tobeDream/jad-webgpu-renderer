@@ -1,5 +1,4 @@
 import Geometry from './geometry/geometry'
-import Attribute from './geometry/attribute'
 import PathMaterial from './material/pathMaterial'
 import Model from './Model'
 import { Blending, Color, IRenderable } from './types'
@@ -10,15 +9,25 @@ import BufferView from './buffer/bufferView'
 
 type IProps = {
 	positions: Float32Array
+	timestamps?: Float32Array
 	material?: {
 		color?: Color
+		unplayedColor?: Color
 		lineWidth?: number
 		blending?: Blending
+		tailDuration?: number
 	}
 	bufferPool?: BufferPool
 }
 
 export class Path extends Model {
+	/**
+	 * positions 为轨迹点的坐标数组经纬度间隔存放
+	 * timestamps 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
+	 * trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒
+	 * @param props
+	 * @returns
+	 */
 	constructor(props: IProps) {
 		const res = Path.extendLineToMesh(props.positions)
 		if (!res) return
@@ -27,7 +36,8 @@ export class Path extends Model {
 		const geometry = new Geometry()
 		const material = new PathMaterial({
 			...props.material,
-			positions: props.positions
+			positions: props.positions,
+			timestamps: props.timestamps
 		})
 
 		super(geometry, material)
@@ -38,6 +48,10 @@ export class Path extends Model {
 		}
 
 		this.geometry.setIndex(indexArr)
+	}
+
+	get material() {
+		return this._material as PathMaterial
 	}
 
 	private static extendLineToMesh(positions: Float32Array) {
@@ -55,7 +69,6 @@ export class Path extends Model {
 			indexArr[i * 6 + 5] = i + count
 		}
 
-		console.log(new Date().valueOf() - s)
 		return { indexArr }
 	}
 }
@@ -92,13 +105,19 @@ export class Paths implements IRenderable {
 		this._renderOrder = r
 	}
 
+	updateTime(time: number) {
+		for (let p of this.pathModelList) {
+			p.material.updateTime(time)
+		}
+	}
+
 	prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
 
 	render(renderer: Renderer, pass: GPURenderPassEncoder, camera: Camera) {
 		if (!this.bufferPool.initialed) {
 			const bufferViews: BufferView[] = []
 			for (let path of this.pathModelList) {
-				bufferViews.push(...path.material.getBufferViews())
+				bufferViews.push(...path.material.getBufferViews(), ...path.geometry.getBufferViews())
 			}
 			this.bufferPool.createBuffers(renderer.device, bufferViews)
 		}

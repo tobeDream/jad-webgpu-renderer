@@ -36,6 +36,10 @@ class Points extends Model {
 		this.initAttributes(props)
 	}
 
+	get material() {
+		return this._material as PointMaterial
+	}
+
 	public highlights(indexList: number[]) {
 		const storage = this.material.getStorage('highlightFlags')
 		const highlightFlags = new Uint32Array(storage.size / 4)

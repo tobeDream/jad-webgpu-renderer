@@ -62,8 +62,8 @@ class Model implements IRenderable {
 	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
 
 	private initBufferPool(device: GPUDevice) {
-		const { material } = this
-		this.bufferPool.createBuffers(device, material.getBufferViews())
+		const { material, geometry } = this
+		this.bufferPool.createBuffers(device, [...material.getBufferViews(), ...geometry.getBufferViews()])
 	}
 
 	public render(
@@ -93,9 +93,14 @@ class Model implements IRenderable {
 		for (let i = 0; i < vertexBufferList.length; ++i) {
 			pass.setVertexBuffer(i, vertexBufferList[i])
 		}
-		const indexBuffer = geometry.getIndexBuffer(device)
-		if (indexBuffer) {
-			pass.setIndexBuffer(indexBuffer, 'uint32')
+		const indexBufferView = geometry.getIndexBufferView(device)
+		if (indexBufferView?.buffer?.GPUBuffer) {
+			pass.setIndexBuffer(
+				indexBufferView.buffer.GPUBuffer,
+				'uint32',
+				indexBufferView.offset,
+				indexBufferView.size
+			)
 		}
 		const instanceCount = geometry.instanceCount > -1 ? geometry.instanceCount : undefined
 		const index = geometry.getIndex()

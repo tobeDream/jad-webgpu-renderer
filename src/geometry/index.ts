@@ -1,36 +1,43 @@
+import BufferView from '@/buffer/bufferView'
+
 class Index {
 	private _array: Uint32Array
-	private _buffer: GPUBuffer | null
+	private _bufferView: BufferView
+	private needsUpdate: boolean = true
 
 	constructor(data: Uint32Array) {
 		this._array = data
-		this._buffer = null
+		this._bufferView = new BufferView({
+			resourceName: 'vertex index',
+			offset: 0,
+			size: data.byteLength,
+			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+		})
 	}
 
 	get array() {
 		return this._array
 	}
 
-	get buffer() {
-		return this._buffer
+	set array(value: Uint32Array) {
+		this._array = value
+		this.needsUpdate = true
 	}
 
-	public createBuffer(device: GPUDevice) {
-		if (this._buffer) {
-			this._buffer.destroy()
+	get bufferView() {
+		return this._bufferView
+	}
+
+	public updateBuffer(device: GPUDevice) {
+		if (this.needsUpdate) {
+			const res = this.bufferView.updateBuffer(device, this._array)
+			if (res) this.needsUpdate = false
 		}
-		this._buffer = device.createBuffer({
-			label: 'index buffer',
-			size: this._array.byteLength,
-			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-		})
-		device.queue.writeBuffer(this._buffer, 0, this._array)
 	}
 
 	public dispose() {
-		if (this._buffer) {
-			this._buffer.destroy()
-		}
+		//@ts-ignore
+		this._array = undefined
 	}
 }
 

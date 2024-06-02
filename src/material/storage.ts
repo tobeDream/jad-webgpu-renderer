@@ -30,6 +30,7 @@ class Storage {
 			size = props.byteLength
 		}
 		this._bufferView = new BufferView({
+			resourceName: this._name,
 			size,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 			offset: 0
@@ -75,7 +76,7 @@ class Storage {
 
 	public updateBuffer(device: GPUDevice) {
 		if (this._needsUpdate && this._value) {
-			const res = this.bufferView.udpateBuffer(device, this._value.buffer)
+			const res = this.bufferView.updateBuffer(device, this._value.buffer)
 			if (res) this._needsUpdate = false
 		}
 	}

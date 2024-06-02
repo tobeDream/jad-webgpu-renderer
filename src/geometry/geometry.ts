@@ -1,3 +1,4 @@
+import BufferView from '@/buffer/bufferView'
 import Attribute from './attribute'
 import Index from './index'
 
@@ -55,12 +56,18 @@ class Geometry {
 	}
 
 	public setIndex(arr: Uint32Array) {
-		if (this.index) this.index.dispose()
-		this.index = new Index(arr)
+		if (!this.index) this.index = new Index(arr)
+		else this.index.array = arr
 	}
 
 	public getIndex() {
 		return this.index?.array || null
+	}
+
+	public getIndexBufferView(device: GPUDevice) {
+		if (!this.index) return
+		this.index.updateBuffer(device)
+		return this.index.bufferView
 	}
 
 	public getVertexStateInfo() {
@@ -83,19 +90,21 @@ class Geometry {
 		return vertexBufferLayouts
 	}
 
+	public getBufferViews() {
+		const res: BufferView[] = []
+		for (let an in this.attributes) res.push(this.attributes[an].bufferView)
+		if (this.index) res.push(this.index.bufferView)
+		return res
+	}
+
 	public getVertexBufferList(device: GPUDevice) {
 		const bufferList: GPUBuffer[] = []
 		for (let attribute of Object.values(this.attributes)) {
-			if (attribute.needsUpdate || !attribute.buffer) attribute.updateBuffer(device)
-			bufferList.push(attribute.buffer as GPUBuffer)
+			attribute.updateBuffer(device)
+			if (attribute.bufferView.buffer?.GPUBuffer)
+				bufferList.push(attribute.bufferView.buffer.GPUBuffer as GPUBuffer)
 		}
 		return bufferList
-	}
-
-	public getIndexBuffer(device: GPUDevice) {
-		if (!this.index) return
-		if (!this.index.buffer) this.index.createBuffer(device)
-		return this.index.buffer
 	}
 
 	public dispose() {
@@ -103,7 +112,6 @@ class Geometry {
 			this.attributes[name].dispose()
 		}
 		this.attributes = {}
-		if (this.index) this.index.dispose()
 	}
 }
 

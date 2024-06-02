@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+import BufferView from '@/buffer/bufferView'
 import { TypedArray } from '../types'
 
 type Options = {
@@ -10,8 +11,8 @@ class Attribute {
 	private _name: string
 	private _array: TypedArray
 	private _itemSize: number
-	private _needUpdate = true
-	private _buffer: GPUBuffer | null
+	private needsUpdate = true
+	private _bufferView: BufferView
 	private _shaderLocation?: number
 	private _stepMode: GPUVertexStepMode = 'vertex'
 
@@ -19,9 +20,14 @@ class Attribute {
 		this._name = name
 		this._array = data
 		this._itemSize = itemSize
-		this._buffer = null
 		this._shaderLocation = options?.shaderLocation
 		if (options?.stepMode) this._stepMode = options.stepMode
+		this._bufferView = new BufferView({
+			resourceName: 'attribute_' + this._name,
+			offset: 0,
+			size: this._array.byteLength,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+		})
 	}
 
 	get name() {
@@ -46,7 +52,7 @@ class Attribute {
 
 	set array(data: TypedArray) {
 		this._array = data
-		this._needUpdate = true
+		this.needsUpdate = true
 	}
 
 	get itemSize() {
@@ -57,29 +63,15 @@ class Attribute {
 		this._itemSize = Math.floor(v)
 	}
 
-	get buffer() {
-		return this._buffer
-	}
-
-	get needsUpdate() {
-		return this._needUpdate
-	}
-
-	set needsUpdate(b: boolean) {
-		this._needUpdate = b
+	get bufferView() {
+		return this._bufferView
 	}
 
 	public updateBuffer(device: GPUDevice) {
-		if (this._buffer) {
-			this._buffer.destroy()
+		if (this.needsUpdate) {
+			const res = this.bufferView.updateBuffer(device, this._array)
+			if (res) this.needsUpdate = false
 		}
-		this._buffer = device.createBuffer({
-			label: this.name + ' vertex buffer',
-			size: this._array.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-		})
-		device.queue.writeBuffer(this._buffer, 0, this._array)
-		this._needUpdate = false
 	}
 
 	public getFormat() {
@@ -90,9 +82,8 @@ class Attribute {
 	}
 
 	public dispose() {
-		if (this._buffer) {
-			this._buffer.destroy()
-		}
+		//@ts-ignore
+		this._array = undefined
 	}
 }
 

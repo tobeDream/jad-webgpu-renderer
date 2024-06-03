@@ -27,7 +27,7 @@ const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 1000000
+const num = 100000
 const pos = new Float32Array(num * 2)
 // const color = new Uint8Array(num * 4)
 // const size = new Float32Array(num)
@@ -42,7 +42,7 @@ for (let i = 0; i < num; ++i) {
 	// color[i * 4 + 2] = 0
 	// color[i * 4 + 3] = 155
 	// size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 25 + 10
-	timestamps[i] = 200 * i
+	timestamps[i] = 2000 * i
 }
 
 // const path = new Path({
@@ -60,21 +60,25 @@ const paths = new Paths([
 		positions: pos,
 		timestamps,
 		drawLine: true,
+		drawHeadPoint: true,
 		material: {
 			color: [1, 0.3, 0.2, 0.7],
 			lineWidth: 10,
-			blending: 'additiveBlending'
-			// tailDuration: 5000
+			headPointColor: [1, 0.1, 0.7, 0.6],
+			headPointSize: 10,
+			blending: 'normalBlending',
+			tailDuration: (num * 2000) / 10
 		}
 	},
 	{
 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
 		timestamps,
-		drawLine: true,
+		// drawLine: true,
+		drawHeadPoint: true,
 		material: {
 			color: [1.0, 0.9, 0, 0.7],
-			lineWidth: 15,
-			blending: 'additiveBlending'
+			lineWidth: 5,
+			blending: 'normalBlending'
 		}
 	}
 ])
@@ -121,7 +125,7 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	paths.updateTime(((time - start) * 4000) % timestamps[num - 1])
+	paths.updateTime((((time - start) * num * 2000) / 10000) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	// lastTimestamp = time
 	// }

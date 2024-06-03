@@ -19,7 +19,10 @@ type IProps = {
 		lineWidth?: number
 		blending?: Blending
 		tailDuration?: number
+		headPointColor?: Color
+		headPointSize?: number
 	}
+	drawHeadPoint?: boolean
 	drawLine?: boolean
 }
 
@@ -97,7 +100,7 @@ export class Paths implements IRenderable {
 			pathModel.bufferPool = this.bufferPool
 			this.pathModelList.push(pathModel)
 			//用 line 绘制动态轨迹时，需添加轨迹头部点，以标识轨迹当前运行的位置
-			if (p.drawLine && !!p.timestamps) {
+			if (!!p.timestamps && p.drawHeadPoint) {
 				this.createHeatPoint(pathModel, p)
 			}
 		}
@@ -106,6 +109,8 @@ export class Paths implements IRenderable {
 	private createHeatPoint(pathModel: Path, params: IProps) {
 		const positionBufferView = pathModel.material.getStorage('positions').bufferView
 		const timestampesBufferView = pathModel.material.getStorage('timestamps').bufferView
+		const headPointColor = params.material?.headPointColor || pathModel.material.getUniform('style').value.color
+		const headPointSize = params.material?.headPointSize || 15
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
 		const material = new Material({
@@ -114,7 +119,8 @@ export class Paths implements IRenderable {
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: params.material?.blending,
-			uniforms: { time: 0, size: 20, pointIndex: 0 }
+			uniforms: { time: 0, size: headPointSize, pointIndex: 0, pointColor: headPointColor },
+			storages: { positions: params.positions, timestamps: params.timestamps }
 		})
 		material.getStorage('positions').bufferView = positionBufferView
 		material.getStorage('timestamps').bufferView = timestampesBufferView
@@ -168,11 +174,11 @@ export class Paths implements IRenderable {
 			}
 			this.bufferPool.createBuffers(renderer.device, bufferViews)
 		}
-		for (let h of this.headPointList) {
-			h.render(renderer, pass, camera)
-		}
 		for (let path of this.pathModelList) {
 			path.render(renderer, pass, camera)
+		}
+		for (let h of this.headPointList) {
+			h.render(renderer, pass, camera)
 		}
 	}
 }

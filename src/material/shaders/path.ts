@@ -100,7 +100,8 @@ export const headPointShaderCode = `
     @group(1) @binding(1) var<storage, read> timestamps: array<f32>;
     @group(1) @binding(2) var<uniform> time: f32;
     @group(1) @binding(3) var<uniform> size: f32;
-    @group(1) @binding(4) var<uniform> pointIndex: u32;
+    @group(1) @binding(4) var<uniform> pointColor: vec4f;
+    @group(1) @binding(5) var<uniform> pointIndex: u32;
 
     struct VSOut {
         @builtin(position) position: vec4f,
@@ -146,8 +147,7 @@ export const headPointShaderCode = `
             discard;
         }
         let edgeAlpha = smoothstep(0, 0.1, 1 - dis);
-        let color = vec4f(1, 0, 0, 0.5);
 
-        return color * edgeAlpha;
+        return pointColor * edgeAlpha;
     }
 `

@@ -18,8 +18,6 @@ type IProps = {
 )
 
 class PathMaterial extends Material {
-	private drawLine: boolean = false
-
 	constructor(props: IProps) {
 		const hasTime = 'timestamps' in props
 		const timestamps = hasTime ? props.timestamps : undefined
@@ -37,7 +35,6 @@ class PathMaterial extends Material {
 			uniforms: { style: { color, lineWidth, unplayedColor }, time: 0, tailDuration },
 			primitive: drawLine ? { topology: 'line-strip' } : { topology: 'triangle-list' }
 		})
-		this.drawLine = drawLine
 	}
 
 	public updateTime(time: number) {

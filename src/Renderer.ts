@@ -39,8 +39,6 @@ class Renderer {
 		}
 		if (props.clearColor) this.clearColor = props.clearColor.slice()
 
-		console.log(this.width, this.height)
-
 		this.initWebGPU(props)
 	}
 

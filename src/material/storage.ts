@@ -61,6 +61,11 @@ class Storage {
 		return this._bufferView
 	}
 
+	set bufferView(bv: BufferView) {
+		this._bufferView.dispose()
+		this._bufferView = bv
+	}
+
 	get needsUpdate() {
 		return this._needsUpdate
 	}

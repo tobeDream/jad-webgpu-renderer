@@ -27,33 +27,33 @@ const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 200
+const num = 1000000
 const pos = new Float32Array(num * 2)
-const color = new Uint8Array(num * 4)
-const size = new Float32Array(num)
+// const color = new Uint8Array(num * 4)
+// const size = new Float32Array(num)
 const timestamps = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
-	pos[2 * i] = (800 / num) * i - 400
+	pos[2 * i] = (600 / num) * i - 300
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
 	// pos[2 * i] = (Math.random() * 2 - 1) * 400
 	// pos[2 * i + 1] = (Math.random() * 2 - 1) * 200
-	color[i * 4 + 0] = 255
-	color[i * 4 + 1] = ((num - i) / num) * 255
-	color[i * 4 + 2] = 0
-	color[i * 4 + 3] = 155
-	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 25 + 10
+	// color[i * 4 + 0] = 255
+	// color[i * 4 + 1] = ((num - i) / num) * 255
+	// color[i * 4 + 2] = 0
+	// color[i * 4 + 3] = 155
+	// size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 25 + 10
 	timestamps[i] = 200 * i
 }
 
-const path = new Path({
-	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-	timestamps,
-	material: {
-		color: [0.0, 0.9, 1, 0.7],
-		lineWidth: 10,
-		blending: 'normalBlending'
-	}
-})
+// const path = new Path({
+// 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+// 	timestamps,
+// 	material: {
+// 		color: [0.0, 0.9, 1, 0.7],
+// 		lineWidth: 10,
+// 		blending: 'normalBlending'
+// 	}
+// })
 
 const paths = new Paths([
 	{
@@ -63,17 +63,18 @@ const paths = new Paths([
 		material: {
 			color: [1, 0.3, 0.2, 0.7],
 			lineWidth: 10,
-			blending: 'normalBlending',
-			tailDuration: 5000
+			blending: 'additiveBlending'
+			// tailDuration: 5000
 		}
 	},
 	{
 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
 		timestamps,
+		drawLine: true,
 		material: {
-			color: [0.0, 0.9, 1, 0.7],
+			color: [1.0, 0.9, 0, 0.7],
 			lineWidth: 15,
-			blending: 'normalBlending'
+			blending: 'additiveBlending'
 		}
 	}
 ])
@@ -120,7 +121,7 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	paths.updateTime(((time - start) * 5) % timestamps[num - 1])
+	paths.updateTime(((time - start) * 4000) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	// lastTimestamp = time
 	// }
@@ -134,3 +135,9 @@ requestAnimationFrame(animate)
 // }, 2000)
 
 window.addEventListener('resize', renderer.resize)
+
+//@ts-ignore
+window.f = (t) => {
+	paths.updateTime(t)
+	renderer.render(scene, camera)
+}

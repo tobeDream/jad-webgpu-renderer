@@ -4,22 +4,33 @@ import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 import { IRenderable } from '@/types'
+import { genId } from './utils'
 
 type Options = {}
 
 class Model implements IRenderable {
+	protected _id: string
 	protected _geometry: Geometry
 	protected _material: Material
 	protected _visible: boolean
 	protected _renderOrder: number
-	protected bufferPool = new BufferPool()
+	protected _bufferPool = new BufferPool()
 	protected textures: Record<string, GPUTexture> = {}
 
 	constructor(geometry: Geometry, material: Material, opts?: Options) {
+		this._id = 'model_' + genId()
 		this._geometry = geometry
 		this._material = material
 		this._visible = true
 		this._renderOrder = 0
+	}
+
+	get id() {
+		return this._id
+	}
+
+	set id(v: string) {
+		this._id = v
 	}
 
 	get geometry() {
@@ -36,6 +47,15 @@ class Model implements IRenderable {
 
 	set material(mat: Material) {
 		this._material = mat
+	}
+
+	get bufferPool() {
+		return this._bufferPool
+	}
+
+	set bufferPool(bp: BufferPool) {
+		if (this._bufferPool) this._bufferPool.dispose()
+		this._bufferPool = bp
 	}
 
 	get visible() {

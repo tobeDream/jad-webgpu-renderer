@@ -91,3 +91,63 @@ export const genShaderCode = (hasTime: boolean, hasTail: boolean) => `
         
     }
 `
+
+export const headPointShaderCode = `
+    @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
+    @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
+    @group(0) @binding(2) var<uniform> resolution: vec2f;
+    @group(1) @binding(0) var<storage, read> positions: array<vec2f>;
+    @group(1) @binding(1) var<storage, read> timestamps: array<f32>;
+    @group(1) @binding(2) var<uniform> time: f32;
+    @group(1) @binding(3) var<uniform> size: f32;
+    @group(1) @binding(4) var<uniform> pointIndex: u32;
+
+    struct VSOut {
+        @builtin(position) position: vec4f,
+        @location(0) pointCoord: vec2f
+    }
+
+    @vertex fn vs(@builtin(vertex_index) vi: u32) -> VSOut{
+        let points = array(
+            vec2f(-1, -1),
+            vec2f( 1, -1),
+            vec2f(-1,  1),
+            vec2f(-1,  1),
+            vec2f( 1, -1),
+            vec2f( 1,  1),
+        );
+        let posLen = arrayLength(&positions);
+        let pos = points[vi];
+        var vsOut: VSOut;
+        var clipPos: vec4f;
+
+        let prevPoint = positions[pointIndex];
+        if(pointIndex == posLen){
+            clipPos = projectionMatrix * viewMatrix * vec4f(prevPoint, 0, 1);
+        } else {
+            let prevTime = timestamps[pointIndex];
+            let nextTime = timestamps[pointIndex + 1];
+            let nextPoint = positions[pointIndex + 1];
+            let dir = normalize(nextPoint - prevPoint);
+            let currPos = length(nextPoint - prevPoint) * (time  - prevTime) / (nextTime - prevTime) * dir + prevPoint;
+            clipPos = projectionMatrix * viewMatrix * vec4f(currPos, 0, 1);
+        }
+
+        let pointPos = vec4f(pos * size / resolution * clipPos.w, 0, 0);
+        vsOut.position = clipPos + pointPos;
+        vsOut.pointCoord = pos;
+        return vsOut;
+    }
+
+    @fragment fn fs(vsOut: VSOut) -> @location(0) vec4f{
+        let coord = vsOut.pointCoord;
+        let dis = length(coord);
+        if(dis >= 1) {
+            discard;
+        }
+        let edgeAlpha = smoothstep(0, 0.1, 1 - dis);
+        let color = vec4f(1, 0, 0, 0.5);
+
+        return color * edgeAlpha;
+    }
+`

@@ -6,6 +6,9 @@ import BufferPool from './buffer/bufferPool'
 import Renderer from './Renderer'
 import { Camera } from './camera/camera'
 import BufferView from './buffer/bufferView'
+import Material from './material/material'
+import { headPointShaderCode } from './material/shaders/path'
+import { binarySearch } from './utils'
 
 type IProps = {
 	positions: Float32Array
@@ -17,11 +20,11 @@ type IProps = {
 		blending?: Blending
 		tailDuration?: number
 	}
-	bufferPool?: BufferPool
 	drawLine?: boolean
 }
 
 export class Path extends Model {
+	private _timestamps?: Float32Array
 	/**
 	 * positions 为轨迹点的坐标数组经纬度间隔存放
 	 * timestamps 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
@@ -42,11 +45,6 @@ export class Path extends Model {
 
 		super(geometry, material)
 
-		if (props.bufferPool) {
-			this.bufferPool.dispose()
-			this.bufferPool = props.bufferPool
-		}
-
 		if (!drawLine) {
 			const pathIndexRes = Path.extendLineToMesh(props.positions)
 			if (!pathIndexRes) return
@@ -55,6 +53,12 @@ export class Path extends Model {
 		} else {
 			this.geometry.vertexCount = props.positions.length / 2
 		}
+
+		this._timestamps = props.timestamps
+	}
+
+	get timestamps() {
+		return this._timestamps
 	}
 
 	get material() {
@@ -81,19 +85,43 @@ export class Path extends Model {
 }
 
 export class Paths implements IRenderable {
-	protected _visible: boolean
-	protected _renderOrder: number
+	protected _visible = true
+	protected _renderOrder = 0
 	protected bufferPool = new BufferPool()
-	protected pathModelList: Path[]
+	protected pathModelList: Path[] = []
+	protected headPointList: Model[] = []
 
 	constructor(paths: IProps[]) {
-		this.bufferPool = new BufferPool()
-		this.pathModelList = []
-		this._visible = true
-		this._renderOrder = 0
 		for (let p of paths) {
-			this.pathModelList.push(new Path({ ...p, bufferPool: this.bufferPool }))
+			const pathModel = new Path({ ...p })
+			pathModel.bufferPool = this.bufferPool
+			this.pathModelList.push(pathModel)
+			//用 line 绘制动态轨迹时，需添加轨迹头部点，以标识轨迹当前运行的位置
+			if (p.drawLine && !!p.timestamps) {
+				this.createHeatPoint(pathModel, p)
+			}
 		}
+	}
+
+	private createHeatPoint(pathModel: Path, params: IProps) {
+		const positionBufferView = pathModel.material.getStorage('positions').bufferView
+		const timestampesBufferView = pathModel.material.getStorage('timestamps').bufferView
+		const geometry = new Geometry()
+		geometry.vertexCount = 6
+		const material = new Material({
+			id: 'heatPoint',
+			renderCode: headPointShaderCode,
+			vertexShaderEntry: 'vs',
+			fragmentShaderEntry: 'fs',
+			blending: params.material?.blending,
+			uniforms: { time: 0, size: 20, pointIndex: 0 }
+		})
+		material.getStorage('positions').bufferView = positionBufferView
+		material.getStorage('timestamps').bufferView = timestampesBufferView
+		const pointModel = new Model(geometry, material)
+		pointModel.id = pathModel.id
+		pointModel.bufferPool = this.bufferPool
+		this.headPointList.push(pointModel)
 	}
 
 	get visible() {
@@ -116,6 +144,14 @@ export class Paths implements IRenderable {
 		for (let p of this.pathModelList) {
 			p.material.updateTime(time)
 		}
+		for (let h of this.headPointList) {
+			h.material.getUniform('time').updateValue(time)
+			const timestamps = this.pathModelList.find((p) => p.id === h.id)?.timestamps
+			if (timestamps) {
+				const headIndex = binarySearch(timestamps, time)
+				h.material.getUniform('pointIndex').updateValue(headIndex)
+			}
+		}
 	}
 
 	prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {}
@@ -126,7 +162,14 @@ export class Paths implements IRenderable {
 			for (let path of this.pathModelList) {
 				bufferViews.push(...path.material.getBufferViews(), ...path.geometry.getBufferViews())
 			}
+			for (let h of this.headPointList) {
+				const hBufferViews = h.material.getBufferViews().filter((hbv) => !bufferViews.find((bv) => bv === hbv))
+				bufferViews.push(...hBufferViews)
+			}
 			this.bufferPool.createBuffers(renderer.device, bufferViews)
+		}
+		for (let h of this.headPointList) {
+			h.render(renderer, pass, camera)
 		}
 		for (let path of this.pathModelList) {
 			path.render(renderer, pass, camera)

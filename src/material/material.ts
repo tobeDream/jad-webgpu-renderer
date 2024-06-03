@@ -101,10 +101,12 @@ class Material {
 		const res: BufferView[] = []
 		for (let un in this.uniforms) {
 			if (['projectionMatrix', 'viewMatrix', 'resolution'].includes(un)) continue
-			res.push(this.uniforms[un].bufferView)
+			const bv = this.uniforms[un].bufferView
+			if (!res.find((b) => b.id === bv.id)) res.push(bv)
 		}
 		for (let sn in this.storages) {
-			res.push(this.storages[sn].bufferView)
+			const bv = this.storages[sn].bufferView
+			if (!res.find((b) => b.id === bv.id)) res.push(bv)
 		}
 		return res
 	}

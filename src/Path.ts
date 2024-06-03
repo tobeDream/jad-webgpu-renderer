@@ -7,7 +7,7 @@ import Renderer from './Renderer'
 import { Camera } from './camera/camera'
 import BufferView from './buffer/bufferView'
 import Material from './material/material'
-import { headPointShaderCode } from './material/shaders/path'
+import { genHeadPointShaderCode } from './material/shaders/path'
 import { binarySearch } from './utils'
 
 type IProps = {
@@ -21,9 +21,11 @@ type IProps = {
 		tailDuration?: number
 		headPointColor?: Color
 		headPointSize?: number
+		speedColorList?: Color[]
 	}
 	drawHeadPoint?: boolean
 	drawLine?: boolean
+	colorBySpeed?: boolean
 }
 
 export class Path extends Model {
@@ -31,7 +33,21 @@ export class Path extends Model {
 	/**
 	 * positions 为轨迹点的坐标数组经纬度间隔存放
 	 * timestamps 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
-	 * trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒
+	 * material.lineWidth 为轨迹像素宽度
+	 * material.trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒
+	 * material.color为轨迹播放后部分的颜色
+	 * material.unplatedColor 为轨迹尚未播放播放的颜色
+	 * material.headPointColor 为轨迹头部圆点颜色
+	 * material.headPointSize 为轨迹头部圆点像素大小
+	 * material.speedColorList 为根据轨迹头部圆点当前速度进行插值的颜色列表，长度为3，组成为[r, g, b, speed]，默认为
+	 *[
+        [0, 1, 0, 60],
+        [0, 0, 1, 30],
+        [1, 0, 0, 0],
+	  ]
+	 * drawLine 为 true 时使用 line-strip 绘制轨迹，
+	 * drawHeadPoint 为 true 并且 timestamps 传入时在轨迹头位置绘制头部圆点
+	 * colorBySpeed 为是否由轨迹瞬时速率决定轨迹头部点的颜色
 	 * @param props
 	 * @returns
 	 */
@@ -111,16 +127,23 @@ export class Paths implements IRenderable {
 		const timestampesBufferView = pathModel.material.getStorage('timestamps').bufferView
 		const headPointColor = params.material?.headPointColor || pathModel.material.getUniform('style').value.color
 		const headPointSize = params.material?.headPointSize || 15
+		let speedColorList = new Float32Array(
+			params.material?.speedColorList?.flat() || [0, 1, 0, 60, 0.5, 0.5, 1, 30, 1, 0, 0, 0]
+		)
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
 		const material = new Material({
 			id: 'heatPoint',
-			renderCode: headPointShaderCode,
+			renderCode: genHeadPointShaderCode(!!params.colorBySpeed),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: params.material?.blending,
 			uniforms: { time: 0, size: headPointSize, pointIndex: 0, pointColor: headPointColor },
-			storages: { positions: params.positions, timestamps: params.timestamps }
+			storages: {
+				positions: params.positions,
+				timestamps: params.timestamps,
+				speedColorList
+			}
 		})
 		material.getStorage('positions').bufferView = positionBufferView
 		material.getStorage('timestamps').bufferView = timestampesBufferView

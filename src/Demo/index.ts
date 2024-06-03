@@ -42,7 +42,7 @@ for (let i = 0; i < num; ++i) {
 	// color[i * 4 + 2] = 0
 	// color[i * 4 + 3] = 155
 	// size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 25 + 10
-	timestamps[i] = 2000 * i
+	timestamps[i] = 1 * i
 }
 
 // const path = new Path({
@@ -61,13 +61,14 @@ const paths = new Paths([
 		timestamps,
 		drawLine: true,
 		drawHeadPoint: true,
+		colorBySpeed: true,
 		material: {
 			color: [1, 0.3, 0.2, 0.7],
 			lineWidth: 10,
 			headPointColor: [1, 0.1, 0.7, 0.6],
 			headPointSize: 10,
 			blending: 'normalBlending',
-			tailDuration: (num * 2000) / 10
+			tailDuration: (num * 20) / 10
 		}
 	},
 	{
@@ -75,6 +76,7 @@ const paths = new Paths([
 		timestamps,
 		// drawLine: true,
 		drawHeadPoint: true,
+		colorBySpeed: true,
 		material: {
 			color: [1.0, 0.9, 0, 0.7],
 			lineWidth: 5,
@@ -125,7 +127,7 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	paths.updateTime((((time - start) * num * 2000) / 10000) % timestamps[num - 1])
+	paths.updateTime((((time - start) * num) / 10000) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	// lastTimestamp = time
 	// }

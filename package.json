@@ -1,12 +1,12 @@
 {
 	"name": "jad-webgpu-visualization-renderer",
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"description": "a webgpu renderer for visualization",
 	"main": "lib/index.js",
 	"types": "typings/index.d.ts",
 	"scripts": {
 		"start": "webpack serve",
-		"build": "tsc",
+		"build": "tsc && tsc-alias",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "Jad2wizard",
@@ -30,15 +30,18 @@
 		"eslint-plugin-react": "^7.34.1",
 		"prettier": "^3.2.5",
 		"tsconfig-paths-webpack-plugin": "^4.1.0",
+		"tsc-alias": "^1.8.10",
 		"typescript": "^5.4.3",
 		"webpack": "^5.91.0",
 		"webpack-cli": "^5.1.4",
 		"webpack-dev-server": "^5.0.4"
 	},
 	"dependencies": {
+		"-": "^0.0.1",
 		"@types/lodash": "^4.17.4",
 		"@types/three": "^0.162.0",
 		"@webgpu/types": "^0.1.40",
+		"D": "^1.0.0",
 		"lodash": "^4.17.21",
 		"moment": "^2.30.1",
 		"three": "^0.162.0",

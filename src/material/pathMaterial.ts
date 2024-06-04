@@ -19,7 +19,7 @@ type IProps = {
 
 class PathMaterial extends Material {
 	constructor(props: IProps) {
-		const hasTime = 'timestamps' in props
+		const hasTime = 'timestamps' in props && !!props.timestamps
 		const timestamps = hasTime ? props.timestamps : undefined
 		const color = props.color || [1, 0, 0, 1]
 		const lineWidth = props.lineWidth || 5
@@ -38,7 +38,8 @@ class PathMaterial extends Material {
 	}
 
 	public updateTime(time: number) {
-		this.getUniform('time').updateValue(time)
+		const timeUniform = this.getUniform('time')
+		if (timeUniform) timeUniform.updateValue(time)
 	}
 
 	public updateUniform(uniformName: string, value: any) {

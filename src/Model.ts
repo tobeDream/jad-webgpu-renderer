@@ -114,13 +114,8 @@ class Model implements IRenderable {
 			pass.setVertexBuffer(i, vertexBufferList[i])
 		}
 		const indexBufferView = geometry.getIndexBufferView(device)
-		if (indexBufferView?.buffer?.GPUBuffer) {
-			pass.setIndexBuffer(
-				indexBufferView.buffer.GPUBuffer,
-				'uint32',
-				indexBufferView.offset,
-				indexBufferView.size
-			)
+		if (indexBufferView?.GPUBuffer) {
+			pass.setIndexBuffer(indexBufferView.GPUBuffer, 'uint32', indexBufferView.offset, indexBufferView.size)
 		}
 		const instanceCount = geometry.instanceCount > -1 ? geometry.instanceCount : undefined
 		const index = geometry.getIndex()

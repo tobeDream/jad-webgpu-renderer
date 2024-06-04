@@ -226,7 +226,7 @@ class Material {
 					buffer = renderer.resolutionBuf
 				} else {
 					if (uniform.needsUpdate) uniform.updateBuffer(device)
-					buffer = uniform.bufferView.buffer?.GPUBuffer || null
+					buffer = uniform.bufferView?.GPUBuffer || null
 				}
 				if (!buffer) continue
 				entries.push({
@@ -238,7 +238,7 @@ class Material {
 				const storage = this.storages[sn]
 				if (storage.group !== index) continue
 				if (storage.needsUpdate) storage.updateBuffer(device)
-				const buffer = storage.bufferView.buffer?.GPUBuffer
+				const buffer = storage.bufferView?.GPUBuffer
 				if (!buffer) continue
 				entries.push({
 					binding: storage.binding,

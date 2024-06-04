@@ -56,6 +56,10 @@ class BufferView {
 		this._buffer = b
 	}
 
+	get GPUBuffer() {
+		return this._buffer?.GPUBuffer || null
+	}
+
 	get usedInUniform() {
 		return !!(this._usage & GPUBufferUsage.UNIFORM)
 	}
@@ -65,8 +69,8 @@ class BufferView {
 	}
 
 	public updateBuffer(device: GPUDevice, valueBuffer: ArrayBuffer) {
-		if (!this._buffer) return false
-		device.queue.writeBuffer(this._buffer.GPUBuffer, this.offset, valueBuffer)
+		if (!this.GPUBuffer) return false
+		device.queue.writeBuffer(this.GPUBuffer, this.offset, valueBuffer)
 		return true
 	}
 

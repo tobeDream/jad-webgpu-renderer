@@ -147,5 +147,4 @@ setTimeout(() => {
 -   [x] Model 添加 dispose 方法
 -   [x] Model 添加 visible 属性并通过 visible 控制 Model 是否参与渲染
 -   [x] Model 添加 renderOrder 属性，控制 Model 的渲染顺序
--   [ ] Line Model 支持 line 图元渲染，并支持拖尾特效、按时间播放以及头部顶点
--   [ ] Point Model 支持用纹理代替圆点
+-   [x] Line Model 支持 line 图元渲染，并支持拖尾特效、按时间播放以及头部顶点

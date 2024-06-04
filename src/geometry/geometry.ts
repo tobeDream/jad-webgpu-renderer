@@ -101,8 +101,7 @@ class Geometry {
 		const bufferList: GPUBuffer[] = []
 		for (let attribute of Object.values(this.attributes)) {
 			attribute.updateBuffer(device)
-			if (attribute.bufferView.buffer?.GPUBuffer)
-				bufferList.push(attribute.bufferView.buffer.GPUBuffer as GPUBuffer)
+			if (attribute.bufferView?.GPUBuffer) bufferList.push(attribute.bufferView.GPUBuffer)
 		}
 		return bufferList
 	}

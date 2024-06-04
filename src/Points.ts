@@ -6,7 +6,7 @@ import { Blending, Color } from './types'
 
 type IProps = {
 	positions: Float32Array
-	sizes?: Float32Array
+	sizes?: Uint8Array
 	colors?: Uint8Array
 	material?: {
 		size?: number
@@ -29,8 +29,8 @@ class Points extends Model {
 		const material = new PointMaterial({
 			...props.material,
 			hasColorAttribute: !!props.colors,
-			hasSizeAttribute: !!props.sizes,
-			numPoints: props.positions.length / 2
+			numPoints: props.positions.length / 2,
+			sizes: props.sizes
 		})
 		super(geometry, material)
 		this.initAttributes(props)
@@ -59,12 +59,8 @@ class Points extends Model {
 			shaderLocation: 0
 		})
 		this.geometry.setAttribute('position', positionAttribute)
-		if (props.sizes) {
-			const sizeAttribute = new Attribute('size', props.sizes, 1, { stepMode: 'instance', shaderLocation: 1 })
-			this.geometry.setAttribute('size', sizeAttribute)
-		}
 		if (props.colors) {
-			const colorAttribute = new Attribute('color', props.colors, 4, { stepMode: 'instance', shaderLocation: 2 })
+			const colorAttribute = new Attribute('color', props.colors, 4, { stepMode: 'instance', shaderLocation: 1 })
 			this.geometry.setAttribute('color', colorAttribute)
 		}
 		this.geometry.vertexCount = 6 //wgsl 中通过硬编码设置了两个三角形的顶点坐标，由此组成一个正方形代表一个可以设置尺寸的散点

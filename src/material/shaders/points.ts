@@ -7,8 +7,7 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
         @builtin(vertex_index) vi: u32,
         @builtin(instance_index) ii: u32,
         @location(0) position: vec2f,
-        ${hasSize ? '@location(1) size: f32,' : ''}
-        ${hasColor ? '@location(2) color: vec4f,' : ''}
+        ${hasColor ? '@location(1) color: vec4u,' : ''}
     };
 
     struct Style {
@@ -23,6 +22,7 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     @group(1) @binding(0) var<storage, read> highlightFlags: array<u32>;
     @group(1) @binding(1) var<uniform> style: Style;
+    ${hasSize ? '@group(1) @binding(2) var<storage, read> sizes: array<u32>;' : ''}
     
 
     struct VSOutput {
@@ -43,13 +43,22 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
             vec2f( 1,  1),
         );
 
-        let i = vert.ii / 32u;
-        let j = vert.ii % 32u;
-        var highlight = f32((highlightFlags[i] >> j) & 1u);
+        let hi = vert.ii / 32u;
+        let hj = vert.ii % 32u;
+        var highlight = f32((highlightFlags[hi] >> hj) & 1u);
         vsOut.highlight = highlight;
 
         let pos = points[vert.vi];
-        let size = ${hasSize ? 'vert.size' : 'style.size'};
+        ${
+			hasSize
+				? `
+            let si = vert.ii / 4u;
+            let sj = vert.ii % 4u;
+            let size = f32((sizes[si] >> (sj * 8)) & 255u);
+        `
+				: 'let size = style.size;'
+		}
+
         let s = mix(size, style.highlightSize, highlight);
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
         let pointPos = vec4f(pos * s / resolution * clipPos.w, 0, 0);
@@ -58,7 +67,7 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
 
         vsOut.pointCoord = pos;
 
-        ${hasColor ? 'vsOut.color = vert.color;' : ''}
+        ${hasColor ? 'vsOut.color = vec4f(vert.color) / 255f;' : ''}
 
         return vsOut;
     }
@@ -75,5 +84,6 @@ export const getShaderCode = (hasColor: boolean, hasSize: boolean) => `
         let c = mix(color, style.highlightColor, vsOut.highlight);
         let alpha = c.a * edgeAlpha;
         return vec4f(c.rgb * alpha, alpha);
+        // return vec4f(1, 0, 0, 1);
     }
 `

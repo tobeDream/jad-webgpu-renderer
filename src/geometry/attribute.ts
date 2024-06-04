@@ -77,7 +77,7 @@ class Attribute {
 	public getFormat() {
 		let typeStr = this._array.constructor.name.split('Array')[0].toLocaleLowerCase() //Float32, Uint8, Int8, ...
 		if (typeStr.startsWith('int')) typeStr = 's' + typeStr
-		if (typeStr.includes('int')) typeStr = typeStr.replace('int', 'norm')
+		// if (typeStr.includes('int')) typeStr = typeStr.replace('int', 'norm')
 		return (typeStr.toLocaleLowerCase() + (this.itemSize === 1 ? '' : `x${this.itemSize}`)) as GPUVertexFormat
 	}
 

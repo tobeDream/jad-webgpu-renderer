@@ -4,13 +4,13 @@ import { getShaderCode } from './shaders/points'
 
 type IProps = {
 	hasColorAttribute: boolean
-	hasSizeAttribute: boolean
 	numPoints: number
 	blending?: Blending
 	color?: Color
 	highlightColor?: Color
 	highlightSize?: number
 	size?: number
+	sizes?: Uint8Array
 }
 
 class PointMaterial extends Material {
@@ -22,14 +22,25 @@ class PointMaterial extends Material {
 		const highlightList = new Uint32Array(Math.max(props.numPoints / 32, 1))
 		const highlightColor = props.highlightColor || [1, 0, 0, 1]
 		const highlightSize = props.highlightSize || size * 1.2
+		let sizes: Uint32Array | undefined = undefined
+		if (props.sizes) {
+			sizes = new Uint32Array(Math.ceil(props.sizes.length / 4))
+			for (let i = 0; i < props.sizes.length; ++i) {
+				const index = Math.floor(i / 4)
+				const offset = i % 4
+				sizes[index] = sizes[index] + (props.sizes[i] << (offset * 8))
+			}
+			console.log(sizes, props.sizes)
+		}
 		super({
 			id: 'point',
-			renderCode: getShaderCode(props.hasColorAttribute, props.hasSizeAttribute),
+			renderCode: getShaderCode(props.hasColorAttribute, !!props.sizes),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props?.blending,
 			storages: {
-				highlightFlags: highlightList
+				highlightFlags: highlightList,
+				sizes
 			},
 			uniforms: { style: { color, size, highlightColor, highlightSize } }
 		})

@@ -33,6 +33,6 @@ export const convertUniformColor = <T extends Color | undefined>(c: T): T => {
 	if (c.some((i) => i > 1)) {
 		for (let i = 0; i < 3; ++i) res.push(c[i] / 255)
 		res.push(c[3])
-	}
+	} else res.push(...c)
 	return res as T
 }

@@ -157,11 +157,11 @@ class Heatmap extends Model {
 	}
 
 	get colorOffsets() {
-		const res = new Float32Array(4 * 4)
-		for (let i = 0; i < 4; ++i) {
-			res[i * 4 + 0] = this.colorList[i * 3 + 0]
-			res[i * 4 + 1] = this.colorList[i * 3 + 1]
-			res[i * 4 + 2] = this.colorList[i * 3 + 2]
+		const res = new Float32Array(4 * 5)
+		for (let i = 0; i < 5; ++i) {
+			res[i * 4 + 0] = this.colorList[i][0]
+			res[i * 4 + 1] = this.colorList[i][1]
+			res[i * 4 + 2] = this.colorList[i][2]
 			res[i * 4 + 3] = this.offsetList[i]
 		}
 		return res

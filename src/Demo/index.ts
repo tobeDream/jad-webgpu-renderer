@@ -27,22 +27,23 @@ const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const num = 100
+const totalTime = 10000
+const num = 400
 const pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
 const size = new Uint8Array(num)
 const timestamps = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
-	pos[2 * i] = (600 / num) * i - 300
+	pos[2 * i] = (800 / num) * i - 400
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
 	// pos[2 * i] = (Math.random() * 2 - 1) * 400
 	// pos[2 * i + 1] = (Math.random() * 2 - 1) * 200
 	color[i * 4 + 0] = 255
 	color[i * 4 + 1] = ((num - i) / num) * 255
 	color[i * 4 + 2] = 0
-	color[i * 4 + 3] = 155
-	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 15 + 15
-	timestamps[i] = 1 * i
+	color[i * 4 + 3] = 30
+	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 10 + 10
+	timestamps[i] = (totalTime / num) * i
 }
 
 // const path = new Path({
@@ -73,7 +74,7 @@ const paths = new Paths([
 	},
 	{
 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-		timestamps,
+		timestamps: timestamps.map((t) => t - 1000),
 		// drawLine: true,
 		drawHeadPoint: true,
 		// colorBySpeed: true,
@@ -87,10 +88,10 @@ const paths = new Paths([
 
 const points = new Points({
 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-	// colors: color,
+	colors: color,
 	sizes: size,
 	material: {
-		color: [255, 187, 35, 0.7],
+		color: [255, 187, 35, 0.3],
 		blending: 'normalBlending',
 		size: 10,
 		highlightSize: 40,
@@ -100,9 +101,22 @@ const points = new Points({
 const heat = new Heatmap({
 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 	material: {
-		radius: 40,
+		radius: 30,
 		maxHeatValueRatio: 0.8,
-		blending: 'normalBlending'
+		blending: 'normalBlending',
+		colorList: [
+			// [255, 0, 0, 0],
+			// [255, 255, 0, 0],
+			// [0, 255, 0, 0],
+			// [0, 0, 255, 0],
+			// [0, 0, 0, 0]
+			[255, 0, 0, 0],
+			[0.9 * 255, 0.9 * 255, 0, 0],
+			[0.1 * 255, 0.8 * 255, 0.2 * 255, 0],
+			[0, 0.0 * 255, 1.0 * 255, 0],
+			[0, 0, 0, 0]
+		],
+		offsets: [1, 0.85, 0.45, 0.25, 0]
 	}
 })
 //@ts-ignore
@@ -127,7 +141,7 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	paths.updateTime((((time - start) * num) / 10000) % timestamps[num - 1])
+	paths.updateTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	// lastTimestamp = time
 	// }

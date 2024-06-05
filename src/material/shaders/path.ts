@@ -166,11 +166,11 @@ export const genHeadPointShaderCode = (hasSpeedColor = false) => `
         var clipPos: vec4f;
         var speed: f32;
 
-        let prevPoint = positions[pointIndex];
-        if(pointIndex == posLen){
-            clipPos = projectionMatrix * viewMatrix * vec4f(prevPoint, 0, 1);
+        if(time >= timestamps[posLen - 1]){
+            clipPos = projectionMatrix * viewMatrix * vec4f(positions[posLen - 1], 0, 1);
             speed = 0;
         } else {
+            let prevPoint = positions[pointIndex];
             let prevTime = timestamps[pointIndex];
             let nextTime = timestamps[pointIndex + 1];
             let nextPoint = positions[pointIndex + 1];

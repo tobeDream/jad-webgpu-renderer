@@ -131,7 +131,6 @@ export class Paths implements IRenderable {
 		const timestampesBufferView = pathModel.material.getStorage('timestamps').bufferView
 		let headPointColor =
 			convertUniformColor(params.material?.headPointColor) || pathModel.material.getUniform('style').value.color
-		console.log(params, headPointColor)
 		const headPointSize = params.material?.headPointSize || 15
 		let speedColorList = new Float32Array(
 			params.material?.speedColorList?.map(convertUniformColor).flat() || [

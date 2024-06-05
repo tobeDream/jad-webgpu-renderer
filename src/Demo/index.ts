@@ -55,56 +55,56 @@ for (let i = 0; i < num; ++i) {
 // 	}
 // })
 
-// const paths = new Paths([
-// 	{
-// 		positions: pos,
-// 		timestamps,
-// 		drawLine: true,
-// 		drawHeadPoint: true,
-// 		colorBySpeed: true,
-// 		material: {
-// 			color: [1, 0.3, 0.2, 0.7],
-// 			lineWidth: 10,
-// 			headPointColor: [1, 0.1, 0.7, 0.6],
-// 			headPointSize: 10,
-// 			blending: 'normalBlending',
-// 			tailDuration: (num * 20) / 10
-// 		}
-// 	},
-// 	{
-// 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-// 		timestamps,
-// 		// drawLine: true,
-// 		drawHeadPoint: true,
-// 		colorBySpeed: true,
-// 		material: {
-// 			color: [1.0, 0.9, 0, 0.7],
-// 			lineWidth: 5,
-// 			blending: 'normalBlending'
-// 		}
-// 	}
-// ])
+const paths = new Paths([
+	{
+		positions: pos,
+		timestamps,
+		drawLine: true,
+		drawHeadPoint: true,
+		// colorBySpeed: true,
+		material: {
+			color: [255, 75, 42, 0.7],
+			lineWidth: 10,
+			headPointColor: [255, 25, 76, 0.6],
+			headPointSize: 10,
+			blending: 'normalBlending',
+			tailDuration: (num * 20) / 10
+		}
+	},
+	{
+		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+		timestamps,
+		// drawLine: true,
+		drawHeadPoint: true,
+		// colorBySpeed: true,
+		material: {
+			color: [255, 225, 0, 0.7],
+			lineWidth: 5,
+			blending: 'normalBlending'
+		}
+	}
+])
 
 const points = new Points({
 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-	colors: color,
+	// colors: color,
 	sizes: size,
 	material: {
-		color: [1, 1, 0, 0.7],
+		color: [255, 187, 35, 0.7],
 		blending: 'normalBlending',
 		size: 10,
 		highlightSize: 40,
-		highlightColor: [1, 0, 0, 0.5]
+		highlightColor: [255, 0, 0, 0.7]
 	}
 })
-// const heat = new Heatmap({
-// 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
-// 	material: {
-// 		radius: 40,
-// 		maxHeatValueRatio: 0.8,
-// 		blending: 'normalBlending'
-// 	}
-// })
+const heat = new Heatmap({
+	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
+	material: {
+		radius: 40,
+		maxHeatValueRatio: 0.8,
+		blending: 'normalBlending'
+	}
+})
 //@ts-ignore
 // window.h = heat
 
@@ -112,9 +112,9 @@ const points = new Points({
 // heat.renderOrder = 0
 // points.renderOrder = 1
 // path.renderOrder = 2
-// scene.addModel(heat)
+scene.addModel(heat)
 scene.addModel(points)
-// scene.addModel(paths)
+scene.addModel(paths)
 
 // let interval = 60
 let lastTimestamp = 0
@@ -127,18 +127,18 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	// paths.updateTime((((time - start) * num) / 10000) % timestamps[num - 1])
+	paths.updateTime((((time - start) * num) / 10000) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	// lastTimestamp = time
 	// }
-	// requestAnimationFrame(animate)
+	requestAnimationFrame(animate)
 }
 requestAnimationFrame(animate)
 
-// setTimeout(() => {
-// 	points.highlights([1, 10, 30, 50])
-// 	renderer.render(scene, camera)
-// }, 2000)
+setTimeout(() => {
+	points.highlights([1, 10, 30, 50])
+	renderer.render(scene, camera)
+}, 1000)
 
 window.addEventListener('resize', renderer.resize)
 

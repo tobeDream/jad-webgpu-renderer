@@ -11,12 +11,16 @@ import {
 import Renderer from './Renderer'
 import { Camera } from './camera/camera'
 import Attribute from './geometry/attribute'
+import { convertUniformColor } from './utils'
+
+type ColorList = [Color, Color, Color, Color, Color]
+type OffsetList = [number, number, number, number, number]
 
 type IProps = {
 	points: Float32Array
 	material?: {
-		colorList?: [Color, Color, Color, Color, Color]
-		offsets?: [number, number, number, number, number]
+		colorList?: ColorList
+		offsets?: OffsetList
 		maxHeatValueRatio?: number
 		radius?: number
 		blending?: Blending
@@ -24,8 +28,8 @@ type IProps = {
 }
 
 class Heatmap extends Model {
-	private colorList: Float32Array
-	private offsetList: Float32Array
+	private colorList: ColorList
+	private offsetList: OffsetList
 	private maxHeatValueRatio: number
 	private points: Float32Array
 	private radius: number
@@ -55,12 +59,19 @@ class Heatmap extends Model {
 
 		super(geometry, mat)
 
-		this.colorList = material?.colorList
-			? new Float32Array(material.colorList.flat())
-			: new Float32Array([1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
-		this.offsetList = material?.offsets
-			? new Float32Array(material?.offsets)
-			: new Float32Array([1, 0.85, 0.55, 0.35, 0])
+		this.colorList = (
+			material?.colorList
+				? material.colorList.map((c) => convertUniformColor(c))
+				: [
+						[1, 0, 0, 0],
+						[1, 1, 0, 0],
+						[0, 1, 0, 0],
+						[0, 0, 1, 0],
+						[0, 0, 0, 0]
+					]
+		) as ColorList
+
+		this.offsetList = material?.offsets || [1, 0.85, 0.55, 0.35, 0]
 
 		this.maxHeatValueRatio = material?.maxHeatValueRatio || 1
 		this.material.updateUniform('maxHeatValueRatio', this.maxHeatValueRatio)

@@ -8,7 +8,7 @@ import { Camera } from './camera/camera'
 import BufferView from './buffer/bufferView'
 import Material from './material/material'
 import { genHeadPointShaderCode } from './material/shaders/path'
-import { binarySearch } from './utils'
+import { binarySearch, convertUniformColor } from './utils'
 
 type IProps = {
 	positions: Float32Array
@@ -30,33 +30,15 @@ type IProps = {
 
 export class Path extends Model {
 	private _timestamps?: Float32Array
-	/**
-	 * positions 为轨迹点的坐标数组经纬度间隔存放
-	 * timestamps 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
-	 * material.lineWidth 为轨迹像素宽度
-	 * material.trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒
-	 * material.color为轨迹播放后部分的颜色
-	 * material.unplatedColor 为轨迹尚未播放播放的颜色
-	 * material.headPointColor 为轨迹头部圆点颜色
-	 * material.headPointSize 为轨迹头部圆点像素大小
-	 * material.speedColorList 为根据轨迹头部圆点当前速度进行插值的颜色列表，长度为3，组成为[r, g, b, speed]，默认为
-	 *[
-        [0, 1, 0, 60],
-        [0, 0, 1, 30],
-        [1, 0, 0, 0],
-	  ]
-	 * drawLine 为 true 时使用 line-strip 绘制轨迹，
-	 * drawHeadPoint 为 true 并且 timestamps 传入时在轨迹头位置绘制头部圆点
-	 * colorBySpeed 为是否由轨迹瞬时速率决定轨迹头部点的颜色
-	 * @param props
-	 * @returns
-	 */
 	constructor(props: IProps) {
 		const drawLine = !!props.drawLine
 
 		const geometry = new Geometry()
+		const mp = props.material
 		const material = new PathMaterial({
-			...props.material,
+			...mp,
+			color: convertUniformColor(mp?.color),
+			unplayedColor: convertUniformColor(mp?.unplayedColor),
 			positions: props.positions,
 			timestamps: props.timestamps,
 			drawLine: props.drawLine
@@ -110,6 +92,28 @@ export class Paths implements IRenderable {
 	protected pathModelList: Path[] = []
 	protected headPointList: Model[] = []
 
+	/**
+	 * 参数为 Path  参数数组，每个Path 参数中包括：
+	 * positions 为轨迹点的坐标数组经纬度间隔存放
+	 * timestamps 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
+	 * material.lineWidth 为轨迹像素宽度
+	 * material.trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒
+	 * material.color为轨迹播放后部分的颜色，默认值为[255, 0, 0, 1]
+	 * material.unplayedColor 为轨迹尚未播放播放的颜色，默认值为[0, 0, 0, 0.05]
+	 * material.headPointColor 为轨迹头部圆点颜色，默认值为所属轨迹的颜色
+	 * material.headPointSize 为轨迹头部圆点像素大小
+	 * material.speedColorList 为根据轨迹头部圆点当前速度进行插值的颜色列表，长度为3，组成为[r, g, b, speed]，默认为
+	 *[
+        [0, 255, 0, 60],
+        [0, 0, 255, 30],
+        [255, 0, 0, 0],
+	  ]
+	 * drawLine 为 true 时使用 line-strip 绘制轨迹，
+	 * drawHeadPoint 为 true 并且 timestamps 传入时在轨迹头位置绘制头部圆点
+	 * colorBySpeed 为是否由轨迹瞬时速率决定轨迹头部点的颜色
+	 * @param props
+	 * @returns
+	 */
 	constructor(paths: IProps[]) {
 		for (let p of paths) {
 			const pathModel = new Path({ ...p })
@@ -125,10 +129,14 @@ export class Paths implements IRenderable {
 	private createHeatPoint(pathModel: Path, params: IProps) {
 		const positionBufferView = pathModel.material.getStorage('positions').bufferView
 		const timestampesBufferView = pathModel.material.getStorage('timestamps').bufferView
-		const headPointColor = params.material?.headPointColor || pathModel.material.getUniform('style').value.color
+		let headPointColor =
+			convertUniformColor(params.material?.headPointColor) || pathModel.material.getUniform('style').value.color
+		console.log(params, headPointColor)
 		const headPointSize = params.material?.headPointSize || 15
 		let speedColorList = new Float32Array(
-			params.material?.speedColorList?.flat() || [0, 1, 0, 60, 0.5, 0.5, 1, 30, 1, 0, 0, 0]
+			params.material?.speedColorList?.map(convertUniformColor).flat() || [
+				0, 1, 0, 60, 0.5, 0.5, 1, 30, 1, 0, 0, 0
+			]
 		)
 		const geometry = new Geometry()
 		geometry.vertexCount = 6

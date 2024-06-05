@@ -1,3 +1,4 @@
+import { Color } from '@/types'
 import * as moment from 'moment'
 import { TypedArray } from 'three'
 
@@ -24,4 +25,14 @@ export const binarySearch = (
 		return arr[mid] > target ? traverse(si, mid) : traverse(mid, ei)
 	}
 	return traverse(0, arr.length - 1)
+}
+
+export const convertUniformColor = <T extends Color | undefined>(c: T): T => {
+	if (c === undefined) return undefined as T
+	const res: number[] = []
+	if (c.some((i) => i > 1)) {
+		for (let i = 0; i < 3; ++i) res.push(c[i] / 255)
+		res.push(c[3])
+	}
+	return res as T
 }

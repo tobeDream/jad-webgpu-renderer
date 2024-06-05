@@ -30,7 +30,6 @@ class PointMaterial extends Material {
 				const offset = i % 4
 				sizes[index] = sizes[index] + (props.sizes[i] << (offset * 8))
 			}
-			console.log(sizes, props.sizes)
 		}
 		super({
 			id: 'point',

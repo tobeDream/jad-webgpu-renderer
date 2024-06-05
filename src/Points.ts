@@ -3,6 +3,7 @@ import Attribute from './geometry/attribute'
 import PointMaterial from './material/pointMaterial'
 import Model from './Model'
 import { Blending, Color } from './types'
+import { convertUniformColor } from './utils'
 
 type IProps = {
 	positions: Float32Array
@@ -21,13 +22,16 @@ class Points extends Model {
 	/**
 	 * positions 为散点坐标数组，sizes 为散点大小数组，colors 为散点颜色数组（color的四个分量取值范围为0到255）
 	 * sizes 和 colors可选，用于给每个散点单独设置大小和颜色，如果设置了 sizes 和 colors，renderer 会忽略 material.color|size
-	 * material可选，material.size 设置模型中所有散点的大小默认值8，material.color 设置模型中所有散点的颜色默认值[1, 0, 0, 1]
+	 * material可选，material.size 设置模型中所有散点的大小默认值8，material.color 设置模型中所有散点的颜色默认值[255, 0, 0, 1]
 	 * @param props
 	 */
 	constructor(props: IProps) {
 		const geometry = new Geometry()
+		const mp = props.material
 		const material = new PointMaterial({
-			...props.material,
+			...mp,
+			color: convertUniformColor(mp?.color),
+			highlightColor: convertUniformColor(mp?.highlightColor),
 			hasColorAttribute: !!props.colors,
 			numPoints: props.positions.length / 2,
 			sizes: props.sizes

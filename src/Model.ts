@@ -96,7 +96,7 @@ class Model implements IRenderable {
 		const { device } = renderer
 		if (!this.bufferPool.initialed) this.initBufferPool(device)
 		const vertexStateInfo = geometry.getVertexStateInfo()
-		const vertexBufferList = geometry.getVertexBufferList(device)
+		const vertexBufferViewList = geometry.getVertexBufferViewList(device)
 
 		const pipeline = material.getPipeline(renderer, vertexStateInfo)
 		if (!pipeline) return
@@ -110,8 +110,9 @@ class Model implements IRenderable {
 		for (let i = 0; i < bindGroups.length; ++i) {
 			pass.setBindGroup(groupIndexList[i], bindGroups[i])
 		}
-		for (let i = 0; i < vertexBufferList.length; ++i) {
-			pass.setVertexBuffer(i, vertexBufferList[i])
+		for (let i = 0; i < vertexBufferViewList.length; ++i) {
+			const bv = vertexBufferViewList[i]
+			pass.setVertexBuffer(i, bv.GPUBuffer, bv.offset, bv.size)
 		}
 		const indexBufferView = geometry.getIndexBufferView(device)
 		if (indexBufferView?.GPUBuffer) {

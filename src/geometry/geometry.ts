@@ -97,13 +97,13 @@ class Geometry {
 		return res
 	}
 
-	public getVertexBufferList(device: GPUDevice) {
-		const bufferList: GPUBuffer[] = []
+	public getVertexBufferViewList(device: GPUDevice) {
+		const bufferViewList: BufferView[] = []
 		for (let attribute of Object.values(this.attributes)) {
 			attribute.updateBuffer(device)
-			if (attribute.bufferView?.GPUBuffer) bufferList.push(attribute.bufferView.GPUBuffer)
+			if (attribute.bufferView?.GPUBuffer) bufferViewList.push(attribute.bufferView)
 		}
-		return bufferList
+		return bufferViewList
 	}
 
 	public dispose() {

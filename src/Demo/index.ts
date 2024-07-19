@@ -60,7 +60,7 @@ const paths = new Paths([
 	{
 		positions: pos,
 		timestamps,
-		drawLine: true,
+		drawLine: false,
 		drawHeadPoint: true,
 		// colorBySpeed: true,
 		material: {

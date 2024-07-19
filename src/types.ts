@@ -28,3 +28,10 @@ export interface IRenderable {
 
 	set renderOrder(r: number)
 }
+
+export interface IPlayable {
+	play(): void
+	pause(): void
+	stop(): void
+	updateCurrentTime(time: number): void
+}

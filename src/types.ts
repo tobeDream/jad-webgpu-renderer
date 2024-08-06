@@ -30,8 +30,22 @@ export interface IRenderable {
 }
 
 export interface IPlayable {
-	play(): void
-	pause(): void
-	stop(): void
+	get playable(): boolean
+	// play(): void
+	// pause(): void
+	// stop(): void
 	updateCurrentTime(time: number): void
 }
+
+// export interface IStylable {
+// 	// getStyle(index?: string | number): any
+// 	setStyle(style: any, indexList?: (number | string)[]): void
+// }
+
+export type Group = {
+	startIndex: number
+	count: number
+	id: string
+}
+
+export type PlayStatus = 'running' | 'stopped' | 'paused'

@@ -138,9 +138,12 @@ class Renderer {
 		while (!this.ready) {
 			await delay(20)
 			wait += 20
-			if (wait > 2000) return
+			if (wait > 2000) {
+				throw 'WebGPU初始化失败'
+			}
 		}
-		const s = new Date().valueOf()
+
+		// const s = new Date().valueOf()
 		if (!this.device || !this.canvasCtx) return
 		camera.updateMatrixBuffers(this.device)
 		const { device, renderPassDescriptor } = this

@@ -4,7 +4,7 @@ import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
 import { IRenderable } from '@/types'
-import { genId } from './utils'
+import { genId, indexFormat } from './utils'
 
 type Options = {}
 
@@ -15,6 +15,7 @@ class Model implements IRenderable {
 	protected _visible: boolean
 	protected _renderOrder: number
 	protected _bufferPool = new BufferPool()
+	protected _style: any = {}
 	protected textures: Record<string, GPUTexture> = {}
 
 	constructor(geometry: Geometry, material: Material, opts?: Options) {
@@ -95,10 +96,10 @@ class Model implements IRenderable {
 		const { geometry, material } = this
 		const { device } = renderer
 		if (!this.bufferPool.initialed) this.initBufferPool(device)
-		const vertexStateInfo = geometry.getVertexStateInfo()
+		const vertexBufferLayouts = geometry.getVertexBufferLayout()
 		const vertexBufferViewList = geometry.getVertexBufferViewList(device)
 
-		const pipeline = material.getPipeline(renderer, vertexStateInfo)
+		const pipeline = material.getPipeline(renderer, vertexBufferLayouts)
 		if (!pipeline) return
 		const { bindGroups, groupIndexList } = material.getBindGroups(
 			renderer,
@@ -116,13 +117,15 @@ class Model implements IRenderable {
 		}
 		const indexBufferView = geometry.getIndexBufferView(device)
 		if (indexBufferView?.GPUBuffer) {
-			pass.setIndexBuffer(indexBufferView.GPUBuffer, 'uint32', indexBufferView.offset, indexBufferView.size)
+			pass.setIndexBuffer(indexBufferView.GPUBuffer, indexFormat, indexBufferView.offset, indexBufferView.size)
 		}
 		const instanceCount = geometry.instanceCount > -1 ? geometry.instanceCount : undefined
 		const index = geometry.getIndex()
 		if (index) pass.drawIndexed(index.length, instanceCount)
 		else pass.draw(geometry.vertexCount, instanceCount)
 	}
+
+	public getStyle(id?: string) {}
 
 	public dispose() {
 		this._geometry.dispose()

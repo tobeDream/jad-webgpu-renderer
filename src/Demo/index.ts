@@ -3,7 +3,7 @@ import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points'
-import { Path, Paths } from '../Path'
+import { Path, Paths } from '../Paths'
 import Heatmap from '../Heatmap'
 import * as moment from 'moment'
 
@@ -126,8 +126,8 @@ const heat = new Heatmap({
 // heat.renderOrder = 0
 // points.renderOrder = 1
 // path.renderOrder = 2
-scene.addModel(heat)
-scene.addModel(points)
+// scene.addModel(heat)
+// scene.addModel(points)
 scene.addModel(paths)
 
 // let interval = 60

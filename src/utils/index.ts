@@ -1,6 +1,7 @@
 import { Color } from '@/types'
 import * as moment from 'moment'
 import { TypedArray } from 'three'
+import * as _ from 'lodash'
 
 export const genId = () => {
 	return moment().valueOf() + '_' + ((Math.random() * 1000000) | 0)
@@ -9,6 +10,8 @@ export const genId = () => {
 export const minUniformBufferOffsetAlignment = 256
 
 export const minStorageBufferOffsetAlignment = 256
+
+export const indexFormat = 'uint32'
 
 export const binarySearch = (
 	arr: TypedArray | Array<number | string>,
@@ -35,4 +38,8 @@ export const convertUniformColor = <T extends Color | undefined>(c: T): T => {
 		res.push(c[3])
 	} else res.push(...c)
 	return res as T
+}
+
+export const deepMerge = (source: Object, target: object) => {
+	return _.merge({}, source, target)
 }

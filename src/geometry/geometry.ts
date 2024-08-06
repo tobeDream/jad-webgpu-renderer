@@ -1,8 +1,10 @@
 import BufferView from '@/buffer/bufferView'
 import Attribute from './attribute'
-import Index from './index'
+import Index from './indices'
+import { Group } from '@/types'
 
 class Geometry {
+	private _group?: Group
 	private attributes: Record<string, Attribute>
 	private _vertexCount = -1
 	private _instanceCount = -1
@@ -10,6 +12,14 @@ class Geometry {
 
 	constructor() {
 		this.attributes = {}
+	}
+
+	set group(value: Group | undefined) {
+		this._group = value
+	}
+
+	get group() {
+		return this._group
 	}
 
 	set vertexCount(v: number) {
@@ -70,7 +80,7 @@ class Geometry {
 		return this.index.bufferView
 	}
 
-	public getVertexStateInfo() {
+	public getVertexBufferLayout() {
 		const vertexBufferLayouts: GPUVertexBufferLayout[] = []
 		for (let attribute of Object.values(this.attributes)) {
 			const { itemSize, array, shaderLocation, stepMode } = attribute

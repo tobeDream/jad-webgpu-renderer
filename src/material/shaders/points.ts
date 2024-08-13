@@ -14,20 +14,14 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
     struct Style {
         color: vec4f,
         radius: f32,
-        highlightColor: vec4f,
-        highlightRadius: f32,
-        hoverColor: vec4f,
-        hoverRadius: f32,
         currentTime: f32,
     };
 
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
-    @group(1) @binding(0) var<storage, read> highlightFlags: array<u32>;
-    @group(1) @binding(1) var<storage, read> hoverFlags: array<u32>;
-    @group(1) @binding(2) var<uniform> style: Style;
-    ${hasRadius ? '@group(1) @binding(3) var<storage, read> radiuses: array<u32>;' : ''}
+    @group(1) @binding(0) var<uniform> style: Style;
+    ${hasRadius ? '@group(1) @binding(1) var<storage, read> radiuses: array<u32>;' : ''}
     
 
     struct VSOutput {
@@ -48,11 +42,6 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
             vec2f( 1,  1),
         );
 
-        let hi = vert.ii / 32u;
-        let hj = vert.ii % 32u;
-        var highlight = f32((highlightFlags[hi] >> hj) & 1u);
-        var hover = f32((hoverFlags[hi] >> hj) & 1u);
-
         let pos = points[vert.vi];
         ${
 			hasRadius
@@ -64,18 +53,14 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
 				: 'let size = style.radius;'
 		}
 
-        var s = mix(size, style.highlightRadius, highlight);
-        s = mix(s, style.hoverRadius, hover);
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
-        let pointPos = vec4f(pos * s / resolution * clipPos.w, 0, 0);
+        let pointPos = vec4f(pos * size / resolution * clipPos.w, 0, 0);
 
         vsOut.position = clipPos + pointPos;
 
         vsOut.pointCoord = pos;
 
-        ${hasColor ? 'var color = vec4f(vert.color) / 255f;' : 'var color = style.color'}
-        color = mix(color, style.highlightColor, highlight);
-        color = mix(color, style.hoverColor, hover);
+        ${hasColor ? 'let color = vec4f(vert.color) / 255f;' : 'let color = style.color'}
         vsOut.color = color;
 
         ${hasTime ? 'vsOut.time = vert.startTime;' : ''}
@@ -105,6 +90,5 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
         let c = vsOut.color;
         let alpha = c.a * edgeAlpha;
         return vec4f(c.rgb * alpha, alpha);
-        // return vec4f(1, 0, 0, 1);
     }
 `

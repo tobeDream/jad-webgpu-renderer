@@ -8,21 +8,13 @@ export type IProps = {
 	blending: Blending
 	color: Color
 	radius: number
-	highlightColor: Color
-	highlightRadius: number
-	hoverColor: Color
-	hoverRadius: number
 	radiuses?: Uint8Array
 	hasTime?: boolean
 }
 
 class PointMaterial extends Material {
 	constructor(props: IProps) {
-		const { color, radius, highlightColor, highlightRadius, hoverColor, hoverRadius } = props
-		//highlightList 存放高亮点的 index 列表，使用 uin32数组存放，每个 uint32中记录32个相邻点的高亮情况
-		//bit 值为0代表没高亮，为1代表高亮
-		const highlightList = new Uint32Array(Math.max(props.total / 32, 1))
-		const hoverList = new Uint32Array(Math.max(props.total / 32, 1))
+		const { color, radius } = props
 		let radiuses: Uint32Array | undefined = undefined
 		if (props.radiuses) {
 			radiuses = new Uint32Array(Math.ceil(props.radiuses.length / 4))
@@ -38,14 +30,8 @@ class PointMaterial extends Material {
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props.blending,
-			storages: {
-				highlightFlags: highlightList,
-				hoverFlags: hoverList,
-				radiuses
-			},
-			uniforms: {
-				style: { color, radius, highlightColor, highlightRadius, hoverColor, hoverRadius, currentTime: -1 }
-			}
+			storages: { radiuses },
+			uniforms: { style: { color, radius, currentTime: -1 } }
 		})
 	}
 

@@ -97,7 +97,7 @@ class Model implements IRenderable {
 		const { device } = renderer
 		if (!this.bufferPool.initialed) this.initBufferPool(device)
 		const vertexBufferLayouts = geometry.getVertexBufferLayout()
-		const vertexBufferViewList = geometry.getVertexBufferViewList(device)
+		const vertexBufferViewList = geometry.updateVertexBufferViewList(device)
 
 		const pipeline = material.getPipeline(renderer, vertexBufferLayouts)
 		if (!pipeline) return

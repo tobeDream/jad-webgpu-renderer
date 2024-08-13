@@ -107,7 +107,7 @@ class Geometry {
 		return res
 	}
 
-	public getVertexBufferViewList(device: GPUDevice) {
+	public updateVertexBufferViewList(device: GPUDevice) {
 		const bufferViewList: BufferView[] = []
 		for (let attribute of Object.values(this.attributes)) {
 			attribute.updateBuffer(device)

@@ -1,5 +1,6 @@
 import { genId } from '@/utils/index'
 import Buffer from './buffer'
+import BufferPool from './bufferPool'
 
 type IProps = {
 	resourceName: string
@@ -15,6 +16,7 @@ class BufferView {
 	private _size: number
 	private _usage: number
 	private _buffer: Buffer | null = null
+	private _needsUpdate = true
 
 	constructor(props: IProps) {
 		this._id = 'bufferView_' + genId()
@@ -30,6 +32,14 @@ class BufferView {
 
 	get resourceName() {
 		return this._resourceName
+	}
+
+	get needsUpdate() {
+		return this._needsUpdate
+	}
+
+	set needsUpdate(v: boolean) {
+		this._needsUpdate = v
 	}
 
 	get offset() {
@@ -68,8 +78,17 @@ class BufferView {
 		return !!(this._usage & GPUBufferUsage.STORAGE)
 	}
 
-	public updateBuffer(device: GPUDevice, valueBuffer: ArrayBuffer) {
-		if (!this.GPUBuffer) return false
+	public updateBuffer(device: GPUDevice, valueBuffer: ArrayBuffer, bufferPool: BufferPool) {
+		if (!this.GPUBuffer) {
+			bufferPool.createExclusiveBuffer(device, this)
+		}
+		if (!this.GPUBuffer) {
+			return false
+		}
+		if (this.GPUBuffer.size < valueBuffer.byteLength && this.buffer) {
+			this._size = valueBuffer.byteLength
+			bufferPool.resizeBuffer(device, this.buffer)
+		}
 		device.queue.writeBuffer(this.GPUBuffer, this.offset, valueBuffer)
 		return true
 	}

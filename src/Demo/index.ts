@@ -3,9 +3,9 @@ import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points'
-import { Path, Paths } from '../Paths'
-import Heatmap from '../Heatmap'
-import * as moment from 'moment'
+// import { Path, Paths } from '../Paths'
+// import Heatmap from '../Heatmap'
+// import * as moment from 'moment'
 
 //@ts-ignore
 window.V = Vector2
@@ -56,69 +56,68 @@ for (let i = 0; i < num; ++i) {
 // 	}
 // })
 
-const paths = new Paths([
-	{
-		positions: pos,
-		timestamps,
-		drawLine: false,
-		drawHeadPoint: true,
-		// colorBySpeed: true,
-		material: {
-			color: [255, 75, 42, 0.7],
-			lineWidth: 10,
-			headPointColor: [255, 25, 76, 0.6],
-			headPointSize: 10,
-			blending: 'normalBlending',
-			tailDuration: (num * 20) / 10
-		}
-	},
-	{
-		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-		timestamps: timestamps.map((t) => t - 1000),
-		// drawLine: true,
-		drawHeadPoint: true,
-		// colorBySpeed: true,
-		material: {
-			color: [255, 225, 0, 0.7],
-			lineWidth: 5,
-			blending: 'normalBlending'
-		}
-	}
-])
+// const paths = new Paths([
+// 	{
+// 		positions: pos,
+// 		timestamps,
+// 		drawLine: false,
+// 		drawHeadPoint: true,
+// 		// colorBySpeed: true,
+// 		material: {
+// 			color: [255, 75, 42, 0.7],
+// 			lineWidth: 10,
+// 			headPointColor: [255, 25, 76, 0.6],
+// 			headPointSize: 10,
+// 			blending: 'normalBlending',
+// 			tailDuration: (num * 20) / 10
+// 		}
+// 	},
+// 	{
+// 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+// 		timestamps: timestamps.map((t) => t - 1000),
+// 		// drawLine: true,
+// 		drawHeadPoint: true,
+// 		// colorBySpeed: true,
+// 		material: {
+// 			color: [255, 225, 0, 0.7],
+// 			lineWidth: 5,
+// 			blending: 'normalBlending'
+// 		}
+// 	}
+// ])
 
 const points = new Points({
-	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-	colors: color,
-	sizes: size,
-	material: {
-		color: [255, 187, 35, 0.3],
+	position: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
+	// color: color,
+	// radius: size,
+	style: {
+		color: [1, 0.7, 0.1, 0.3],
 		blending: 'normalBlending',
-		size: 10,
-		highlightSize: 40,
-		highlightColor: [255, 0, 0, 0.7]
+		radius: 10
 	}
 })
-const heat = new Heatmap({
-	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
-	material: {
-		radius: 30,
-		maxHeatValueRatio: 0.8,
-		blending: 'normalBlending',
-		colorList: [
-			// [255, 0, 0, 0],
-			// [255, 255, 0, 0],
-			// [0, 255, 0, 0],
-			// [0, 0, 255, 0],
-			// [0, 0, 0, 0]
-			[255, 0, 0, 0],
-			[0.9 * 255, 0.9 * 255, 0, 0],
-			[0.1 * 255, 0.8 * 255, 0.2 * 255, 0],
-			[0, 0.0 * 255, 1.0 * 255, 0],
-			[0, 0, 0, 0]
-		],
-		offsets: [1, 0.85, 0.45, 0.25, 0]
-	}
-})
+window.p = points
+// const heat = new Heatmap({
+// 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
+// 	material: {
+// 		radius: 30,
+// 		maxHeatValueRatio: 0.8,
+// 		blending: 'normalBlending',
+// 		colorList: [
+// 			// [255, 0, 0, 0],
+// 			// [255, 255, 0, 0],
+// 			// [0, 255, 0, 0],
+// 			// [0, 0, 255, 0],
+// 			// [0, 0, 0, 0]
+// 			[255, 0, 0, 0],
+// 			[0.9 * 255, 0.9 * 255, 0, 0],
+// 			[0.1 * 255, 0.8 * 255, 0.2 * 255, 0],
+// 			[0, 0.0 * 255, 1.0 * 255, 0],
+// 			[0, 0, 0, 0]
+// 		],
+// 		offsets: [1, 0.85, 0.45, 0.25, 0]
+// 	}
+// })
 //@ts-ignore
 // window.h = heat
 
@@ -127,8 +126,8 @@ const heat = new Heatmap({
 // points.renderOrder = 1
 // path.renderOrder = 2
 // scene.addModel(heat)
-// scene.addModel(points)
-scene.addModel(paths)
+scene.addModel(points)
+// scene.addModel(paths)
 
 // let interval = 60
 let lastTimestamp = 0
@@ -141,7 +140,7 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	paths.updateTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	// paths.updateTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	// lastTimestamp = time
 	// }
@@ -150,8 +149,9 @@ const animate = (time: number) => {
 requestAnimationFrame(animate)
 
 setTimeout(() => {
-	points.highlights([1, 10, 30, 50])
-	renderer.render(scene, camera)
+	// points.highlights([1, 10, 30, 50])
+	// renderer.render(scene, camera)
+	p.setStyle({ color: [1, 0, 1, 1], radius: 50 }, [10, 30, 60, 100, 200, 300])
 }, 1000)
 
 window.addEventListener('resize', renderer.resize)

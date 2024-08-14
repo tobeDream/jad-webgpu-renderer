@@ -1,9 +1,9 @@
+import BufferPool from '@/buffer/bufferPool'
 import BufferView from '@/buffer/bufferView'
 
 class Index {
 	private _array: Uint32Array
 	private _bufferView: BufferView
-	private needsUpdate: boolean = true
 
 	constructor(data: Uint32Array) {
 		this._array = data
@@ -13,6 +13,14 @@ class Index {
 			size: data.byteLength,
 			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
 		})
+	}
+
+	get needsUpdate() {
+		return this._bufferView.needsUpdate
+	}
+
+	set needsUpdate(v: boolean) {
+		this._bufferView.needsUpdate = v
 	}
 
 	get array() {
@@ -28,9 +36,9 @@ class Index {
 		return this._bufferView
 	}
 
-	public updateBuffer(device: GPUDevice) {
+	public updateBuffer(device: GPUDevice, bufferPool: BufferPool) {
 		if (this.needsUpdate) {
-			const res = this.bufferView.updateBuffer(device, this._array)
+			const res = this.bufferView.updateBuffer(device, this._array, bufferPool)
 			if (res) this.needsUpdate = false
 		}
 	}

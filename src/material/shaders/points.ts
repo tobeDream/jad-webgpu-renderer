@@ -21,7 +21,7 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     @group(1) @binding(0) var<uniform> style: Style;
-    ${hasRadius ? '@group(1) @binding(1) var<storage, read> radiuses: array<u32>;' : ''}
+    @group(1) @binding(1) var<storage, read> radius: array<u32>;
     
 
     struct VSOutput {
@@ -46,11 +46,17 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
         ${
 			hasRadius
 				? `
-            let si = vert.ii / 4u;
-            let sj = vert.ii % 4u;
-            let size = f32((radiuses[si] >> (sj * 8)) & 255u);
-        `
-				: 'let size = style.radius;'
+                    let si = vert.ii / 4u;
+                    let sj = vert.ii % 4u;
+                    let size = f32((radius[si] >> (sj * 8)) & 255u);
+                    _ = style;
+                `
+				: `
+                    let size = style.radius;
+                    if(false){
+                        let a = radius[0];
+                    }
+                `
 		}
 
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
@@ -60,7 +66,7 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
 
         vsOut.pointCoord = pos;
 
-        ${hasColor ? 'let color = vec4f(vert.color) / 255f;' : 'let color = style.color'}
+        ${hasColor ? 'let color = vec4f(vert.color) / 255f;' : 'let color = style.color;'}
         vsOut.color = color;
 
         ${hasTime ? 'vsOut.time = vert.startTime;' : ''}

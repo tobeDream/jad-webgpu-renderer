@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 import BufferView from '@/buffer/bufferView'
 import { TypedArray } from '../types'
+import BufferPool from '@/buffer/bufferPool'
 
 type Options = {
 	shaderLocation?: number
@@ -11,7 +12,6 @@ class Attribute {
 	private _name: string
 	private _array: TypedArray
 	private _itemSize: number
-	private needsUpdate = true
 	private _bufferView: BufferView
 	private _shaderLocation?: number
 	private _stepMode: GPUVertexStepMode = 'vertex'
@@ -28,6 +28,14 @@ class Attribute {
 			size: this._array.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 		})
+	}
+
+	get needsUpdate() {
+		return this._bufferView.needsUpdate
+	}
+
+	set needsUpdate(v: boolean) {
+		this._bufferView.needsUpdate = v
 	}
 
 	get name() {
@@ -67,9 +75,9 @@ class Attribute {
 		return this._bufferView
 	}
 
-	public updateBuffer(device: GPUDevice) {
+	public updateBuffer(device: GPUDevice, bufferPool: BufferPool) {
 		if (this.needsUpdate) {
-			const res = this.bufferView.updateBuffer(device, this._array)
+			const res = this.bufferView.updateBuffer(device, this._array, bufferPool)
 			if (res) this.needsUpdate = false
 		}
 	}

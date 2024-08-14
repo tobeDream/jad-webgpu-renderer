@@ -3,7 +3,7 @@ import BufferPool from './buffer/bufferPool'
 import Renderer from './Renderer'
 import Geometry from './geometry/geometry'
 import Material from './material/material'
-import { IRenderable } from '@/types'
+import { IRenderable, TypedArray } from '@/types'
 import { genId, indexFormat } from './utils'
 
 type Options = {}
@@ -87,6 +87,19 @@ class Model implements IRenderable {
 		this.bufferPool.createBuffers(device, [...material.getBufferViews(), ...geometry.getBufferViews()])
 	}
 
+	public getAttribute(k: string) {
+		const attr = this._geometry.getAttribute(k)
+		if (attr) return attr.array
+		return null
+	}
+
+	public setAttribute(k: string, value: TypedArray) {
+		const attr = this._geometry.getAttribute(k)
+		if (attr) {
+			attr.array = value
+		}
+	}
+
 	public render(
 		renderer: Renderer,
 		pass: GPURenderPassEncoder,
@@ -97,7 +110,7 @@ class Model implements IRenderable {
 		const { device } = renderer
 		if (!this.bufferPool.initialed) this.initBufferPool(device)
 		const vertexBufferLayouts = geometry.getVertexBufferLayout()
-		const vertexBufferViewList = geometry.updateVertexBufferViewList(device)
+		const vertexBufferViewList = geometry.updateVertexBufferViewList(device, this.bufferPool)
 
 		const pipeline = material.getPipeline(renderer, vertexBufferLayouts)
 		if (!pipeline) return
@@ -115,7 +128,7 @@ class Model implements IRenderable {
 			const bv = vertexBufferViewList[i]
 			pass.setVertexBuffer(i, bv.GPUBuffer, bv.offset, bv.size)
 		}
-		const indexBufferView = geometry.getIndexBufferView(device)
+		const indexBufferView = geometry.getIndexBufferView(device, this._bufferPool)
 		if (indexBufferView?.GPUBuffer) {
 			pass.setIndexBuffer(indexBufferView.GPUBuffer, indexFormat, indexBufferView.offset, indexBufferView.size)
 		}
@@ -125,7 +138,9 @@ class Model implements IRenderable {
 		else pass.draw(geometry.vertexCount, instanceCount)
 	}
 
-	public getStyle(id?: string) {}
+	public getStyle(id?: string) {
+		return this._style
+	}
 
 	public dispose() {
 		this._geometry.dispose()

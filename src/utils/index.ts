@@ -40,6 +40,22 @@ export const convertUniformColor = <T extends Color | undefined>(c: T): T => {
 	return res as T
 }
 
-export const deepMerge = (source: Object, target: object) => {
-	return _.merge({}, source, target)
+export const deepMerge = <T>(...obj: Partial<T>[]): T => {
+	return _.merge({}, ...obj)
+}
+
+export const packUint8ToUint32 = (data: [number, number, number, number]) => {
+	let res = 0
+	for (let i = 0; i < data.length; ++i) {
+		res += (data[i] & 255) << (i * 8)
+	}
+	return res
+}
+
+export const unpackUint32ToUint8 = (num: number) => {
+	let res: [number, number, number, number] = [0, 0, 0, 0]
+	for (let i = 0; i < 4; ++i) {
+		res[i] = (num >> (i * 8)) & 255
+	}
+	return res
 }

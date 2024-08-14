@@ -1,10 +1,11 @@
 import { genId } from '@/utils'
+import BufferView from './bufferView'
 
 export type IProps = {
 	usage: number
 	size: number
 	device: GPUDevice
-	bufferViewIds: string[]
+	bufferViews: BufferView[]
 }
 
 class Buffer {
@@ -12,14 +13,14 @@ class Buffer {
 	private _buffer: GPUBuffer
 	private _size: number
 	private _usage: number
-	private _bufferViewIds: string[] = []
+	private _bufferViews: BufferView[] = []
 
 	constructor(props: IProps) {
 		this._id = 'buffer_' + genId()
 		this._usage = props.usage
 		this._size = props.size
 		this._buffer = this.createBuffer(props.device)
-		this._bufferViewIds = props.bufferViewIds
+		this._bufferViews = props.bufferViews
 	}
 
 	get id() {
@@ -34,8 +35,8 @@ class Buffer {
 		return this._size
 	}
 
-	get bufferViewIds() {
-		return this._bufferViewIds
+	get bufferViews() {
+		return this._bufferViews
 	}
 
 	get GPUBuffer() {
@@ -59,7 +60,7 @@ class Buffer {
 
 	dispose() {
 		this._buffer.destroy()
-		this._bufferViewIds = []
+		this._bufferViews = []
 	}
 }
 

@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+import BufferPool from '@/buffer/bufferPool'
 import BufferView from '@/buffer/bufferView'
 import { makeStructuredView, StructuredView, VariableDefinition } from 'webgpu-utils'
 
@@ -10,7 +11,6 @@ export type IProps = {
 
 class Uniform {
 	protected _name: string
-	protected _needsUpdate = true
 	protected def: VariableDefinition
 	protected view: StructuredView
 	protected _value: any
@@ -55,23 +55,23 @@ class Uniform {
 	}
 
 	get needsUpdate() {
-		return this._needsUpdate
+		return this._bufferView.needsUpdate
 	}
 
-	set needsUpdate(b: boolean) {
-		this._needsUpdate = b
+	set needsUpdate(v: boolean) {
+		this._bufferView.needsUpdate = v
 	}
 
 	public updateValue(value: any) {
 		this.view.set(value)
 		this._value = value
-		this._needsUpdate = true
+		this.needsUpdate = true
 	}
 
-	public updateBuffer(device: GPUDevice) {
-		if (this._needsUpdate && this.view.arrayBuffer) {
-			const res = this.bufferView.updateBuffer(device, this.view.arrayBuffer)
-			if (res) this._needsUpdate = false
+	public updateBuffer(device: GPUDevice, bufferPool: BufferPool) {
+		if (this.needsUpdate && this.view.arrayBuffer) {
+			const res = this.bufferView.updateBuffer(device, this.view.arrayBuffer, bufferPool)
+			if (res) this.needsUpdate = false
 		}
 	}
 }

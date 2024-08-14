@@ -1,8 +1,9 @@
 import Geometry from './geometry/geometry'
 import Attribute from './geometry/attribute'
-import PointMaterial, { IProps as IMatProps } from './material/pointMaterial'
+import PointMaterial, { transformRadiusArray } from './material/pointMaterial'
 import Model from './Model'
 import { Blending, Color, IPlayable, PlayStatus } from './types'
+import { deepMerge, packUint8ToUint32, unpackUint32ToUint8 } from './utils'
 
 const defaultStyle = {
 	radius: 8,
@@ -11,9 +12,9 @@ const defaultStyle = {
 }
 
 type IProps = {
-	positions: Float32Array
-	radiuses?: Uint8Array
-	colors?: Uint8Array
+	position: Float32Array
+	radius?: Uint8Array
+	color?: Uint8Array
 	startTime?: Float32Array
 	total?: number
 	style: {
@@ -27,28 +28,27 @@ class Points extends Model implements IPlayable {
 	private _playable = false
 	private _total: number
 	/**
-	 * positions 为散点坐标数组，radiuses 为散点大小数组，colors 为散点颜色数组（color的四个分量取值范围为0到255）
-	 * radiuses, startTime 和 colors可选，用于给每个散点单独设置大小, 时间和颜色，如果设置了 radiuses 和 colors，renderer 会忽略 material.color|radius
-	 * material可选，material.radius 设置模型中所有散点的大小默认值8，material.color 设置模型中所有散点的颜色默认值[255, 0, 0, 1]
+	 * position 为散点坐标数组长度为2 * total，radius 为散点大小数组长度为2 * total，color 为散点颜色数组长度为4 * total（color的四个分量取值范围为0到1）
+	 * radius, startTime 和 color可选，用于给每个散点单独设置大小, 时间和颜色，如果设置了 radius 和 color，renderer 会忽略 style.color|radius
+	 * material可选，material.radius 设置模型中所有散点的大小默认值8，material.color 设置模型中所有散点的颜色默认值[1, 0, 0, 1]
 	 * @param props
 	 */
 	constructor(props: IProps) {
 		const geometry = new Geometry()
-		const style = props.style
-		const color = style?.color || defaultStyle.color
-		const total = props.total || props.positions.length / 2
+		const style = deepMerge(defaultStyle, props.style)
+		const total = props.total || props.position.length / 2
 		const material = new PointMaterial({
 			...defaultStyle,
 			...style,
-			color,
-			hasColorAttribute: !!props.colors,
+			hasColorAttribute: !!props.color,
 			total,
-			radiuses: props.radiuses,
+			radiuses: props.radius,
 			hasTime: !!props.startTime
 		})
 
 		super(geometry, material)
 
+		this._style = deepMerge(defaultStyle, props.style)
 		this._total = total
 		this.initAttributes(props)
 		this._playable = !!props.startTime
@@ -62,15 +62,86 @@ class Points extends Model implements IPlayable {
 		return this._material as PointMaterial
 	}
 
+	get total() {
+		return this._total
+	}
+
+	setStyle(style: IProps['style'], pointIndices?: number[]) {
+		if (!pointIndices) {
+			this._style = deepMerge(this._style, style)
+			this.updateMaterial()
+		} else {
+			if (style.color) {
+				let colorArray = this.getAttribute('color')
+				if (!colorArray) {
+					colorArray = new Uint8Array(this.total * 4)
+					for (let i = 0; i < this.total; ++i) {
+						colorArray[4 * i + 0] = this._style.color[0] * 255
+						colorArray[4 * i + 1] = this._style.color[1] * 255
+						colorArray[4 * i + 2] = this._style.color[2] * 255
+						colorArray[4 * i + 3] = this._style.color[3] * 255
+					}
+					const colorAttribute = new Attribute('color', colorArray, 4, {
+						stepMode: 'instance',
+						shaderLocation: 1
+					})
+					this.geometry.setAttribute('color', colorAttribute)
+					this.material.updateShaderCode(
+						true,
+						this.material.hasRadiusAttribute,
+						this.material.hasTimeAttribute
+					)
+				}
+				for (let i of pointIndices) {
+					colorArray[i * 4 + 0] = style.color[0] * 255
+					colorArray[i * 4 + 1] = style.color[1] * 255
+					colorArray[i * 4 + 2] = style.color[2] * 255
+					colorArray[i * 4 + 3] = style.color[3] * 255
+				}
+				this.setAttribute('color', colorArray)
+			}
+			if (style.radius) {
+				let radiusArray = this.material.getStorage('radius')?.value
+				if (!radiusArray) {
+					radiusArray = transformRadiusArray({ value: this._style.radius, total: this.total })
+					this._material.updateStorage('radius', radiusArray)
+					this.material.updateShaderCode(
+						this.material.hasColorAttribute,
+						true,
+						this.material.hasTimeAttribute
+					)
+				}
+				for (let i of pointIndices) {
+					const index = Math.floor(i / 4)
+					const offset = i % 4
+					const unpacked = unpackUint32ToUint8(radiusArray[index])
+					unpacked[offset] = style.radius
+					radiusArray[index] = packUint8ToUint32(unpacked)
+				}
+				this._material.updateStorage('radius', radiusArray)
+			}
+		}
+	}
+
+	setTotal(count: number) {
+		this._total = count
+	}
+
+	private updateMaterial() {
+		for (let k in this._style) {
+			this._material.updateUniform(k, this._style[k])
+		}
+	}
+
 	private initAttributes(props: IProps) {
-		const positionAttribute = new Attribute('position', props.positions, 2, {
+		const positionAttribute = new Attribute('position', props.position, 2, {
 			stepMode: 'instance',
 			shaderLocation: 0
 		})
 		this.geometry.setAttribute('position', positionAttribute)
 
-		if (props.colors) {
-			const colorAttribute = new Attribute('color', props.colors, 4, { stepMode: 'instance', shaderLocation: 1 })
+		if (props.color) {
+			const colorAttribute = new Attribute('color', props.color, 4, { stepMode: 'instance', shaderLocation: 1 })
 			this.geometry.setAttribute('color', colorAttribute)
 		}
 
@@ -88,8 +159,6 @@ class Points extends Model implements IPlayable {
 	public updateCurrentTime(time: number): void {
 		this.material.updateUniform('currentTime', time)
 	}
-
-	// public setStyle(style: IProps['style'], indexList?: (string | number)[] | undefined) {}
 }
 
 export default Points

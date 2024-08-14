@@ -1,6 +1,7 @@
 import { VariableDefinition } from 'webgpu-utils'
 import { TypedArray } from '../types'
 import BufferView from '@/buffer/bufferView'
+import BufferPool from '@/buffer/bufferPool'
 
 type IProps = {
 	name: string
@@ -16,7 +17,6 @@ type IProps = {
 class Storage {
 	protected _bufferView: BufferView
 	protected _name: string
-	protected _needsUpdate = true
 	protected def: VariableDefinition
 	protected _value?: TypedArray
 	constructor(props: IProps) {
@@ -67,22 +67,22 @@ class Storage {
 	}
 
 	get needsUpdate() {
-		return this._needsUpdate
+		return this._bufferView.needsUpdate
 	}
 
-	set needsUpdate(b: boolean) {
-		this._needsUpdate = b
+	set needsUpdate(v: boolean) {
+		this._bufferView.needsUpdate = v
 	}
 
 	public updateValue(value: TypedArray) {
 		this._value = value
-		this._needsUpdate = true
+		this.needsUpdate = true
 	}
 
-	public updateBuffer(device: GPUDevice) {
-		if (this._needsUpdate && this._value) {
-			const res = this.bufferView.updateBuffer(device, this._value.buffer)
-			if (res) this._needsUpdate = false
+	public updateBuffer(device: GPUDevice, bufferPool: BufferPool) {
+		if (this.needsUpdate && this._value) {
+			const res = this.bufferView.updateBuffer(device, this._value.buffer, bufferPool)
+			if (res) this.needsUpdate = false
 		}
 	}
 }

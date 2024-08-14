@@ -2,6 +2,7 @@ import BufferView from '@/buffer/bufferView'
 import Attribute from './attribute'
 import Index from './indices'
 import { Group } from '@/types'
+import BufferPool from '@/buffer/bufferPool'
 
 class Geometry {
 	private _group?: Group
@@ -39,7 +40,10 @@ class Geometry {
 	}
 
 	public getAttribute(name: string) {
-		return this.attributes[name]
+		if (this.attributes[name]) {
+			return this.attributes[name]
+		}
+		return null
 	}
 
 	public setAttribute(attribtueName: string, attribute: Attribute) {
@@ -74,9 +78,9 @@ class Geometry {
 		return this.index?.array || null
 	}
 
-	public getIndexBufferView(device: GPUDevice) {
+	public getIndexBufferView(device: GPUDevice, bufferPool: BufferPool) {
 		if (!this.index) return
-		this.index.updateBuffer(device)
+		this.index.updateBuffer(device, bufferPool)
 		return this.index.bufferView
 	}
 
@@ -107,10 +111,10 @@ class Geometry {
 		return res
 	}
 
-	public updateVertexBufferViewList(device: GPUDevice) {
+	public updateVertexBufferViewList(device: GPUDevice, bufferPool: BufferPool) {
 		const bufferViewList: BufferView[] = []
 		for (let attribute of Object.values(this.attributes)) {
-			attribute.updateBuffer(device)
+			attribute.updateBuffer(device, bufferPool)
 			if (attribute.bufferView?.GPUBuffer) bufferViewList.push(attribute.bufferView)
 		}
 		return bufferViewList

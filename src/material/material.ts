@@ -52,6 +52,12 @@ class Material {
 		this.primitive = props.primitive
 	}
 
+	public changeShaderCode(renderCode: string) {
+		this.code = renderCode
+		this.shaderModule = null
+		this.pipeline = null
+	}
+
 	protected parseShaderCode(props: IProps) {
 		const defs = makeShaderDataDefinitions(this.code)
 		const { uniforms = {}, storages = {} } = props
@@ -75,14 +81,14 @@ class Material {
 		return defs
 	}
 
-	public getUniform(name: string) {
+	public getUniform(name: string): Uniform | null {
 		const uniform = this.uniforms[name]
-		return uniform
+		return uniform || null
 	}
 
-	public getStorage(name: string) {
+	public getStorage(name: string): Storage | null {
 		const storage = this.storages[name]
-		return storage
+		return storage || null
 	}
 
 	public updateUniform(uniformName: string, value: any) {
@@ -225,7 +231,7 @@ class Material {
 				} else if (uniform.name === 'resolution') {
 					buffer = renderer.resolutionBuf
 				} else {
-					if (uniform.needsUpdate) uniform.updateBuffer(device)
+					if (uniform.needsUpdate) uniform.updateBuffer(device, bufferPool)
 					buffer = uniform.bufferView?.GPUBuffer || null
 				}
 				if (!buffer) continue
@@ -237,7 +243,7 @@ class Material {
 			for (let sn in this.storages) {
 				const storage = this.storages[sn]
 				if (storage.group !== index) continue
-				if (storage.needsUpdate) storage.updateBuffer(device)
+				if (storage.needsUpdate) storage.updateBuffer(device, bufferPool)
 				const buffer = storage.bufferView?.GPUBuffer
 				if (!buffer) continue
 				entries.push({

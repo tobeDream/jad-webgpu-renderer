@@ -14,7 +14,7 @@ const defaultStyle = {
 type IProps = {
 	position: Float32Array
 	radius?: Uint8Array
-	color?: Uint8Array
+	color?: number[]
 	startTime?: Float32Array
 	total?: number
 	style: {
@@ -74,14 +74,12 @@ class Points extends Model implements IPlayable {
 			if (style.color) {
 				let colorArray = this.getAttribute('color')
 				if (!colorArray) {
-					colorArray = new Uint8Array(this.total * 4)
+					colorArray = new Uint32Array(this.total)
 					for (let i = 0; i < this.total; ++i) {
-						colorArray[4 * i + 0] = this._style.color[0] * 255
-						colorArray[4 * i + 1] = this._style.color[1] * 255
-						colorArray[4 * i + 2] = this._style.color[2] * 255
-						colorArray[4 * i + 3] = this._style.color[3] * 255
+						const color = packUint8ToUint32(this._style.color.map((c: number) => c * 255))
+						colorArray[i] = color
 					}
-					const colorAttribute = new Attribute('color', colorArray, 4, {
+					const colorAttribute = new Attribute('color', colorArray, 1, {
 						stepMode: 'instance',
 						shaderLocation: 1
 					})
@@ -93,10 +91,8 @@ class Points extends Model implements IPlayable {
 					)
 				}
 				for (let i of pointIndices) {
-					colorArray[i * 4 + 0] = style.color[0] * 255
-					colorArray[i * 4 + 1] = style.color[1] * 255
-					colorArray[i * 4 + 2] = style.color[2] * 255
-					colorArray[i * 4 + 3] = style.color[3] * 255
+					const color = packUint8ToUint32(style.color.map((c) => c * 255) as Color)
+					colorArray[i] = color
 				}
 				this.setAttribute('color', colorArray)
 			}
@@ -141,7 +137,18 @@ class Points extends Model implements IPlayable {
 		this.geometry.setAttribute('position', positionAttribute)
 
 		if (props.color) {
-			const colorAttribute = new Attribute('color', props.color, 4, { stepMode: 'instance', shaderLocation: 1 })
+			const colorArray = new Uint32Array(props.color.length / 4)
+			console.log(props.color)
+			for (let i = 0; i < props.color.length / 4; ++i) {
+				const color = packUint8ToUint32([
+					props.color[i * 4 + 0] * 255,
+					props.color[i * 4 + 1] * 255,
+					props.color[i * 4 + 2] * 255,
+					props.color[i * 4 + 3] * 255
+				])
+				colorArray[i] = color
+			}
+			const colorAttribute = new Attribute('color', colorArray, 1, { stepMode: 'instance', shaderLocation: 1 })
 			this.geometry.setAttribute('color', colorAttribute)
 		}
 

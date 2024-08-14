@@ -59,3 +59,5 @@ export const unpackUint32ToUint8 = (num: number) => {
 	}
 	return res
 }
+
+console.log(packUint8ToUint32([1, 0, 0, 1]))

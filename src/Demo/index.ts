@@ -30,7 +30,7 @@ window.r = renderer
 const totalTime = 10000
 const num = 400
 const pos = new Float32Array(num * 2)
-const color = new Uint8Array(num * 4)
+const color = Array(num * 4).fill(0)
 const size = new Uint8Array(num)
 const timestamps = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
@@ -38,10 +38,10 @@ for (let i = 0; i < num; ++i) {
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
 	// pos[2 * i] = (Math.random() * 2 - 1) * 400
 	// pos[2 * i + 1] = (Math.random() * 2 - 1) * 200
-	color[i * 4 + 0] = 255
-	color[i * 4 + 1] = ((num - i) / num) * 255
+	color[i * 4 + 0] = 1
+	color[i * 4 + 1] = ((num - i) / num) * 1
 	color[i * 4 + 2] = 0
-	color[i * 4 + 3] = 30
+	color[i * 4 + 3] = 0.3
 	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 10 + 10
 	timestamps[i] = (totalTime / num) * i
 }
@@ -88,8 +88,8 @@ for (let i = 0; i < num; ++i) {
 
 const points = new Points({
 	position: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-	// color: color,
-	// radius: size,
+	color: color,
+	radius: size,
 	style: {
 		color: [1, 0.7, 0.1, 0.3],
 		blending: 'normalBlending',
@@ -151,7 +151,7 @@ requestAnimationFrame(animate)
 setTimeout(() => {
 	// points.highlights([1, 10, 30, 50])
 	// renderer.render(scene, camera)
-	p.setStyle({ color: [1, 0, 1, 1], radius: 50 }, [10, 30, 60, 100, 200, 300])
+	p.setStyle({ color: [1, 1, 0, 1], radius: 50 }, [10, 30, 60, 100, 200, 300])
 }, 1000)
 
 window.addEventListener('resize', renderer.resize)

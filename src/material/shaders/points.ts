@@ -7,7 +7,7 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
         @builtin(vertex_index) vi: u32,
         @builtin(instance_index) ii: u32,
         @location(0) position: vec2f,
-        ${hasColor ? '@location(1) color: vec4u,' : ''}
+        ${hasColor ? '@location(1) color: u32,' : ''}
         ${hasTime ? '@location(2) startTime: f32,' : ''}
     };
 
@@ -66,7 +66,17 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
 
         vsOut.pointCoord = pos;
 
-        ${hasColor ? 'let color = vec4f(vert.color) / 255f;' : 'let color = style.color;'}
+        ${
+			hasColor
+				? `
+                let x = f32((vert.color >> (8u * 0u)) & 255u) / 255f;
+                let y = f32((vert.color >> (8u * 1u)) & 255u) / 255f;
+                let z = f32((vert.color >> (8u * 2u)) & 255u) / 255f;
+                let w = f32((vert.color >> (8u * 3u)) & 255u) / 255f;
+                let color: vec4f = vec4f(x, y, z, w);
+            `
+				: 'let color = style.color;'
+		}
         vsOut.color = color;
 
         ${hasTime ? 'vsOut.time = vert.startTime;' : ''}

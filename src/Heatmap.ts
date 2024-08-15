@@ -11,74 +11,78 @@ import {
 import Renderer from './Renderer'
 import { Camera } from './camera/camera'
 import Attribute from './geometry/attribute'
-import { convertUniformColor } from './utils'
+import { deepMerge, genId } from './utils'
 
 type ColorList = [Color, Color, Color, Color, Color]
 type OffsetList = [number, number, number, number, number]
 
+const defaultStyle = {
+	colorList: [
+		[1, 0, 0, 0],
+		[1, 1, 0, 0],
+		[0, 1, 0, 0],
+		[0, 0, 1, 0],
+		[0, 0, 0, 0]
+	] as ColorList,
+	colorOffsets: [1, 0.85, 0.55, 0.35, 0] as OffsetList,
+	blur: 1,
+	radius: 10,
+	blending: 'normalBlending' as Blending
+}
+
 type IProps = {
 	points: Float32Array
-	material?: {
+	startTime?: Float32Array
+	total?: number
+	style?: {
 		colorList?: ColorList
-		offsets?: OffsetList
-		maxHeatValueRatio?: number
+		colorOffsets?: OffsetList
+		blur?: number
 		radius?: number
 		blending?: Blending
 	}
 }
 
 class Heatmap extends Model {
-	private colorList: ColorList
-	private offsetList: OffsetList
-	private maxHeatValueRatio: number
 	private points: Float32Array
-	private radius: number
 	private heatPointsModel?: Model
 	private maxHeatValueModel?: Model
 	/**
 	 * points 为热力点的二维坐标
-	 * material.colorList 为将浮点数的热力值插值为 rgb 颜色时的插值颜色数组
-	 * material.offsets 为颜色插值时各个颜色对应的区间取值为1到0，降序
-	 * material.radius 为热力点的像素半径
-	 * maetrial.maxHeatValue 计算出来的各个像素的实际热力值可能大于1，在render pipeline中对各个像素上的热力值进行颜色插值时需要通过 maxHeatValue 对像素的热力值进行归一化，如果 maxHeatValue 没有设置，则会在 compute shader中统计各个像素的热力值，取最大值用来对像素热力值归一化
-	 * material.maxHeatValueRatio (0, 1]，maxHeatValue 对像素热力值做归一化时需先乘以该值
+	 * startTime 为热力点的播放时间，可选
+	 * total 为预设的热力点数量，可以大于 points.length / 2
+	 * style.colorList 为将浮点数的热力值插值为 rgb 颜色时的插值颜色数组
+	 * style.colorOffsets 为颜色插值时各个颜色对应的区间取值为1到0，降序
+	 * style.radius 为热力点的像素半径
+	 * style.blur (0, 1]，maxHeatValue 对像素热力值做归一化时需先乘以该值
 	 * @param props
 	 */
 	constructor(props: IProps) {
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
-		const { material, points } = props
+		const { points, startTime } = props
+		const style = deepMerge(defaultStyle, props.style || {})
 
 		const mat = new Material({
-			id: 'heat',
+			id: 'heat_mat_' + genId(),
 			renderCode: renderShaderCode,
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
-			blending: props.material?.blending
+			blending: props.style?.blending
 		})
 
 		super(geometry, mat)
 
-		this.colorList = (
-			material?.colorList
-				? material.colorList.map((c) => convertUniformColor(c))
-				: [
-						[1, 0, 0, 0],
-						[1, 1, 0, 0],
-						[0, 1, 0, 0],
-						[0, 0, 1, 0],
-						[0, 0, 0, 0]
-					]
-		) as ColorList
+		this._style = style
 
-		this.offsetList = material?.offsets || [1, 0.85, 0.55, 0.35, 0]
-
-		this.maxHeatValueRatio = material?.maxHeatValueRatio || 1
-		this.material.updateUniform('maxHeatValueRatio', this.maxHeatValueRatio)
+		this.material.updateUniform('maxHeatValueRatio', this.style.blur)
 		this.material.updateUniform('colors', this.colorOffsets)
 
 		this.points = points
-		this.radius = material?.radius || 10
+	}
+
+	get style() {
+		return this._style as typeof defaultStyle
 	}
 
 	private createHeatValueTexture(renderer: Renderer) {
@@ -121,7 +125,7 @@ class Heatmap extends Model {
 			presentationFormat: 'rgba16float',
 			multisampleCount: 1,
 			uniforms: {
-				size: this.radius
+				size: this._style.radius
 			}
 		})
 		this.heatPointsModel = new Model(geo, mat)
@@ -159,10 +163,10 @@ class Heatmap extends Model {
 	get colorOffsets() {
 		const res = new Float32Array(4 * 5)
 		for (let i = 0; i < 5; ++i) {
-			res[i * 4 + 0] = this.colorList[i][0]
-			res[i * 4 + 1] = this.colorList[i][1]
-			res[i * 4 + 2] = this.colorList[i][2]
-			res[i * 4 + 3] = this.offsetList[i]
+			res[i * 4 + 0] = this.style.colorList[i][0]
+			res[i * 4 + 1] = this.style.colorList[i][1]
+			res[i * 4 + 2] = this.style.colorList[i][2]
+			res[i * 4 + 3] = this.style.colorOffsets[i]
 		}
 		return res
 	}

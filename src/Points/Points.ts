@@ -18,7 +18,7 @@ type IProps = {
 	color?: number[]
 	startTime?: Float32Array
 	total?: number
-	style: {
+	style?: {
 		radius?: number
 		color?: Color
 		blending?: Blending
@@ -36,7 +36,7 @@ class Points extends Model implements IPlayable {
 	 */
 	constructor(props: IProps) {
 		const geometry = new Geometry()
-		const style = deepMerge(defaultStyle, props.style)
+		const style = deepMerge(defaultStyle, props.style || {})
 		const total = props.total || props.position.length / 2
 		const radiusStorage = new RadiusStorage({ data: props.radius })
 		const material = new PointMaterial({
@@ -50,7 +50,7 @@ class Points extends Model implements IPlayable {
 
 		super(geometry, material)
 
-		this._style = deepMerge(defaultStyle, props.style)
+		this._style = style
 		this._total = total
 		this.initAttributes(props)
 		this._playable = !!props.startTime
@@ -72,7 +72,7 @@ class Points extends Model implements IPlayable {
 		return this.material.getStorage('radius') as RadiusStorage
 	}
 
-	setStyle(style: IProps['style'], pointIndices?: number[]) {
+	setStyle(style: Exclude<IProps['style'], undefined>, pointIndices?: number[]) {
 		if (!pointIndices) {
 			this._style = deepMerge(this._style, style)
 			this.updateMaterial()

@@ -3,9 +3,9 @@ import { TypedArray } from '../types'
 import BufferView from '@/buffer/bufferView'
 import BufferPool from '@/buffer/bufferPool'
 
-type IProps = {
+export type IProps = {
 	name: string
-	def: VariableDefinition
+	def?: VariableDefinition
 	value?: TypedArray
 	byteLength?: number
 }
@@ -17,7 +17,7 @@ type IProps = {
 class Storage {
 	protected _bufferView: BufferView
 	protected _name: string
-	protected def: VariableDefinition
+	protected _def: VariableDefinition | undefined
 	protected _value?: TypedArray
 	constructor(props: IProps) {
 		this._name = props.name
@@ -45,12 +45,20 @@ class Storage {
 		return this._value
 	}
 
+	get def() {
+		return this._def
+	}
+
+	set def(v: VariableDefinition | undefined) {
+		this._def = v
+	}
+
 	get binding() {
-		return this.def.binding
+		return this.def?.binding || 0
 	}
 
 	get group() {
-		return this.def.group
+		return this.def?.group || 0
 	}
 
 	get size() {

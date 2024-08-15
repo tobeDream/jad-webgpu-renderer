@@ -54,6 +54,10 @@ class BufferView {
 		return this._size
 	}
 
+	set size(s: number) {
+		this._size = s
+	}
+
 	get usage() {
 		return this._usage
 	}
@@ -87,7 +91,7 @@ class BufferView {
 		}
 		if (this.GPUBuffer.size < valueBuffer.byteLength && this.buffer) {
 			this._size = valueBuffer.byteLength
-			bufferPool.resizeBuffer(device, this.buffer)
+			bufferPool.reallocateBuffer(device, this.buffer)
 		}
 		device.queue.writeBuffer(this.GPUBuffer, this.offset, valueBuffer)
 		return true

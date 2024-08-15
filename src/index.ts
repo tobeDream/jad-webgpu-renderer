@@ -1,7 +1,7 @@
 import Renderer from './Renderer'
 import Scene from './Scene'
 import Model from './Model'
-import Points from './Points'
+import Points from './Points/Points'
 import Heatmap from './Heatmap'
 import { Paths } from './Paths'
 import { Camera } from './camera/camera'

@@ -2,7 +2,7 @@ import { Vector2 } from 'three'
 import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
-import Points from '../Points'
+import Points from '../Points/Points'
 // import { Path, Paths } from '../Paths'
 // import Heatmap from '../Heatmap'
 // import * as moment from 'moment'
@@ -27,14 +27,14 @@ const renderer = new Renderer({ canvas, antiAlias: true, clearColor: [0, 0, 0, 0
 window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
-const totalTime = 10000
+const totalTime = 20000
 const num = 400
-const pos = new Float32Array(num * 2)
+let pos = new Float32Array(num * 2)
 const color = Array(num * 4).fill(0)
 const size = new Uint8Array(num)
 const timestamps = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
-	pos[2 * i] = (800 / num) * i - 400
+	pos[2 * i] = (700 / num) * i - 300
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
 	// pos[2 * i] = (Math.random() * 2 - 1) * 400
 	// pos[2 * i + 1] = (Math.random() * 2 - 1) * 200
@@ -43,9 +43,12 @@ for (let i = 0; i < num; ++i) {
 	color[i * 4 + 2] = 0
 	color[i * 4 + 3] = 0.3
 	size[i] = Math.abs(Math.sin(((2 * Math.PI) / num) * i)) * 10 + 10
+	// size[i] = 10
 	timestamps[i] = (totalTime / num) * i
 }
 
+// size[9] = 10
+// size[8] = 10
 // const path = new Path({
 // 	positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
 // 	timestamps,
@@ -86,19 +89,33 @@ for (let i = 0; i < num; ++i) {
 // 	}
 // ])
 
-console.log(timestamps)
+console.log(size)
+pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
-	position: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
-	color: color,
-	radius: size,
-	startTime: timestamps,
+	position: pos.subarray(0, 100),
+	color: color.slice(0, 200),
+	radius: size.slice(0, 50),
+	startTime: timestamps.subarray(0, 50),
+	// total: 1000,
 	style: {
-		color: [1, 0.7, 0.1, 0.3],
+		color: [1, 0.9, 0.2, 0.9],
 		blending: 'normalBlending',
 		radius: 10
 	}
 })
 window.p = points
+let i = 50
+const timer = setInterval(() => {
+	if (i > num) {
+		clearInterval(timer)
+	} else {
+		points.appendPoints({
+			position: pos.subarray(i * 2, (i + 50) * 2),
+			startTime: timestamps.subarray(i, i + 50)
+		})
+	}
+	i += 50
+}, 500)
 // const heat = new Heatmap({
 // 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 // 	material: {
@@ -150,11 +167,11 @@ const animate = (time: number) => {
 }
 requestAnimationFrame(animate)
 
-setTimeout(() => {
-	// points.highlights([1, 10, 30, 50])
-	// renderer.render(scene, camera)
-	p.setStyle({ color: [1, 1, 0, 1], radius: 50 }, [10, 30, 60, 100, 200, 300])
-}, 1000)
+// setTimeout(() => {
+// 	// points.highlights([1, 10, 30, 50])
+// 	// renderer.render(scene, camera)
+// 	p.setStyle({ color: [1, 1, 0, 1], radius: 50 }, [10, 30, 60, 100, 200, 300])
+// }, 1000)
 
 window.addEventListener('resize', renderer.resize)
 

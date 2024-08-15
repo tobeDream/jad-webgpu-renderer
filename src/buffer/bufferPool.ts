@@ -21,7 +21,7 @@ class BufferPool {
 		this.bufferMap[buffer.id] = buffer
 	}
 
-	public resizeBuffer(device: GPUDevice, buffer: Buffer) {
+	public reallocateBuffer(device: GPUDevice, buffer: Buffer) {
 		const bufferViews = buffer.bufferViews
 		delete this.bufferMap[buffer.id]
 		buffer.dispose()

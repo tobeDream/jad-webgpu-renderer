@@ -56,9 +56,9 @@ class Geometry {
 			attribute.shaderLocation = location
 		}
 		this.attributes[attribtueName] = attribute
-		const count = attribute.array.length / attribute.itemSize
-		if (attribute.stepMode === 'vertex' && this._vertexCount === -1) this._vertexCount = count
-		if (attribute.stepMode === 'instance' && this._instanceCount === -1) this._instanceCount = count
+		// const count = attribute.array.length / attribute.itemSize
+		// if (attribute.stepMode === 'vertex' && this._vertexCount === -1) this._vertexCount = count
+		// if (attribute.stepMode === 'instance' && this._instanceCount === -1) this._instanceCount = count
 	}
 
 	public removeAttribute(attribtueName: string) {
@@ -102,6 +102,10 @@ class Geometry {
 			vertexBufferLayouts.push(bufferLayout)
 		}
 		return vertexBufferLayouts
+	}
+
+	public getAttributes() {
+		return Object.values(this.attributes)
 	}
 
 	public getBufferViews() {

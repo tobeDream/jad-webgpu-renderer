@@ -1,7 +1,7 @@
-import Material from './material'
+import Material from '../material/material'
 import { Blending, Color } from '../types'
-import { getShaderCode } from './shaders/points'
-import { packUint8ToUint32 } from '@/utils'
+import { getShaderCode } from '../material/shaders/points'
+import RadiusStorage from './radiusStorage'
 
 export type IProps = {
 	hasColorAttribute: boolean
@@ -9,27 +9,8 @@ export type IProps = {
 	blending: Blending
 	color: Color
 	radius: number
-	radiuses?: Uint8Array
+	radiusStorage: RadiusStorage
 	hasTime?: boolean
-}
-
-export const transformRadiusArray = (data: Uint8Array | { value: number; total: number }) => {
-	const radiuses = new Uint32Array(Math.ceil('total' in data ? data.total / 4 : data.length / 4))
-	const len = 'total' in data ? data.total : data.length
-	for (let i = 0; i < radiuses.length; ++i) {
-		if ('value' in data) {
-			const v = data.value
-			radiuses[i] = packUint8ToUint32([v, v, v, v])
-		} else {
-			radiuses[i] = packUint8ToUint32([
-				data[i * 4 + 0] || 0,
-				data[i * 4 + 0] || 0,
-				data[i * 4 + 0] || 0,
-				data[i * 4 + 0] || 0
-			])
-		}
-	}
-	return radiuses
 }
 
 class PointMaterial extends Material {
@@ -38,22 +19,18 @@ class PointMaterial extends Material {
 	public hasTimeAttribute = false
 	constructor(props: IProps) {
 		const { color, radius } = props
-		let radiuses: Uint32Array | undefined = undefined
-		if (props.radiuses) {
-			radiuses = transformRadiusArray(props.radiuses)
-		}
 		super({
 			id: 'point',
-			renderCode: getShaderCode(props.hasColorAttribute, !!props.radiuses, !!props.hasTime),
+			renderCode: getShaderCode(props.hasColorAttribute, props.radiusStorage.hasData, !!props.hasTime),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props.blending,
-			storages: { radius: radiuses },
+			storages: { radius: props.radiusStorage },
 			uniforms: { style: { color, radius, currentTime: -1 } }
 		})
 
 		this.hasColorAttribute = props.hasColorAttribute
-		this.hasRadiusAttribute = !!props.radiuses
+		this.hasRadiusAttribute = props.radiusStorage.hasData
 		this.hasTimeAttribute = !!props.hasTime
 	}
 

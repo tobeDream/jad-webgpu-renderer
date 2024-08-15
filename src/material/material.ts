@@ -14,7 +14,7 @@ type IProps = {
 	vertexShaderEntry?: string
 	fragmentShaderEntry?: string
 	uniforms?: Record<string, any>
-	storages?: Record<string, TypedArray | undefined>
+	storages?: Record<string, TypedArray | undefined | Storage>
 	blending?: Blending
 	presentationFormat?: GPUTextureFormat
 	renderBindGroupLayoutDescriptors?: GPUBindGroupLayoutDescriptor[]
@@ -69,11 +69,16 @@ class Material {
 			})
 		}
 		for (let sn in defs.storages) {
-			this.storages[sn] = new Storage({
-				name: sn,
-				def: defs.storages[sn],
-				value: storages[sn]
-			})
+			if (storages[sn] instanceof Storage) {
+				storages[sn].def = defs.storages[sn]
+				this.storages[sn] = storages[sn]
+			} else {
+				this.storages[sn] = new Storage({
+					name: sn,
+					def: defs.storages[sn],
+					value: storages[sn]
+				})
+			}
 		}
 		for (let tn in defs.textures) {
 			this.textureInfos[tn] = { group: defs.textures[tn].group, binding: defs.textures[tn].binding }

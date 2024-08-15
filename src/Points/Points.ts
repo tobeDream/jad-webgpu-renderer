@@ -1,9 +1,10 @@
-import Geometry from './geometry/geometry'
-import Attribute from './geometry/attribute'
-import PointMaterial, { transformRadiusArray } from './material/pointMaterial'
-import Model from './Model'
-import { Blending, Color, IPlayable, PlayStatus } from './types'
-import { deepMerge, packUint8ToUint32, unpackUint32ToUint8 } from './utils'
+import Geometry from '../geometry/geometry'
+import Attribute from '../geometry/attribute'
+import PointMaterial from './pointMaterial'
+import Model from '../Model'
+import { Blending, Color, IPlayable } from '../types'
+import { deepMerge, packUint8ToUint32, unpackUint32ToUint8 } from '../utils'
+import RadiusStorage from './radiusStorage'
 
 const defaultStyle = {
 	radius: 8,
@@ -37,12 +38,13 @@ class Points extends Model implements IPlayable {
 		const geometry = new Geometry()
 		const style = deepMerge(defaultStyle, props.style)
 		const total = props.total || props.position.length / 2
+		const radiusStorage = new RadiusStorage({ data: props.radius })
 		const material = new PointMaterial({
 			...defaultStyle,
 			...style,
 			hasColorAttribute: !!props.color,
 			total,
-			radiuses: props.radius,
+			radiusStorage,
 			hasTime: !!props.startTime
 		})
 
@@ -66,6 +68,10 @@ class Points extends Model implements IPlayable {
 		return this._total
 	}
 
+	private getRadiusStorage() {
+		return this.material.getStorage('radius') as RadiusStorage
+	}
+
 	setStyle(style: IProps['style'], pointIndices?: number[]) {
 		if (!pointIndices) {
 			this._style = deepMerge(this._style, style)
@@ -81,7 +87,8 @@ class Points extends Model implements IPlayable {
 					}
 					const colorAttribute = new Attribute('color', colorArray, 1, {
 						stepMode: 'instance',
-						shaderLocation: 1
+						shaderLocation: 1,
+						capacity: this.total
 					})
 					this.geometry.setAttribute('color', colorAttribute)
 					this.material.updateShaderCode(
@@ -97,30 +104,24 @@ class Points extends Model implements IPlayable {
 				this.setAttribute('color', colorArray)
 			}
 			if (style.radius) {
-				let radiusArray = this.material.getStorage('radius')?.value
-				if (!radiusArray) {
-					radiusArray = transformRadiusArray({ value: this._style.radius, total: this.total })
-					this._material.updateStorage('radius', radiusArray)
+				const radiusStorage = this.getRadiusStorage()
+				if (!radiusStorage.hasData) {
 					this.material.updateShaderCode(
 						this.material.hasColorAttribute,
 						true,
 						this.material.hasTimeAttribute
 					)
 				}
-				for (let i of pointIndices) {
-					const index = Math.floor(i / 4)
-					const offset = i % 4
-					const unpacked = unpackUint32ToUint8(radiusArray[index])
-					unpacked[offset] = style.radius
-					radiusArray[index] = packUint8ToUint32(unpacked)
-				}
-				this._material.updateStorage('radius', radiusArray)
+				radiusStorage.updatePointsRadius(style.radius, this._style.radius, this.total, pointIndices)
 			}
 		}
 	}
 
 	setTotal(count: number) {
 		this._total = count
+		for (let attr of this.geometry.getAttributes()) {
+			attr.reallocate(count * attr.itemSize)
+		}
 	}
 
 	private updateMaterial() {
@@ -132,13 +133,13 @@ class Points extends Model implements IPlayable {
 	private initAttributes(props: IProps) {
 		const positionAttribute = new Attribute('position', props.position, 2, {
 			stepMode: 'instance',
-			shaderLocation: 0
+			shaderLocation: 0,
+			capacity: this.total * 2
 		})
 		this.geometry.setAttribute('position', positionAttribute)
 
 		if (props.color) {
 			const colorArray = new Uint32Array(props.color.length / 4)
-			console.log(props.color)
 			for (let i = 0; i < props.color.length / 4; ++i) {
 				const color = packUint8ToUint32([
 					props.color[i * 4 + 0] * 255,
@@ -148,19 +149,69 @@ class Points extends Model implements IPlayable {
 				])
 				colorArray[i] = color
 			}
-			const colorAttribute = new Attribute('color', colorArray, 1, { stepMode: 'instance', shaderLocation: 1 })
+			const colorAttribute = new Attribute('color', colorArray, 1, {
+				stepMode: 'instance',
+				shaderLocation: 1,
+				capacity: this.total * 1
+			})
 			this.geometry.setAttribute('color', colorAttribute)
 		}
 
 		if (props.startTime) {
 			const startTimeAttribute = new Attribute('startTime', props.startTime, 1, {
 				stepMode: 'instance',
-				shaderLocation: 2
+				shaderLocation: 2,
+				capacity: this.total * 1
 			})
 			this.geometry.setAttribute('startTime', startTimeAttribute)
 		}
 
 		this.geometry.vertexCount = 6 //wgsl 中通过硬编码设置了两个三角形的顶点坐标，由此组成一个正方形代表一个可以设置尺寸的散点
+		this.geometry.instanceCount = props.position.length / 2
+	}
+
+	private reallocate() {
+		for (let attr of this.geometry.getAttributes()) {
+			attr.reallocate(this.total * attr.itemSize)
+		}
+		this.getRadiusStorage().reallocate(this.total)
+	}
+
+	public appendPoints({ position, startTime }: Pick<IProps, 'position' | 'startTime'>) {
+		const appendLen = position.length / 2
+		if (startTime && startTime.length !== appendLen) {
+			throw 'startTime 数据不完备'
+		}
+
+		const currentLen = this.geometry.instanceCount
+		if (appendLen + currentLen > this.total) {
+			this._total = currentLen + appendLen * 5
+			this.reallocate()
+		}
+		const positionAttr = this.geometry.getAttribute('position')
+		if (positionAttr?.array) {
+			positionAttr.array.set(position, currentLen * 2)
+			positionAttr.needsUpdate = true
+		}
+		const colorAttr = this.geometry.getAttribute('color')
+		if (colorAttr) {
+			const colorArray = new Uint32Array(appendLen)
+			for (let i = 0; i < appendLen; ++i) {
+				const color = packUint8ToUint32(this._style.color.map((c: number) => c * 255))
+				colorArray[i] = color
+			}
+			colorAttr.array.set(colorArray, currentLen)
+			colorAttr.needsUpdate = true
+		}
+		const startTimeAttr = this.geometry.getAttribute('startTime')
+		if (startTime && startTimeAttr?.array) {
+			startTimeAttr.array.set(startTime, currentLen)
+			startTimeAttr.needsUpdate = true
+		}
+		const radiusStorage = this.getRadiusStorage()
+		radiusStorage.appendData(this._style.radius, appendLen, currentLen)
+
+		this.geometry.instanceCount += appendLen
 	}
 
 	public updateCurrentTime(time: number): void {

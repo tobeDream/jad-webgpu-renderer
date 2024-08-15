@@ -6,6 +6,7 @@ import BufferPool from '@/buffer/bufferPool'
 type Options = {
 	shaderLocation?: number
 	stepMode?: GPUVertexStepMode
+	capacity?: number
 }
 
 class Attribute {
@@ -25,9 +26,12 @@ class Attribute {
 		this._bufferView = new BufferView({
 			resourceName: 'attribute_' + this._name,
 			offset: 0,
-			size: this._array.byteLength,
+			size: options?.capacity ? options.capacity * this._array.BYTES_PER_ELEMENT : this._array.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 		})
+		if (options?.capacity) {
+			this.reallocate(options.capacity)
+		}
 	}
 
 	get needsUpdate() {
@@ -89,9 +93,18 @@ class Attribute {
 		return (typeStr.toLocaleLowerCase() + (this.itemSize === 1 ? '' : `x${this.itemSize}`)) as GPUVertexFormat
 	}
 
+	public reallocate(size: number) {
+		//@ts-ignore
+		const newArray = new this._array.constructor(size) as typeof this._array
+		newArray.set(this._array.subarray(0, size))
+		this._array = newArray
+		this.needsUpdate = true
+	}
+
 	public dispose() {
 		//@ts-ignore
 		this._array = undefined
+		this._bufferView.dispose()
 	}
 }
 

@@ -86,10 +86,12 @@ for (let i = 0; i < num; ++i) {
 // 	}
 // ])
 
+console.log(timestamps)
 const points = new Points({
 	position: pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p)),
 	color: color,
 	radius: size,
+	startTime: timestamps,
 	style: {
 		color: [1, 0.7, 0.1, 0.3],
 		blending: 'normalBlending',
@@ -129,21 +131,21 @@ window.p = points
 scene.addModel(points)
 // scene.addModel(paths)
 
-// let interval = 60
+let interval = 60
 let lastTimestamp = 0
 let start = 0
 const animate = (time: number) => {
 	// console.log(time)
 	if (start === 0) {
-		// lastTimestamp = time
+		lastTimestamp = time
 		start = lastTimestamp
 	}
-	// const timeElapsed = time - lastTimestamp
-	// if (timeElapsed >= interval) {
-	// paths.updateTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-	renderer.render(scene, camera)
-	// lastTimestamp = time
-	// }
+	const timeElapsed = time - lastTimestamp
+	if (timeElapsed >= interval) {
+		points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+		renderer.render(scene, camera)
+		lastTimestamp = time
+	}
 	requestAnimationFrame(animate)
 }
 requestAnimationFrame(animate)

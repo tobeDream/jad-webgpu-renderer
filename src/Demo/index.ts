@@ -34,7 +34,7 @@ const color = Array(num * 4).fill(0)
 const size = new Uint8Array(num)
 const timestamps = new Float32Array(num)
 for (let i = 0; i < num; ++i) {
-	pos[2 * i] = (700 / num) * i - 300
+	pos[2 * i] = (800 / num) * i - 350
 	pos[2 * i + 1] = Math.sin(((2 * Math.PI) / num) * i) * 100
 	// pos[2 * i] = (Math.random() * 2 - 1) * 400
 	// pos[2 * i + 1] = (Math.random() * 2 - 1) * 200
@@ -92,10 +92,14 @@ for (let i = 0; i < num; ++i) {
 console.log(size)
 pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
-	position: pos.subarray(0, 100),
-	color: color.slice(0, 200),
-	radius: size.slice(0, 50),
-	startTime: timestamps.subarray(0, 50),
+	// position: pos.subarray(0, 100),
+	// color: color.slice(0, 200),
+	// radius: size.slice(0, 50),
+	// startTime: timestamps.subarray(0, 50),
+	position: pos,
+	color,
+	radius: size,
+	startTime: timestamps,
 	// total: 1000,
 	style: {
 		color: [1, 0.9, 0.2, 0.9],
@@ -104,18 +108,18 @@ const points = new Points({
 	}
 })
 window.p = points
-let i = 50
-const timer = setInterval(() => {
-	if (i > num) {
-		clearInterval(timer)
-	} else {
-		points.appendPoints({
-			position: pos.subarray(i * 2, (i + 50) * 2),
-			startTime: timestamps.subarray(i, i + 50)
-		})
-	}
-	i += 50
-}, 500)
+// let i = 50
+// const timer = setInterval(() => {
+// 	if (i > num) {
+// 		clearInterval(timer)
+// 	} else {
+// 		points.appendPoints({
+// 			position: pos.subarray(i * 2, (i + 50) * 2),
+// 			startTime: timestamps.subarray(i, i + 50)
+// 		})
+// 	}
+// 	i += 50
+// }, 500)
 // const heat = new Heatmap({
 // 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
 // 	material: {

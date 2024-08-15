@@ -20,6 +20,12 @@ export interface IRenderable {
 
 	render(renderer: Renderer, pass: GPURenderPassEncoder, camera: Camera, textures?: Record<string, GPUTexture>): void
 
+	dispose(): void
+
+	get id(): string
+
+	set id(s: string)
+
 	get visible(): boolean
 
 	set visible(v: boolean)

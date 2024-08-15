@@ -13,6 +13,10 @@ class Scene extends Object3D {
 		return this._modelList.sort((m, n) => (m.renderOrder > n.renderOrder ? -1 : 1))
 	}
 
+	public getAllModels() {
+		return this._modelList.sort((m, n) => (m.renderOrder > n.renderOrder ? -1 : 1))
+	}
+
 	public addModel(model: IRenderable) {
 		if (!this._modelList.includes(model)) this._modelList.push(model)
 	}
@@ -24,7 +28,16 @@ class Scene extends Object3D {
 		}
 	}
 
-	public getModel(id: string) {}
+	public getModel(id: string) {
+		return this._modelList.find((m) => m.id === id) || null
+	}
+
+	public dispose() {
+		for (let m of this._modelList) {
+			m.dispose()
+		}
+		this._modelList = []
+	}
 }
 
 export default Scene

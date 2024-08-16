@@ -49,8 +49,9 @@ class Heatmap extends Model implements IPlayable {
 	//heatPointsModel 和 maxHeatValueModel 都是在 preRender 阶段执行的渲染
 	private heatPointsModel?: Model //负责将根据热力点的坐标和半径渲染各个像素的热力值到输出纹理的R 通道
 	private maxHeatValueModel?: Model //负责根据 heatPointsModel 的输出纹理计算所有像素的最大热力值
+	private _total: number
 	/**
-	 * points 为热力点的二维坐标
+	 * points 为热力点的二维坐标 e.g [x0, y0, x1, y1,....]
 	 * startTime 为热力点的播放时间，可选
 	 * total 为预设的热力点数量，可以大于 points.length / 2
 	 * style.colorList 为将浮点数的热力值插值为 rgb 颜色时的插值颜色数组
@@ -76,6 +77,7 @@ class Heatmap extends Model implements IPlayable {
 		super(geometry, mat)
 
 		this._style = style
+		this._total = props.total || points.length / 2
 
 		this.material.updateUniform('maxHeatValueRatio', this.style.blur)
 		this.material.updateUniform('colors', this.colorOffsets)
@@ -86,6 +88,10 @@ class Heatmap extends Model implements IPlayable {
 
 	get style() {
 		return this._style as typeof defaultStyle
+	}
+
+	get total() {
+		return this._total
 	}
 
 	get playable() {
@@ -128,14 +134,16 @@ class Heatmap extends Model implements IPlayable {
 		const geo = new Geometry()
 		const positionAttribute = new Attribute('position', this.points, 2, {
 			stepMode: 'instance',
-			shaderLocation: 0
+			shaderLocation: 0,
+			capacity: this.total * 2
 		})
 		geo.setAttribute('position', positionAttribute)
 
 		if (this.startTime) {
 			const startTimeAttribute = new Attribute('startTime', this.startTime, 1, {
 				stepMode: 'instance',
-				shaderLocation: 1
+				shaderLocation: 1,
+				capacity: this.total
 			})
 			geo.setAttribute('startTime', startTimeAttribute)
 		}
@@ -194,6 +202,13 @@ class Heatmap extends Model implements IPlayable {
 		this.lastResolution = { width, height }
 	}
 
+	private reallocate() {
+		if (!this.heatPointsModel) return
+		for (let attr of this.heatPointsModel.geometry.getAttributes()) {
+			attr.reallocate(this.total * attr.itemSize)
+		}
+	}
+
 	get colorOffsets() {
 		const res = new Float32Array(4 * 5)
 		for (let i = 0; i < 5; ++i) {
@@ -203,6 +218,11 @@ class Heatmap extends Model implements IPlayable {
 			res[i * 4 + 3] = this.style.colorOffsets[i]
 		}
 		return res
+	}
+
+	public setTotal(t: number) {
+		this._total = t
+		this.reallocate()
 	}
 
 	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {
@@ -269,6 +289,36 @@ class Heatmap extends Model implements IPlayable {
 		if ('colorList' in style || 'colorOffsets' in style) {
 			this.material.updateUniform('colors', this.colorOffsets)
 		}
+	}
+
+	/**
+	 * 往当前热力图中追加热力点数据
+	 * @param points 热力点的二维坐标数组
+	 * @param startTime
+	 */
+	public appendHeatPoints(points: Float32Array, startTime?: Float32Array) {
+		if (!this.heatPointsModel) return
+		const appendLen = points.length / 2
+		if (startTime && startTime.length !== appendLen) {
+			throw 'startTime 数据不完备'
+		}
+		const currentLen = this.heatPointsModel.geometry.instanceCount
+		if (appendLen + currentLen > this.total) {
+			this._total = currentLen + appendLen * 5
+			this.reallocate()
+		}
+		const positionAttr = this.heatPointsModel.geometry.getAttribute('position')
+		if (positionAttr?.array) {
+			positionAttr.array.set(points, currentLen * 2)
+			positionAttr.needsUpdate = true
+		}
+		const startTimeAttr = this.heatPointsModel.geometry.getAttribute('startTime')
+		if (startTime && startTimeAttr?.array) {
+			startTimeAttr.array.set(startTime, currentLen)
+			startTimeAttr.needsUpdate = true
+		}
+
+		this.heatPointsModel.geometry.instanceCount += appendLen
 	}
 
 	public dispose() {

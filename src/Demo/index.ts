@@ -92,13 +92,13 @@ for (let i = 0; i < num; ++i) {
 console.log(size)
 pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
-	// position: pos.subarray(0, 100),
-	// color: color.slice(0, 200),
-	// radius: size.slice(0, 50),
-	// startTime: timestamps.subarray(0, 50),
-	position: pos,
-	color,
-	radius: size,
+	position: pos.subarray(0, 100),
+	color: color.slice(0, 200),
+	radius: size.slice(0, 50),
+	startTime: timestamps.subarray(0, 50),
+	// position: pos,
+	// color,
+	// radius: size,
 	// startTime: timestamps,
 	// total: 1000,
 	style: {
@@ -109,21 +109,12 @@ const points = new Points({
 })
 //@ts-ignore
 window.p = points
-// let i = 50
-// const timer = setInterval(() => {
-// 	if (i > num) {
-// 		clearInterval(timer)
-// 	} else {
-// 		points.appendPoints({
-// 			position: pos.subarray(i * 2, (i + 50) * 2),
-// 			startTime: timestamps.subarray(i, i + 50)
-// 		})
-// 	}
-// 	i += 50
-// }, 500)
+
+const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
 const heat = new Heatmap({
-	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
-	// startTime: timestamps,
+	points: heatPoints.subarray(0, 100),
+	startTime: timestamps.subarray(0, 50),
+	total: 400,
 	style: {
 		radius: 30,
 		blur: 0.8,
@@ -141,6 +132,19 @@ const heat = new Heatmap({
 //@ts-ignore
 window.h = heat
 
+let i = 50
+const timer = setInterval(() => {
+	if (i > num) {
+		clearInterval(timer)
+	} else {
+		points.appendPoints({
+			position: pos.subarray(i * 2, (i + 50) * 2),
+			startTime: timestamps.subarray(i, i + 50)
+		})
+		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+	}
+	i += 50
+}, 500)
 // // line.visible = false
 heat.renderOrder = 1
 points.renderOrder = 0

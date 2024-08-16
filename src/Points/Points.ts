@@ -119,9 +119,7 @@ class Points extends Model implements IPlayable {
 
 	setTotal(count: number) {
 		this._total = count
-		for (let attr of this.geometry.getAttributes()) {
-			attr.reallocate(count * attr.itemSize)
-		}
+		this.reallocate()
 	}
 
 	private updateMaterial() {

@@ -257,16 +257,17 @@ class Heatmap extends Model implements IPlayable {
 
 	public setStyle(style: Exclude<IProps['style'], undefined>) {
 		this._style = deepMerge(this.style, style)
-		for (let k in style) {
-			if (k === 'radius' && this.heatPointsModel) {
-				this.heatPointsModel.material.updateUniform('radius', style['radius'])
-			}
-			if (k === 'blur') {
-				this.material.updateUniform('maxHeatValueRatio', style['blur'])
-			}
-			if ('colorList' in style || 'colorOffsets' in style) {
-				this.material.updateUniform('colors', this.colorOffsets)
-			}
+		if ('radius' in style && this.heatPointsModel) {
+			this.heatPointsModel.material.updateUniform('radius', style['radius'])
+		}
+		if ('blur' in style) {
+			this.material.updateUniform('maxHeatValueRatio', style['blur'])
+		}
+		if ('blending' in style) {
+			this.material.changeBlending(style['blending'])
+		}
+		if ('colorList' in style || 'colorOffsets' in style) {
+			this.material.updateUniform('colors', this.colorOffsets)
 		}
 	}
 

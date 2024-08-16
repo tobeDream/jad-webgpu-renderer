@@ -30,7 +30,7 @@ class Material {
 	protected code: string
 	protected uniforms: Record<string, Uniform> = {}
 	protected storages: Record<string, Storage> = {}
-	protected blending: Blending = 'none'
+	protected _blending: Blending = 'none'
 	protected shaderModule: GPUShaderModule | null = null
 	protected _defs: ShaderDataDefinitions
 	protected textureInfos: Record<string, { group: number; binding: number }> = {}
@@ -46,10 +46,19 @@ class Material {
 		this.fsEntry = props.fragmentShaderEntry || 'fs'
 		this.bindGroupLayoutDescriptors = props.renderBindGroupLayoutDescriptors
 		this.presentationFormat = props.presentationFormat
-		if (props.blending) this.blending = props.blending
+		if (props.blending) this._blending = props.blending
 		this._defs = this.parseShaderCode(props)
 		this.multisampleCount = props.multisampleCount
 		this.primitive = props.primitive
+	}
+
+	get blending() {
+		return this._blending
+	}
+
+	public changeBlending(b: Blending | undefined) {
+		this._blending = b || 'none'
+		this.pipeline = null
 	}
 
 	public changeShaderCode(renderCode: string) {

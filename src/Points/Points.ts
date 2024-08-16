@@ -126,7 +126,11 @@ class Points extends Model implements IPlayable {
 
 	private updateMaterial() {
 		for (let k in this._style) {
-			this._material.updateUniform(k, this._style[k])
+			if (k === 'blending') {
+				this.material.changeBlending(this._style[k])
+			} else {
+				this._material.updateUniform(k, this._style[k])
+			}
 		}
 	}
 

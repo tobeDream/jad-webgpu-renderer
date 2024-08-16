@@ -99,7 +99,7 @@ const points = new Points({
 	position: pos,
 	color,
 	radius: size,
-	startTime: timestamps,
+	// startTime: timestamps,
 	// total: 1000,
 	style: {
 		color: [1, 0.9, 0.2, 0.9],

@@ -1,22 +1,25 @@
 //因为保存热力值的纹理 format 为 rgba16float, 计算出来的像素热力值可能超过 f16的取值上限，所以在将热力值写入纹理前先将热力值除以 heatValuePrec
 export const heatValuePrec = 1
-export const sampleRate = 4
+export const sampleRate = 4 //使用 sampleRate 在计算最大热力值时对像素在X 和 Y 方向上做降采样
 
-export const computeHeatValueShaderCode = `
+export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
     struct Vertex {
         @builtin(vertex_index) vi: u32,
         @location(0) position: vec2f,
+        ${hasStartTime ? '@location(1) startTime: f32' : ''}
     };
 
     struct VSOutput {
         @builtin(position) position: vec4f,
         @location(0) pointCoord: vec2f,
+        ${hasStartTime ? '@location(1) time: f32,' : ''}
     };
 
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     @group(0) @binding(3) var<uniform> size: f32;
+    @group(0) @binding(4) var<uniform> currentTime: f32;
 
     @vertex fn vs(vert: Vertex) ->  VSOutput{
         let points = array(
@@ -35,6 +38,7 @@ export const computeHeatValueShaderCode = `
         var vsOut: VSOutput;
         vsOut.position = clipPos + pointPos;
         vsOut.pointCoord = pos;
+        ${hasStartTime ? 'vsOut.time = vert.startTime;' : ''}
 
         return vsOut;
     }
@@ -45,6 +49,15 @@ export const computeHeatValueShaderCode = `
         if(dis >= 1) {
             discard;
         }
+        ${
+			hasStartTime
+				? `
+                if(vsOut.time > currentTime){
+                    discard;
+                }
+            `
+				: '_ = currentTime;'
+		}
         let h = pow(1.0 - dis, 1.5) / ${heatValuePrec};
         return vec4f(h, 0, 0, 1);
     }

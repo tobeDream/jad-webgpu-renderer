@@ -4,7 +4,7 @@ import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points/Points'
 // import { Path, Paths } from '../Paths'
-// import Heatmap from '../Heatmap'
+import Heatmap from '../Heatmap/Heatmap'
 // import * as moment from 'moment'
 
 //@ts-ignore
@@ -120,35 +120,31 @@ window.p = points
 // 	}
 // 	i += 50
 // }, 500)
-// const heat = new Heatmap({
-// 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
-// 	material: {
-// 		radius: 30,
-// 		maxHeatValueRatio: 0.8,
-// 		blending: 'normalBlending',
-// 		colorList: [
-// 			// [255, 0, 0, 0],
-// 			// [255, 255, 0, 0],
-// 			// [0, 255, 0, 0],
-// 			// [0, 0, 255, 0],
-// 			// [0, 0, 0, 0]
-// 			[255, 0, 0, 0],
-// 			[0.9 * 255, 0.9 * 255, 0, 0],
-// 			[0.1 * 255, 0.8 * 255, 0.2 * 255, 0],
-// 			[0, 0.0 * 255, 1.0 * 255, 0],
-// 			[0, 0, 0, 0]
-// 		],
-// 		offsets: [1, 0.85, 0.45, 0.25, 0]
-// 	}
-// })
+const heat = new Heatmap({
+	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
+	startTime: timestamps,
+	style: {
+		radius: 30,
+		blur: 0.8,
+		// colorList: [
+		// 	[255, 0, 0, 0],
+		// 	[0.9 * 255, 0.9 * 255, 0, 0],
+		// 	[0.1 * 255, 0.8 * 255, 0.2 * 255, 0],
+		// 	[0, 0.0 * 255, 1.0 * 255, 0],
+		// 	[0, 0, 0, 0]
+		// ],
+		// colorOffsets: [1, 0.85, 0.45, 0.25, 0],
+		blending: 'normalBlending'
+	}
+})
 //@ts-ignore
-// window.h = heat
+window.h = heat
 
 // // line.visible = false
-// heat.renderOrder = 0
-// points.renderOrder = 1
+heat.renderOrder = 1
+points.renderOrder = 0
 // path.renderOrder = 2
-// scene.addModel(heat)
+scene.addModel(heat)
 scene.addModel(points)
 // scene.addModel(paths)
 
@@ -164,6 +160,7 @@ const animate = (time: number) => {
 	const timeElapsed = time - lastTimestamp
 	if (timeElapsed >= interval) {
 		points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+		heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 		renderer.render(scene, camera)
 		lastTimestamp = time
 	}

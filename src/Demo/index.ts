@@ -107,6 +107,7 @@ const points = new Points({
 		radius: 10
 	}
 })
+//@ts-ignore
 window.p = points
 // let i = 50
 // const timer = setInterval(() => {
@@ -122,18 +123,18 @@ window.p = points
 // }, 500)
 const heat = new Heatmap({
 	points: pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9)),
-	startTime: timestamps,
+	// startTime: timestamps,
 	style: {
 		radius: 30,
 		blur: 0.8,
-		// colorList: [
-		// 	[255, 0, 0, 0],
-		// 	[0.9 * 255, 0.9 * 255, 0, 0],
-		// 	[0.1 * 255, 0.8 * 255, 0.2 * 255, 0],
-		// 	[0, 0.0 * 255, 1.0 * 255, 0],
-		// 	[0, 0, 0, 0]
-		// ],
-		// colorOffsets: [1, 0.85, 0.45, 0.25, 0],
+		colorList: [
+			[1, 0, 0, 0],
+			[0.9, 0.9, 0, 0],
+			[0.1, 0.8, 0.2, 0],
+			[0, 0.0, 1.0, 0],
+			[0, 0, 0, 0]
+		],
+		colorOffsets: [1, 0.85, 0.45, 0.25, 0],
 		blending: 'normalBlending'
 	}
 })

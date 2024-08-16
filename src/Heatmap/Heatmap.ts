@@ -152,7 +152,7 @@ class Heatmap extends Model implements IPlayable {
 			presentationFormat: 'rgba16float',
 			multisampleCount: 1,
 			uniforms: {
-				size: this._style.radius
+				radius: this._style.radius
 			}
 		})
 		this.heatPointsModel = new Model(geo, mat)
@@ -252,6 +252,21 @@ class Heatmap extends Model implements IPlayable {
 	public updateCurrentTime(time: number): void {
 		if (this.heatPointsModel) {
 			this.heatPointsModel.material.updateUniform('currentTime', time)
+		}
+	}
+
+	public setStyle(style: Exclude<IProps['style'], undefined>) {
+		this._style = deepMerge(this.style, style)
+		for (let k in style) {
+			if (k === 'radius' && this.heatPointsModel) {
+				this.heatPointsModel.material.updateUniform('radius', style['radius'])
+			}
+			if (k === 'blur') {
+				this.material.updateUniform('maxHeatValueRatio', style['blur'])
+			}
+			if ('colorList' in style || 'colorOffsets' in style) {
+				this.material.updateUniform('colors', this.colorOffsets)
+			}
 		}
 	}
 

@@ -18,7 +18,7 @@ export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
     @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
-    @group(0) @binding(3) var<uniform> size: f32;
+    @group(0) @binding(3) var<uniform> radius: f32;
     @group(0) @binding(4) var<uniform> currentTime: f32;
 
     @vertex fn vs(vert: Vertex) ->  VSOutput{
@@ -33,7 +33,7 @@ export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
 
         let pos = points[vert.vi];
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
-        let pointPos = vec4f(pos * size / resolution * clipPos.w, 0, 0);
+        let pointPos = vec4f(pos * radius / resolution * clipPos.w, 0, 0);
 
         var vsOut: VSOutput;
         vsOut.position = clipPos + pointPos;

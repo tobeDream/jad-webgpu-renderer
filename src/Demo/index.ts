@@ -3,7 +3,7 @@ import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points/Points'
-// import { Path, Paths } from '../Paths'
+import { Paths } from '../Paths'
 import Heatmap from '../Heatmap/Heatmap'
 // import * as moment from 'moment'
 
@@ -59,61 +59,72 @@ for (let i = 0; i < num; ++i) {
 // 	}
 // })
 
-// const paths = new Paths([
-// 	{
-// 		positions: pos,
-// 		timestamps,
-// 		drawLine: false,
-// 		drawHeadPoint: true,
-// 		// colorBySpeed: true,
-// 		material: {
-// 			color: [255, 75, 42, 0.7],
-// 			lineWidth: 10,
-// 			headPointColor: [255, 25, 76, 0.6],
-// 			headPointSize: 10,
-// 			blending: 'normalBlending',
-// 			tailDuration: (num * 20) / 10
-// 		}
-// 	},
-// 	{
-// 		positions: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
-// 		timestamps: timestamps.map((t) => t - 1000),
-// 		// drawLine: true,
-// 		drawHeadPoint: true,
-// 		// colorBySpeed: true,
-// 		material: {
-// 			color: [255, 225, 0, 0.7],
-// 			lineWidth: 5,
-// 			blending: 'normalBlending'
-// 		}
-// 	}
-// ])
+const paths = new Paths(
+	[
+		{
+			pathId: '1',
+			position: pos,
+			startTime: timestamps,
+			// colorBySpeed: true,
+			style: {
+				color: [1, 0.3, 0.2, 0.7],
+				lineWidth: 10,
+				headPointColor: [1, 0.9, 0.3, 1],
+				headPointSize: 10,
+				headPointVisible: false,
+				blending: 'normalBlending',
+				drawLine: false,
+				tailDuration: 0,
+			},
+		},
+		{
+			pathId: '2',
+			position: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+			startTime: timestamps.map((t) => t - 1000),
+			// colorBySpeed: true,
+			style: {
+				color: [1, 1, 0, 0.7],
+				lineWidth: 5,
+				blending: 'normalBlending',
+				headPointVisible: true,
+				headPointSize: 10,
+				drawLine: true,
+				tailDuration: (num * 50) / 10,
+				colorBySpeed: true,
+				unplayedColor: [1, 0.7, 0.2, 0.5],
+			},
+		},
+	],
+	{
+		unplayedColor: [0, 0.7, 0.2, 0.1],
+	}
+)
 
-console.log(size)
 pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
-	position: pos.subarray(0, 100),
-	color: color.slice(0, 200),
-	radius: size.slice(0, 50),
-	startTime: timestamps.subarray(0, 50),
-	// position: pos,
-	// color,
-	// radius: size,
+	// position: pos.subarray(0, 100),
+	// color: color.slice(0, 200),
+	// radius: size.slice(0, 50),
+	// startTime: timestamps.subarray(0, 50),
+	position: pos,
+	color,
+	radius: size,
 	// startTime: timestamps,
 	// total: 1000,
 	style: {
 		color: [1, 0.9, 0.2, 0.9],
 		blending: 'normalBlending',
-		radius: 10
-	}
+		radius: 10,
+	},
 })
 //@ts-ignore
 window.p = points
 
 const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
 const heat = new Heatmap({
-	points: heatPoints.subarray(0, 100),
-	startTime: timestamps.subarray(0, 50),
+	// points: heatPoints.subarray(0, 100),
+	// startTime: timestamps.subarray(0, 50),
+	points: heatPoints,
 	total: 400,
 	style: {
 		radius: 30,
@@ -123,35 +134,35 @@ const heat = new Heatmap({
 			[0.9, 0.9, 0, 0],
 			[0.1, 0.8, 0.2, 0],
 			[0, 0.0, 1.0, 0],
-			[0, 0, 0, 0]
+			[0, 0, 0, 0],
 		],
 		colorOffsets: [1, 0.85, 0.45, 0.25, 0],
-		blending: 'normalBlending'
-	}
+		blending: 'normalBlending',
+	},
 })
 //@ts-ignore
 window.h = heat
 
-let i = 50
-const timer = setInterval(() => {
-	if (i > num) {
-		clearInterval(timer)
-	} else {
-		points.appendPoints({
-			position: pos.subarray(i * 2, (i + 50) * 2),
-			startTime: timestamps.subarray(i, i + 50)
-		})
-		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
-	}
-	i += 50
-}, 500)
+// let i = 50
+// const timer = setInterval(() => {
+// 	if (i > num) {
+// 		clearInterval(timer)
+// 	} else {
+// 		points.appendPoints({
+// 			position: pos.subarray(i * 2, (i + 50) * 2),
+// 			startTime: timestamps.subarray(i, i + 50),
+// 		})
+// 		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+// 	}
+// 	i += 50
+// }, 500)
 // // line.visible = false
 heat.renderOrder = 1
 points.renderOrder = 0
 // path.renderOrder = 2
-scene.addModel(heat)
-scene.addModel(points)
-// scene.addModel(paths)
+// scene.addModel(heat)
+// scene.addModel(points)
+scene.addModel(paths)
 
 let interval = 60
 let lastTimestamp = 0
@@ -162,13 +173,15 @@ const animate = (time: number) => {
 		lastTimestamp = time
 		start = lastTimestamp
 	}
-	const timeElapsed = time - lastTimestamp
-	if (timeElapsed >= interval) {
-		points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-		heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-		renderer.render(scene, camera)
-		lastTimestamp = time
-	}
+	// const timeElapsed = time - lastTimestamp
+	// if (timeElapsed >= interval) {
+	// 	points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	// 	heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	// 	renderer.render(scene, camera)
+	// 	lastTimestamp = time
+	// }
+	paths.updateTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	renderer.render(scene, camera)
 	requestAnimationFrame(animate)
 }
 requestAnimationFrame(animate)

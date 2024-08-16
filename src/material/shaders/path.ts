@@ -16,7 +16,7 @@ export const genShaderCode = (hasTime: boolean, hasTail: boolean) => `
     @group(1) @binding(0) var<uniform> style: Style;
     @group(1) @binding(1) var<storage, read> positions: array<vec2f>;
     ${hasTime ? '@group(1) @binding(2) var<uniform> time: f32;' : ''} 
-    ${hasTime ? '@group(1) @binding(3) var<storage, read> timestamps: array<f32>;' : ''}
+    ${hasTime ? '@group(1) @binding(3) var<storage, read> startTimes: array<f32>;' : ''}
     ${hasTime && hasTail ? '@group(1) @binding(4) var<uniform> tailDuration: f32;' : ''} 
 
     struct VSOutput {
@@ -33,7 +33,7 @@ export const genShaderCode = (hasTime: boolean, hasTail: boolean) => `
         let posLen = arrayLength(&positions);
         let index = vert.vi % posLen;
         let p = positions[index % posLen];
-        ${hasTime ? 'let time = timestamps[index % posLen];' : ''}
+        ${hasTime ? 'let time = startTimes[index % posLen];' : ''}
         let clipPos = projectionMatrix * viewMatrix * vec4f(p, 0, 1);
         let side = f32(vert.vi / posLen) * -2 + 1; //-1 or 1
 
@@ -60,7 +60,7 @@ export const genShaderCode = (hasTime: boolean, hasTail: boolean) => `
         let posLen = arrayLength(&positions);
         let index = vert.vi % posLen;
         let p = positions[index % posLen];
-        ${hasTime ? 'let time = timestamps[index % posLen];' : ''}
+        ${hasTime ? 'let time = startTimes[index % posLen];' : ''}
 
         vsOut.position = vec4f(projectionMatrix * viewMatrix * vec4f(p, 0, 1));
         ${hasTime ? 'vsOut.startTime = time;' : ''}
@@ -97,11 +97,15 @@ export const genHeadPointShaderCode = (hasSpeedColor = false) => `
     @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
     @group(0) @binding(2) var<uniform> resolution: vec2f;
     @group(1) @binding(0) var<storage, read> positions: array<vec2f>;
-    @group(1) @binding(1) var<storage, read> timestamps: array<f32>;
+    @group(1) @binding(1) var<storage, read> startTimes: array<f32>;
     @group(1) @binding(2) var<uniform> time: f32;
     @group(1) @binding(3) var<uniform> size: f32;
     @group(1) @binding(4) var<uniform> pointIndex: u32;
-    ${hasSpeedColor ? '@group(1) @binding(5) var<storage, read> speedColorList: array<vec4f, 3>;' : '@group(1) @binding(5) var<uniform> pointColor: vec4f;'}
+    ${
+		hasSpeedColor
+			? '@group(1) @binding(5) var<storage, read> speedColorList: array<vec4f, 3>;'
+			: '@group(1) @binding(5) var<uniform> pointColor: vec4f;'
+	}
 
     ${
 		hasSpeedColor
@@ -166,13 +170,13 @@ export const genHeadPointShaderCode = (hasSpeedColor = false) => `
         var clipPos: vec4f;
         var speed: f32;
 
-        if(time >= timestamps[posLen - 1]){
+        if(time >= startTimes[posLen - 1]){
             clipPos = projectionMatrix * viewMatrix * vec4f(positions[posLen - 1], 0, 1);
             speed = 0;
         } else {
             let prevPoint = positions[pointIndex];
-            let prevTime = timestamps[pointIndex];
-            let nextTime = timestamps[pointIndex + 1];
+            let prevTime = startTimes[pointIndex];
+            let nextTime = startTimes[pointIndex + 1];
             let nextPoint = positions[pointIndex + 1];
             let dir = normalize(nextPoint - prevPoint);
             let dis = length(nextPoint - prevPoint);

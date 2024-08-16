@@ -1,65 +1,84 @@
 import Geometry from './geometry/geometry'
 import PathMaterial from './material/pathMaterial'
 import Model from './Model'
-import { Blending, Color, IRenderable } from './types'
+import { Blending, Color, IPlayable, IRenderable } from './types'
 import BufferPool from './buffer/bufferPool'
 import Renderer from './Renderer'
 import { Camera } from './camera/camera'
 import BufferView from './buffer/bufferView'
 import Material from './material/material'
 import { genHeadPointShaderCode } from './material/shaders/path'
-import { binarySearch, convertUniformColor } from './utils'
+import { binarySearch, convertUniformColor, deepMerge, genId } from './utils'
 
-type IProps = {
-	positions: Float32Array
-	timestamps?: Float32Array
-	material?: {
-		color?: Color
-		unplayedColor?: Color
-		lineWidth?: number
-		blending?: Blending
-		tailDuration?: number
-		headPointColor?: Color
-		headPointSize?: number
-		speedColorList?: Color[]
-	}
-	drawHeadPoint?: boolean
+const defaultStyle = {
+	color: [1, 0, 0, 0.7] as Color,
+	lineWidth: 5,
+	unplayedColor: [0, 0, 0, 0.05] as Color,
+	unplayedLineWidth: 5,
+	tailDuration: 100,
+	headPointVisible: false,
+	headPointSize: 15,
+	drawLine: false,
+	speedColorList: [
+		[0, 1, 0, 60],
+		[0, 0, 1, 30],
+		[1, 0, 0, 0],
+	] as Color[],
+	colorBySpeed: false,
+}
+
+type Style = {
+	color?: Color
+	lineWidth?: number
+	unplayedColor?: Color
+	unplayedLineWidth?: number
+	blending?: Blending
+	tailDuration?: number
+	speedColorList?: Color[]
+	headPointVisible?: boolean
+	headPointColor?: Color
+	headPointSize?: number
 	drawLine?: boolean
 	colorBySpeed?: boolean
 }
 
+type IProps = {
+	pathId: string
+	position: Float32Array
+	startTime?: Float32Array
+	style?: Style
+}
+
 export class Path extends Model {
-	private _timestamps?: Float32Array
+	private _startTimes?: Float32Array
 	constructor(props: IProps) {
-		const drawLine = !!props.drawLine
+		const style = props.style || {}
+		const drawLine = !!style.drawLine
 
 		const geometry = new Geometry()
-		const mp = props.material
 		const material = new PathMaterial({
-			...mp,
-			color: convertUniformColor(mp?.color),
-			unplayedColor: convertUniformColor(mp?.unplayedColor),
-			positions: props.positions,
-			timestamps: props.timestamps,
-			drawLine: props.drawLine
+			...style,
+			position: props.position,
+			startTime: props.startTime,
+			drawLine,
 		})
 
 		super(geometry, material)
 
 		if (!drawLine) {
-			const pathIndexRes = Path.extendLineToMesh(props.positions)
+			const pathIndexRes = Path.extendLineToMesh(props.position)
 			if (!pathIndexRes) return
 			const { indexArr } = pathIndexRes
 			this.geometry.setIndex(indexArr)
 		} else {
-			this.geometry.vertexCount = props.positions.length / 2
+			this.geometry.vertexCount = props.position.length / 2
 		}
 
-		this._timestamps = props.timestamps
+		this._startTimes = props.startTime
 	}
 
-	get timestamps() {
-		return this._timestamps
+	get startTimes() {
+		return this._startTimes
 	}
 
 	get material() {
@@ -86,6 +105,8 @@ export class Path extends Model {
 }
 
 export class Paths implements IRenderable {
+	private _id = 'paths_' + genId()
+	private _style: Style
 	protected _visible = true
 	protected _renderOrder = 0
 	protected bufferPool = new BufferPool()
@@ -94,66 +115,75 @@ export class Paths implements IRenderable {
 
 	/**
 	 * 参数为 Path  参数数组，每个Path 参数中包括：
-	 * positions 为轨迹点的坐标数组经纬度间隔存放
-	 * timestamps 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
-	 * material.lineWidth 为轨迹像素宽度
-	 * material.trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒
-	 * material.color为轨迹播放后部分的颜色，默认值为[255, 0, 0, 1]
-	 * material.unplayedColor 为轨迹尚未播放播放的颜色，默认值为[0, 0, 0, 0.05]
-	 * material.headPointColor 为轨迹头部圆点颜色，默认值为所属轨迹的颜色
-	 * material.headPointSize 为轨迹头部圆点像素大小
-	 * material.speedColorList 为根据轨迹头部圆点当前速度进行插值的颜色列表，长度为3，组成为[r, g, b, speed]，默认为
+	 * position 为轨迹点的坐标数组经纬度间隔存放
+	 * startTime 为轨迹上各个轨迹点的相对发生时间的毫秒级时间戳，如果设置后，轨迹默认不显示，用户通过updateTime接口更新当前时间，轨迹点时间小于当前时间的部分轨迹才会显示出来
+	 * style.lineWidth 为轨迹像素宽度，默认值为5，drawLine为 false 时生效
+	 * style.color为轨迹播放后部分的颜色，默认值为[1, 0, 0, 0.7]
+	 * style.drawLine 默认为 false，为 true 时轨迹宽度恒等于1，webgpu 将使用 line-strip 渲染轨迹，为 false 时使用 triangle-list 渲染轨迹
+	 * style.trailDuration 播放的部分轨迹在持续trailDuration时间后消失，单位为毫秒，仅当 startTime 参数存在时有效，传0值时取消拖尾效果
+	 * style.unplayedColor 为轨迹尚未播放 部分的颜色，默认值为[0, 0, 0, 0.05]
+	 * style.unplayedLineWidth 为轨迹尚未播放部分的宽度，默认值为5，drawLine为 false 时生效
+	 * style.headPointColor 为轨迹头部圆点颜色，默认值为所属轨迹的颜色，headPointVisible 为 true 时生效
+	 * style.headPointSize 为轨迹头部圆点像素大小，headPointVisible 为 t
+	 * style.headPointVisible 控制轨迹头是否课件
+	 * style.speedColorList 为根据轨迹头部圆点当前速度进行插值的颜色列表，长度为3，组成为[r, g, b, speed]，默认为
 	 *[
-        [0, 255, 0, 60],
-        [0, 0, 255, 30],
-        [255, 0, 0, 0],
-	  ]
-	 * drawLine 为 true 时使用 line-strip 绘制轨迹，
-	 * drawHeadPoint 为 true 并且 timestamps 传入时在轨迹头位置绘制头部圆点
-	 * colorBySpeed 为是否由轨迹瞬时速率决定轨迹头部点的颜色
+        [0, 1, 0, 60],
+        [0, 0, 1, 30],
+        [1, 0, 0, 0],
+	  ]。当 startTime 参数存在且 headPointVisible 为 true 时生效
+	 * style.colorBySpeed 为true 时将由轨迹瞬时速率在 speedColorList 中 插值获得轨迹头部点的颜色
 	 * @param props
 	 * @returns
 	 */
-	constructor(paths: IProps[]) {
+	constructor(paths: IProps[], style?: Style) {
+		this._style = deepMerge(defaultStyle, style || {})
 		for (let p of paths) {
-			const pathModel = new Path({ ...p })
+			const pathStyle = deepMerge(this._style, p.style || {})
+			const pathModel = new Path({ ...p, style: pathStyle })
 			pathModel.bufferPool = this.bufferPool
 			this.pathModelList.push(pathModel)
 			//用 line 绘制动态轨迹时，需添加轨迹头部点，以标识轨迹当前运行的位置
-			if (!!p.timestamps && p.drawHeadPoint) {
-				this.createHeatPoint(pathModel, p)
+			if (!!p.startTime && p.style?.headPointVisible) {
+				this.createHeadPoint(pathModel, pathStyle, p.position, p.startTime)
 			}
 		}
 	}
 
-	private createHeatPoint(pathModel: Path, params: IProps) {
-		const positionBufferView = pathModel.material.getStorage('positions').bufferView
-		const timestampesBufferView = pathModel.material.getStorage('timestamps').bufferView
-		let headPointColor =
-			convertUniformColor(params.material?.headPointColor) || pathModel.material.getUniform('style').value.color
-		const headPointSize = params.material?.headPointSize || 15
-		let speedColorList = new Float32Array(
-			params.material?.speedColorList?.map(convertUniformColor).flat() || [
-				0, 1, 0, 60, 0.5, 0.5, 1, 30, 1, 0, 0, 0
-			]
-		)
+	get id() {
+		return this._id
+	}
+
+	private createHeadPoint(pathModel: Path, style: Required<Style>, position: Float32Array, startTime?: Float32Array) {
+		const positionBufferView = pathModel.material.getStorage('positions')?.bufferView
+		const startTimeBufferView = pathModel.material.getStorage('startTimes')?.bufferView
+		let headPointColor = style.headPointColor || style.color
+		const headPointSize = style.headPointSize
+		let speedColorList = new Float32Array(style.speedColorList.flat())
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
 		const material = new Material({
 			id: 'heatPoint',
-			renderCode: genHeadPointShaderCode(!!params.colorBySpeed),
+			renderCode: genHeadPointShaderCode(!!style.colorBySpeed),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
-			blending: params.material?.blending,
+			blending: style.blending,
 			uniforms: { time: 0, size: headPointSize, pointIndex: 0, pointColor: headPointColor },
 			storages: {
-				positions: params.positions,
-				timestamps: params.timestamps,
-				speedColorList
-			}
+				positions: position,
+				startTimes: startTime,
+				speedColorList,
+			},
 		})
-		material.getStorage('positions').bufferView = positionBufferView
-		material.getStorage('timestamps').bufferView = timestampesBufferView
+		const positionStorage = material.getStorage('positions')
+		if (positionStorage && positionBufferView) {
+			positionStorage.bufferView = positionBufferView
+		}
+		const startTimeStorage = material.getStorage('startTimes')
+		if (startTimeStorage && startTimeBufferView) {
+			startTimeStorage.bufferView = startTimeBufferView
+		}
+
 		const pointModel = new Model(geometry, material)
 		pointModel.id = pathModel.id
 		pointModel.bufferPool = this.bufferPool
@@ -181,11 +211,11 @@ export class Paths implements IRenderable {
 			p.material.updateTime(time)
 		}
 		for (let h of this.headPointList) {
-			h.material.getUniform('time').updateValue(time)
-			const timestamps = this.pathModelList.find((p) => p.id === h.id)?.timestamps
-			if (timestamps) {
-				const headIndex = binarySearch(timestamps, time)
-				h.material.getUniform('pointIndex').updateValue(headIndex)
+			h.material.getUniform('time')?.updateValue(time)
+			const startTimes = this.pathModelList.find((p) => p.id === h.id)?.startTimes
+			if (startTimes) {
+				const headIndex = binarySearch(startTimes, time)
+				h.material.getUniform('pointIndex')?.updateValue(headIndex)
 			}
 		}
 	}
@@ -209,6 +239,15 @@ export class Paths implements IRenderable {
 		}
 		for (let h of this.headPointList) {
 			h.render(renderer, pass, camera)
+		}
+	}
+
+	dispose() {
+		for (let path of this.pathModelList) {
+			path.dispose()
+		}
+		for (let h of this.headPointList) {
+			h.dispose()
 		}
 	}
 }

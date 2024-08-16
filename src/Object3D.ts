@@ -1,1 +1,1 @@
-export {Object3D} from 'three'
+export { Object3D } from 'three'

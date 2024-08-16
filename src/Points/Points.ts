@@ -9,7 +9,7 @@ import RadiusStorage from './radiusStorage'
 const defaultStyle = {
 	radius: 8,
 	color: [0.9, 0.3, 0.2, 0.7] as Color,
-	blending: 'normalBlending' as Blending
+	blending: 'normalBlending' as Blending,
 }
 
 type IProps = {
@@ -45,7 +45,7 @@ class Points extends Model implements IPlayable {
 			hasColorAttribute: !!props.color,
 			total,
 			radiusStorage,
-			hasTime: !!props.startTime
+			hasTime: !!props.startTime,
 		})
 
 		super(geometry, material)
@@ -88,7 +88,7 @@ class Points extends Model implements IPlayable {
 					const colorAttribute = new Attribute('color', colorArray, 1, {
 						stepMode: 'instance',
 						shaderLocation: 1,
-						capacity: this.total
+						capacity: this.total,
 					})
 					this.geometry.setAttribute('color', colorAttribute)
 					this.material.updateShaderCode(
@@ -136,7 +136,7 @@ class Points extends Model implements IPlayable {
 		const positionAttribute = new Attribute('position', props.position, 2, {
 			stepMode: 'instance',
 			shaderLocation: 0,
-			capacity: this.total * 2
+			capacity: this.total * 2,
 		})
 		this.geometry.setAttribute('position', positionAttribute)
 
@@ -147,14 +147,14 @@ class Points extends Model implements IPlayable {
 					props.color[i * 4 + 0] * 255,
 					props.color[i * 4 + 1] * 255,
 					props.color[i * 4 + 2] * 255,
-					props.color[i * 4 + 3] * 255
+					props.color[i * 4 + 3] * 255,
 				])
 				colorArray[i] = color
 			}
 			const colorAttribute = new Attribute('color', colorArray, 1, {
 				stepMode: 'instance',
 				shaderLocation: 1,
-				capacity: this.total * 1
+				capacity: this.total * 1,
 			})
 			this.geometry.setAttribute('color', colorAttribute)
 		}
@@ -163,7 +163,7 @@ class Points extends Model implements IPlayable {
 			const startTimeAttribute = new Attribute('startTime', props.startTime, 1, {
 				stepMode: 'instance',
 				shaderLocation: 2,
-				capacity: this.total * 1
+				capacity: this.total * 1,
 			})
 			this.geometry.setAttribute('startTime', startTimeAttribute)
 		}

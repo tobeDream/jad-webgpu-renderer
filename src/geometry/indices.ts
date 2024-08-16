@@ -11,7 +11,7 @@ class Index {
 			resourceName: 'vertex index',
 			offset: 0,
 			size: data.byteLength,
-			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
 		})
 	}
 

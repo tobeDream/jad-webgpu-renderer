@@ -26,7 +26,7 @@ class Uniform {
 			resourceName: this._name,
 			offset: 0,
 			size: this.view.arrayBuffer.byteLength,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		})
 	}
 

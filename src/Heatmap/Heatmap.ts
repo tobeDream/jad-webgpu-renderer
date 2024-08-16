@@ -6,7 +6,7 @@ import {
 	renderShaderCode,
 	genComputeHeatValueShaderCode,
 	computeMaxHeatValueShaderCode,
-	sampleRate
+	sampleRate,
 } from '../material/shaders/heatmap'
 import Renderer from '../Renderer'
 import { Camera } from '../camera/camera'
@@ -22,12 +22,12 @@ const defaultStyle = {
 		[1, 1, 0, 0],
 		[0, 1, 0, 0],
 		[0, 0, 1, 0],
-		[0, 0, 0, 0]
+		[0, 0, 0, 0],
 	] as ColorList,
 	colorOffsets: [1, 0.85, 0.55, 0.35, 0] as OffsetList,
 	blur: 1,
 	radius: 10,
-	blending: 'normalBlending' as Blending
+	blending: 'normalBlending' as Blending,
 }
 
 type IProps = {
@@ -71,7 +71,7 @@ class Heatmap extends Model implements IPlayable {
 			renderCode: renderShaderCode,
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
-			blending: props.style?.blending
+			blending: props.style?.blending,
 		})
 
 		super(geometry, mat)
@@ -109,7 +109,7 @@ class Heatmap extends Model implements IPlayable {
 		const heatValueTexture = device.createTexture({
 			size: [width, height, 1],
 			format: 'rgba16float', //因为需要使用纹理的 R 通道存放像素的热力值，故需要选择高精度的浮点数格式，而 rgba32float 又不支持multisample。
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
 		})
 		this.updateTexture('heatValTex', heatValueTexture)
 	}
@@ -125,7 +125,7 @@ class Heatmap extends Model implements IPlayable {
 		const maxHeatValueTexture = device.createTexture({
 			size: [1, 1, 1],
 			format: 'rgba16float',
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
 		})
 		this.updateTexture('maxValTex', maxHeatValueTexture)
 	}
@@ -135,7 +135,7 @@ class Heatmap extends Model implements IPlayable {
 		const positionAttribute = new Attribute('position', this.points, 2, {
 			stepMode: 'instance',
 			shaderLocation: 0,
-			capacity: this.total * 2
+			capacity: this.total * 2,
 		})
 		geo.setAttribute('position', positionAttribute)
 
@@ -143,7 +143,7 @@ class Heatmap extends Model implements IPlayable {
 			const startTimeAttribute = new Attribute('startTime', this.startTime, 1, {
 				stepMode: 'instance',
 				shaderLocation: 1,
-				capacity: this.total
+				capacity: this.total,
 			})
 			geo.setAttribute('startTime', startTimeAttribute)
 		}
@@ -160,8 +160,8 @@ class Heatmap extends Model implements IPlayable {
 			presentationFormat: 'rgba16float',
 			multisampleCount: 1,
 			uniforms: {
-				radius: this._style.radius
-			}
+				radius: this._style.radius,
+			},
 		})
 		this.heatPointsModel = new Model(geo, mat)
 	}
@@ -178,7 +178,7 @@ class Heatmap extends Model implements IPlayable {
 			blending: 'max', //由于输出纹理size 为1x1，所以vertexCount次执行片元着色器之后会将热力值写入同一个位置，在混合阶段通过最大值比较后可以获取最终的最大热力值
 			presentationFormat: 'rgba16float',
 			multisampleCount: 1,
-			primitive: { topology: 'point-list' }
+			primitive: { topology: 'point-list' },
 		})
 		this.maxHeatValueModel = new Model(geo, mat)
 	}
@@ -239,9 +239,9 @@ class Heatmap extends Model implements IPlayable {
 						view: heatValTex.createView(),
 						clearValue: [0, 0, 0, 0],
 						loadOp: 'clear',
-						storeOp: 'store'
-					}
-				]
+						storeOp: 'store',
+					},
+				],
 			}
 			const pass = encoder.beginRenderPass(heatRenderPassDesc)
 			this.heatPointsModel.render(renderer, pass, camera)
@@ -256,9 +256,9 @@ class Heatmap extends Model implements IPlayable {
 						view: maxHeatValTex.createView(),
 						clearValue: [0, 0, 0, 0],
 						loadOp: 'clear',
-						storeOp: 'store'
-					}
-				]
+						storeOp: 'store',
+					},
+				],
 			}
 			const pass = encoder.beginRenderPass(renderPassDesc)
 			//this.textures 中包含了 heatValTex 纹理，在 material.getBindGroups 中会根据 webgpu-utils 从 shader 代码中

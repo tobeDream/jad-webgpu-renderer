@@ -26,7 +26,7 @@ class PointMaterial extends Material {
 			fragmentShaderEntry: 'fs',
 			blending: props.blending,
 			storages: { radius: props.radiusStorage },
-			uniforms: { style: { color, radius, currentTime: -1 } }
+			uniforms: { style: { color, radius, currentTime: -1 } },
 		})
 
 		this.hasColorAttribute = props.hasColorAttribute

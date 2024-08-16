@@ -49,8 +49,8 @@ class Renderer {
 				//设置单个buffer上限为800MB，略大于一亿个点的坐标Float32Array大小
 				maxBufferSize: 800 * 1024 * 1024,
 				maxStorageBufferBindingSize: 800 * 1024 * 1024,
-				...props.deviceLimits
-			}
+				...props.deviceLimits,
+			},
 		})
 		if (!device) {
 			throw 'your browser not supports WebGPU'
@@ -65,7 +65,7 @@ class Renderer {
 		this.canvasCtx.configure({
 			device,
 			format: this.presentationFormat,
-			alphaMode: 'premultiplied'
+			alphaMode: 'premultiplied',
 		})
 		this.renderPassDescriptor = {
 			label: 'render pass',
@@ -74,13 +74,13 @@ class Renderer {
 					view: this.canvasCtx.getCurrentTexture().createView(),
 					clearValue: this.clearColor,
 					loadOp: 'clear',
-					storeOp: 'store'
-				}
-			]
+					storeOp: 'store',
+				},
+			],
 		}
 		this.resolutionBuf = device.createBuffer({
 			size: 2 * 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		})
 		this._ready = true
 		this.resize()
@@ -184,7 +184,7 @@ class Renderer {
 			format: outputCanvavTexture.format,
 			usage: GPUTextureUsage.RENDER_ATTACHMENT,
 			size: [outputCanvavTexture.width, outputCanvavTexture.height],
-			sampleCount: 4 //MSAA webgpu只支持采样率为1或者4的多重采样
+			sampleCount: 4, //MSAA webgpu只支持采样率为1或者4的多重采样
 		})
 	}
 }

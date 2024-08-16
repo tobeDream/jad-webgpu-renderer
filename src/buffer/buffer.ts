@@ -53,7 +53,7 @@ class Buffer {
 		const res = device.createBuffer({
 			label: this.id,
 			size: this.size,
-			usage: this.usage
+			usage: this.usage,
 		})
 		return res
 	}

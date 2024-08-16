@@ -74,7 +74,7 @@ class Material {
 			this.uniforms[un] = new Uniform({
 				name: un,
 				def: defs.uniforms[un],
-				value: uniforms[un]
+				value: uniforms[un],
 			})
 		}
 		for (let sn in defs.storages) {
@@ -85,7 +85,7 @@ class Material {
 				this.storages[sn] = new Storage({
 					name: sn,
 					def: defs.storages[sn],
-					value: storages[sn]
+					value: storages[sn],
 				})
 			}
 		}
@@ -143,19 +143,19 @@ class Material {
 			label: 'pipeline-' + this.id,
 			layout: this.bindGroupLayoutDescriptors
 				? device.createPipelineLayout({
-						bindGroupLayouts: this.bindGroupLayoutDescriptors.map((d) => device.createBindGroupLayout(d))
+						bindGroupLayouts: this.bindGroupLayoutDescriptors.map((d) => device.createBindGroupLayout(d)),
 					})
 				: 'auto',
 			vertex: {
 				module: this.shaderModule,
 				entryPoint: this.vsEntry,
-				buffers: vertexBufferLayouts
+				buffers: vertexBufferLayouts,
 			},
 			fragment: {
 				module: this.shaderModule,
 				entryPoint: this.fsEntry,
-				targets: [{ format: this.presentationFormat || presentationFormat }]
-			}
+				targets: [{ format: this.presentationFormat || presentationFormat }],
+			},
 		}
 		if (this.primitive) {
 			pipelineDescriptor.primitive = this.primitive
@@ -166,12 +166,12 @@ class Material {
 				pipelineDescriptor.fragment.targets[0].blend = {
 					color: {
 						srcFactor: 'one',
-						dstFactor: 'one-minus-src-alpha'
+						dstFactor: 'one-minus-src-alpha',
 					},
 					alpha: {
 						srcFactor: 'one',
-						dstFactor: 'one-minus-src-alpha'
-					}
+						dstFactor: 'one-minus-src-alpha',
+					},
 				}
 				break
 			}
@@ -180,12 +180,12 @@ class Material {
 				pipelineDescriptor.fragment.targets[0].blend = {
 					color: {
 						srcFactor: 'one',
-						dstFactor: 'one'
+						dstFactor: 'one',
 					},
 					alpha: {
 						srcFactor: 'one',
-						dstFactor: 'one'
-					}
+						dstFactor: 'one',
+					},
 				}
 				break
 			}
@@ -196,13 +196,13 @@ class Material {
 					color: {
 						srcFactor: 'one',
 						dstFactor: 'one',
-						operation: this.blending
+						operation: this.blending,
 					},
 					alpha: {
 						srcFactor: 'one',
 						dstFactor: 'one',
-						operation: this.blending
-					}
+						operation: this.blending,
+					},
 				}
 			}
 			default: {
@@ -231,7 +231,7 @@ class Material {
 		for (let index of groupIndexList) {
 			const descriptor: GPUBindGroupDescriptor = {
 				layout: this.pipeline.getBindGroupLayout(index),
-				entries: []
+				entries: [],
 			}
 			const entries = descriptor.entries as GPUBindGroupEntry[]
 			for (let un in this.uniforms) {
@@ -251,7 +251,7 @@ class Material {
 				if (!buffer) continue
 				entries.push({
 					binding: uniform.binding,
-					resource: { buffer, offset: uniform.bufferView.offset, size: uniform.size }
+					resource: { buffer, offset: uniform.bufferView.offset, size: uniform.size },
 				})
 			}
 			for (let sn in this.storages) {
@@ -262,7 +262,7 @@ class Material {
 				if (!buffer) continue
 				entries.push({
 					binding: storage.binding,
-					resource: { buffer, offset: storage.bufferView.offset, size: storage.size }
+					resource: { buffer, offset: storage.bufferView.offset, size: storage.size },
 				})
 			}
 			for (let tn in this.textureInfos) {

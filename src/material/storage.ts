@@ -33,7 +33,7 @@ class Storage {
 			resourceName: this._name,
 			size,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-			offset: 0
+			offset: 0,
 		})
 	}
 

@@ -15,7 +15,7 @@ class BufferPool {
 			usage: bufferView.usage,
 			size: bufferView.size,
 			device,
-			bufferViews: [bufferView]
+			bufferViews: [bufferView],
 		})
 		bufferView.buffer = buffer
 		this.bufferMap[buffer.id] = buffer

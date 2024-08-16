@@ -95,9 +95,9 @@ class Geometry {
 					{
 						shaderLocation: shaderLocation || 0,
 						offset: 0,
-						format: attribute.getFormat()
-					}
-				]
+						format: attribute.getFormat(),
+					},
+				],
 			}
 			vertexBufferLayouts.push(bufferLayout)
 		}

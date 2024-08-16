@@ -27,7 +27,7 @@ class Attribute {
 			resourceName: 'attribute_' + this._name,
 			offset: 0,
 			size: options?.capacity ? options.capacity * this._array.BYTES_PER_ELEMENT : this._array.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 		})
 		if (options?.capacity) {
 			this.reallocate(options.capacity)

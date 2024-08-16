@@ -12,7 +12,7 @@ class OrthographicCamera extends ThreeOrthographicCamera implements ICamera {
 		if (!this.projectionMatBuf)
 			this.projectionMatBuf = device.createBuffer({
 				size: 16 * 4,
-				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			})
 		return this.projectionMatBuf
 	}
@@ -21,7 +21,7 @@ class OrthographicCamera extends ThreeOrthographicCamera implements ICamera {
 		if (!this.viewMatBuf)
 			this.viewMatBuf = device.createBuffer({
 				size: 16 * 4,
-				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 			})
 		return this.viewMatBuf
 	}

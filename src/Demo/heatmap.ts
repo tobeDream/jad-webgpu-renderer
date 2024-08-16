@@ -12,8 +12,8 @@ async function main() {
 	const adapter = await navigator.gpu.requestAdapter()
 	const device = await adapter?.requestDevice({
 		requiredLimits: {
-			maxBufferSize: 800 * 1024 * 1024
-		}
+			maxBufferSize: 800 * 1024 * 1024,
+		},
 	})
 	if (!device) return
 
@@ -21,7 +21,7 @@ async function main() {
 	context.configure({
 		device,
 		format: presentationFormat,
-		alphaMode: 'premultiplied'
+		alphaMode: 'premultiplied',
 	})
 
 	const num = 200
@@ -82,7 +82,7 @@ async function main() {
 			@fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
 				return vec4f(1, 0, 0, vsOut.opacity);
 			}
-		`
+		`,
 	})
 
 	const heatPipeline = device.createRenderPipeline({
@@ -95,14 +95,14 @@ async function main() {
 				{
 					arrayStride: 4 * 2,
 					stepMode: 'instance',
-					attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
+					attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }],
 				},
 				{
 					arrayStride: 1 * 4,
 					stepMode: 'instance',
-					attributes: [{ shaderLocation: 1, offset: 0, format: 'uint8x4' }]
-				}
-			]
+					attributes: [{ shaderLocation: 1, offset: 0, format: 'uint8x4' }],
+				},
+			],
 		},
 		fragment: {
 			module: heatShaderModule,
@@ -113,29 +113,29 @@ async function main() {
 					blend: {
 						color: {
 							srcFactor: 'one',
-							dstFactor: 'one'
+							dstFactor: 'one',
 						},
 						alpha: {
 							srcFactor: 'one',
-							dstFactor: 'one'
-						}
-					}
-				}
-			]
-		}
+							dstFactor: 'one',
+						},
+					},
+				},
+			],
+		},
 	})
 
 	const vertexBuffer = device.createBuffer({
 		label: 'points buffer',
 		size: points.byteLength,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 	})
 	device.queue.writeBuffer(vertexBuffer, 0, points)
 
 	const sizesBuffer = device.createBuffer({
 		label: 'size and opacity buffer',
 		size: size.byteLength,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 	})
 	device.queue.writeBuffer(sizesBuffer, 0, size)
 
@@ -143,14 +143,14 @@ async function main() {
 	const resolutionBuffer = device.createBuffer({
 		label: 'Resolution Uniforms',
 		size: resolutionValue.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	})
 	device.queue.writeBuffer(resolutionBuffer, 0, resolutionValue)
 
 	const sizeVal = new Float32Array([radius])
 	const sizeBuffer = device.createBuffer({
 		size: sizeVal.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	})
 	device.queue.writeBuffer(sizeBuffer, 0, sizeVal)
 	const bindGroup = device.createBindGroup({
@@ -158,13 +158,13 @@ async function main() {
 		entries: [
 			{
 				binding: 0,
-				resource: { buffer: resolutionBuffer }
+				resource: { buffer: resolutionBuffer },
 			},
 			{
 				binding: 1,
-				resource: { buffer: sizeBuffer }
-			}
-		]
+				resource: { buffer: sizeBuffer },
+			},
+		],
 	})
 
 	const heatRenderPassDesc: GPURenderPassDescriptor = {
@@ -174,9 +174,9 @@ async function main() {
 				view: context.getCurrentTexture().createView(),
 				clearValue: [0, 0, 0, 0],
 				loadOp: 'clear',
-				storeOp: 'store'
-			}
-		]
+				storeOp: 'store',
+			},
+		],
 	}
 
 	const encoder = device.createCommandEncoder()

@@ -69,9 +69,16 @@ class Geometry {
 		}
 	}
 
-	public setIndex(arr: Uint32Array) {
-		if (!this.index) this.index = new Index(arr)
-		else this.index.array = arr
+	public setIndex(arr: Uint32Array | undefined) {
+		if (!arr) {
+			if (this.index) {
+				this.index.dispose()
+				this.index = null
+			}
+		} else {
+			if (!this.index) this.index = new Index(arr)
+			else this.index.array = arr
+		}
 	}
 
 	public getIndex() {

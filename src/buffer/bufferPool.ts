@@ -45,6 +45,8 @@ class BufferPool {
 	public createBuffers(device: GPUDevice, bufferViewList: BufferView[]) {
 		const bufferViewsByUsage: Record<string, BufferView[]> = {}
 		for (let bv of bufferViewList) {
+			//如果是 uniform buffer，则将 usage 一致的 uniforms 合并到一个 buffer
+			//如果是 storage buffer或者 vertex buffer（attribute），则将 resourceName 相同的buffer合并到一个 buffer
 			const usage = bv.usedInUniform ? bv.usage : bv.resourceName
 			if (!bufferViewsByUsage[usage]) bufferViewsByUsage[usage] = []
 			bufferViewsByUsage[usage].push(bv)

@@ -104,7 +104,7 @@ export const genHeadPointShaderCode = (hasSpeedColor = false) => `
     ${
 		hasSpeedColor
 			? '@group(1) @binding(5) var<storage, read> speedColorList: array<vec4f, 3>;'
-			: '@group(1) @binding(5) var<uniform> pointColor: vec4f;'
+			: '@group(1) @binding(5) var<uniform> headPointColor: vec4f;'
 	}
 
     ${
@@ -201,7 +201,7 @@ export const genHeadPointShaderCode = (hasSpeedColor = false) => `
         }
         let edgeAlpha = smoothstep(0, 0.1, 1 - dis);
 
-        ${hasSpeedColor ? 'return vsOut.color * edgeAlpha;' : 'return pointColor * edgeAlpha;'}
+        ${hasSpeedColor ? 'return vsOut.color * edgeAlpha;' : 'return headPointColor * edgeAlpha;'}
         
     }
 `

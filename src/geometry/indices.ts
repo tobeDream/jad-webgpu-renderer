@@ -46,6 +46,7 @@ class Index {
 	public dispose() {
 		//@ts-ignore
 		this._array = undefined
+		this._bufferView.dispose()
 	}
 }
 

@@ -99,6 +99,8 @@ const paths = new Paths(
 		unplayedColor: [0, 0.7, 0.2, 0.1],
 	}
 )
+//@ts-ignore
+window.p = paths
 
 pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
@@ -117,8 +119,6 @@ const points = new Points({
 		radius: 10,
 	},
 })
-//@ts-ignore
-window.p = points
 
 const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
 const heat = new Heatmap({
@@ -180,7 +180,7 @@ const animate = (time: number) => {
 	// 	renderer.render(scene, camera)
 	// 	lastTimestamp = time
 	// }
-	paths.updateTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	requestAnimationFrame(animate)
 }

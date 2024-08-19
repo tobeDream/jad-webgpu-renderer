@@ -27,7 +27,7 @@ const defaultStyle = {
 	colorBySpeed: false,
 }
 
-type Style = {
+export type Style = {
 	color?: Color
 	lineWidth?: number
 	unplayedColor?: Color
@@ -50,7 +50,6 @@ type IProps = {
 }
 
 export class Path extends Model {
-	private _startTimes?: Float32Array
 	constructor(props: IProps) {
 		const style = props.style || {}
 		const drawLine = !!style.drawLine
@@ -65,24 +64,42 @@ export class Path extends Model {
 
 		super(geometry, material)
 
-		if (!drawLine) {
-			const pathIndexRes = Path.extendLineToMesh(props.position)
-			if (!pathIndexRes) return
-			const { indexArr } = pathIndexRes
-			this.geometry.setIndex(indexArr)
-		} else {
-			this.geometry.vertexCount = props.position.length / 2
-		}
-
-		this._startTimes = props.startTime
-	}
-
-	get startTimes() {
-		return this._startTimes
+		this._id = props.pathId
+		this.changeDrawLine(drawLine, props.position)
 	}
 
 	get material() {
 		return this._material as PathMaterial
+	}
+
+	get positions() {
+		return this.material.getStorage('positions')?.value as Float32Array
+	}
+
+	get startTimes() {
+		return this.material.getStorage('startTimes')?.value as Float32Array | null
+	}
+
+	get drawLine() {
+		return this.material.primitive?.topology === 'line-strip'
+	}
+
+	public changeDrawLine(drawLine: boolean, position: Float32Array) {
+		if (!drawLine) {
+			//将 position 和 startTime 等 attribute 放在storage 中，可以节省一半的显存开销，因为 Path 面两侧顶点的 position 和 startTime 是一样的。
+			//只需要通过 vertex_index 从 storage 中获取对应的 position 和 startTime 即可，
+			//这样可以保证无论是 line-strip还是 triangle-list 模式渲染，position 和 startTime 存储方式和 vs 中访问的方式不变
+			const pathIndexRes = Path.extendLineToMesh(position)
+			if (!pathIndexRes) return
+			const { indexArr } = pathIndexRes
+			this.geometry.setIndex(indexArr)
+		} else {
+			const index = this.geometry.getIndex()
+			if (index) {
+				this.geometry.setIndex(undefined)
+			}
+			this.geometry.vertexCount = position.length / 2
+		}
 	}
 
 	private static extendLineToMesh(positions: Float32Array) {
@@ -107,6 +124,7 @@ export class Path extends Model {
 export class Paths implements IRenderable {
 	private _id = 'paths_' + genId()
 	private _style: Style
+	private _pathsStyle: Record<string, Style>
 	protected _visible = true
 	protected _renderOrder = 0
 	protected bufferPool = new BufferPool()
@@ -138,10 +156,14 @@ export class Paths implements IRenderable {
 	 */
 	constructor(paths: IProps[], style?: Style) {
 		this._style = deepMerge(defaultStyle, style || {})
+		this._pathsStyle = {}
 		for (let p of paths) {
+			if (p.style) {
+				this._pathsStyle[p.pathId] = p.style
+			}
 			const pathStyle = deepMerge(this._style, p.style || {})
 			const pathModel = new Path({ ...p, style: pathStyle })
-			pathModel.bufferPool = this.bufferPool
+			pathModel.bufferPool = this.bufferPool //通过将一个 Paths下的所有 PathModel 的 bufferPool 设为同一个，保证了在创建 buffer 时各个Path 的不同 attribute 共用同一个 buffer
 			this.pathModelList.push(pathModel)
 			//用 line 绘制动态轨迹时，需添加轨迹头部点，以标识轨迹当前运行的位置
 			if (!!p.startTime && p.style?.headPointVisible) {
@@ -154,12 +176,60 @@ export class Paths implements IRenderable {
 		return this._id
 	}
 
+	public appendPaths(paths: IProps[]) {}
+
+	public setStyle(style: Style, pathIds?: string[]) {
+		if (!pathIds) {
+			this._style = deepMerge(this._style, style)
+		} else {
+			for (let pid of pathIds) {
+				let pathStyle = this._pathsStyle[pid] || {}
+				this._pathsStyle[pid] = deepMerge(pathStyle, style)
+			}
+		}
+		const pathIdsToChanged = pathIds || this.pathModelList.map((p) => p.id)
+		for (let id of pathIdsToChanged) {
+			const pathModel = this.pathModelList.find((p) => p.id === id)
+			const _style = deepMerge(this._style, this._pathsStyle[id] || {})
+			if (pathModel) {
+				if ('headPointVisible' in _style) {
+					const existedHeadPointIndex = this.headPointList.findIndex((p) => p.id === id)
+					if (!_style.headPointVisible && existedHeadPointIndex !== -1) {
+						this.headPointList[existedHeadPointIndex].geometry.dispose()
+						this.headPointList[existedHeadPointIndex].material.dispose()
+						this.headPointList.splice(existedHeadPointIndex, 1)
+					} else if (_style.headPointVisible && existedHeadPointIndex === -1 && pathModel.startTimes) {
+						this.createHeadPoint(pathModel, _style, pathModel.positions, pathModel.startTimes)
+					}
+				}
+				if ('drawLine' in _style && _style['drawLine'] !== pathModel.drawLine) {
+					pathModel.changeDrawLine(_style.drawLine, pathModel.positions)
+				}
+				pathModel.material.changeStyle(_style)
+			}
+			const headPointModel = this.headPointList.find((h) => h.id === id)
+			if (headPointModel) {
+				for (let k in _style) {
+					if (k === 'colorBySpeed') {
+						headPointModel.material.changeShaderCode(genHeadPointShaderCode(!!_style.colorBySpeed))
+					} else if (k === 'speedColorList') {
+						const speedColorList = new Float32Array(_style.speedColorList.flat())
+						headPointModel.material.updateStorage('speedColorList', speedColorList)
+					} else {
+						//@ts-ignore
+						headPointModel.material.updateUniform(k, _style[k])
+					}
+				}
+			}
+		}
+	}
+
 	private createHeadPoint(pathModel: Path, style: Required<Style>, position: Float32Array, startTime?: Float32Array) {
 		const positionBufferView = pathModel.material.getStorage('positions')?.bufferView
 		const startTimeBufferView = pathModel.material.getStorage('startTimes')?.bufferView
 		let headPointColor = style.headPointColor || style.color
 		const headPointSize = style.headPointSize
-		let speedColorList = new Float32Array(style.speedColorList.flat())
+		const speedColorList = new Float32Array(style.speedColorList.flat())
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
 		const material = new Material({
@@ -168,7 +238,7 @@ export class Paths implements IRenderable {
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: style.blending,
-			uniforms: { time: 0, size: headPointSize, pointIndex: 0, pointColor: headPointColor },
+			uniforms: { time: 0, size: headPointSize, pointIndex: 0, headPointColor },
 			storages: {
 				positions: position,
 				startTimes: startTime,
@@ -176,6 +246,7 @@ export class Paths implements IRenderable {
 			},
 		})
 		const positionStorage = material.getStorage('positions')
+		//headPoint 和 path 共用同一个 position storage buffer。startTime 同理
 		if (positionStorage && positionBufferView) {
 			positionStorage.bufferView = positionBufferView
 		}
@@ -206,7 +277,7 @@ export class Paths implements IRenderable {
 		this._renderOrder = r
 	}
 
-	updateTime(time: number) {
+	updateCurrentTime(time: number) {
 		for (let p of this.pathModelList) {
 			p.material.updateTime(time)
 		}

@@ -1,6 +1,7 @@
 import Material from './material'
 import { Blending, Color } from '../types'
 import { genShaderCode } from './shaders/path'
+import { Style } from '../Paths'
 
 type IProps = {
 	position: Float32Array
@@ -14,6 +15,8 @@ type IProps = {
 }
 
 class PathMaterial extends Material {
+	private hasTime: boolean
+	private hasTail: boolean
 	constructor(props: IProps) {
 		const hasTime = !!props.startTime
 		const color = props.color || [1, 0, 0, 1]
@@ -30,6 +33,8 @@ class PathMaterial extends Material {
 			uniforms: { style: { color, lineWidth, unplayedColor }, time: 0, tailDuration },
 			primitive: drawLine ? { topology: 'line-strip' } : { topology: 'triangle-list' },
 		})
+		this.hasTime = hasTime
+		this.hasTail = hasTime && !!props.tailDuration
 	}
 
 	public updateTime(time: number) {
@@ -41,6 +46,33 @@ class PathMaterial extends Material {
 		const styleUniform = this.getUniform('style')
 		if (!styleUniform || !(uniformName in styleUniform.value)) return
 		styleUniform.updateValue({ ...styleUniform.value, [uniformName]: value })
+	}
+
+	public changeStyle(style: Style) {
+		for (let k in style) {
+			if (k === 'blending') {
+				this.changeBlending(style['blending'])
+			} else if (k === 'drawLine') {
+				const topology = style.drawLine ? 'line-strip' : 'triangle-list'
+				if (topology !== this.primitive?.topology) {
+					this.changePrimitive({ topology })
+				}
+				const vsEntry = style.drawLine ? 'lineVs' : 'vs'
+				if (vsEntry !== this.vsEntry) {
+					this.changeVsEntry(vsEntry)
+				}
+			} else if (k === 'tailDuration') {
+				if (this.hasTime) {
+					if (this.hasTail !== !!style.tailDuration) {
+						this.changeShaderCode(genShaderCode(this.hasTime, !!style.tailDuration))
+					}
+				}
+				this.updateUniform('tailDuration', style.tailDuration)
+			} else {
+				//@ts-ignore
+				this.updateUniform(k, style[k])
+			}
+		}
 	}
 }
 

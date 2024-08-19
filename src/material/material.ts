@@ -25,8 +25,8 @@ type IProps = {
 class Material {
 	private id: string
 	private pipeline: GPURenderPipeline | null = null
-	private vsEntry: string
-	private fsEntry: string
+	private _vsEntry: string
+	private _fsEntry: string
 	protected code: string
 	protected uniforms: Record<string, Uniform> = {}
 	protected storages: Record<string, Storage> = {}
@@ -37,23 +37,35 @@ class Material {
 	private bindGroupLayoutDescriptors?: GPUBindGroupLayoutDescriptor[]
 	private presentationFormat?: GPUTextureFormat
 	private multisampleCount?: number
-	private primitive?: GPUPrimitiveState
+	private _primitive?: GPUPrimitiveState
 
 	constructor(props: IProps) {
 		this.id = props.id
 		this.code = props.renderCode
-		this.vsEntry = props.vertexShaderEntry || 'vs'
-		this.fsEntry = props.fragmentShaderEntry || 'fs'
+		this._vsEntry = props.vertexShaderEntry || 'vs'
+		this._fsEntry = props.fragmentShaderEntry || 'fs'
 		this.bindGroupLayoutDescriptors = props.renderBindGroupLayoutDescriptors
 		this.presentationFormat = props.presentationFormat
 		if (props.blending) this._blending = props.blending
 		this._defs = this.parseShaderCode(props)
 		this.multisampleCount = props.multisampleCount
-		this.primitive = props.primitive
+		this._primitive = props.primitive
 	}
 
 	get blending() {
 		return this._blending
+	}
+
+	get primitive() {
+		return this._primitive
+	}
+
+	get vsEntry() {
+		return this._vsEntry
+	}
+
+	get fsEntry() {
+		return this._fsEntry
 	}
 
 	public changeBlending(b: Blending | undefined) {
@@ -64,6 +76,21 @@ class Material {
 	public changeShaderCode(renderCode: string) {
 		this.code = renderCode
 		this.shaderModule = null
+		this.pipeline = null
+	}
+
+	public changePrimitive(p?: GPUPrimitiveState) {
+		this._primitive = p
+		this.pipeline = null
+	}
+
+	public changeVsEntry(entry: string) {
+		this._vsEntry = entry
+		this.pipeline = null
+	}
+
+	public changeFsEntry(entry: string) {
+		this._fsEntry = entry
 		this.pipeline = null
 	}
 

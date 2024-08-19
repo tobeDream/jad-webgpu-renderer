@@ -43,6 +43,16 @@ class Buffer {
 		return this._buffer
 	}
 
+	removeBufferView(bv: BufferView) {
+		const index = this._bufferViews.findIndex((b) => b === bv)
+		if (index > -1) {
+			this._bufferViews.splice(index, 1)
+			if (this.bufferViews.length === 0) {
+				this.dispose()
+			}
+		}
+	}
+
 	reallocate(device: GPUDevice, size: number) {
 		this.dispose()
 		this._size = size

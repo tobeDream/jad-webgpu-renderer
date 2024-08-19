@@ -97,9 +97,24 @@ class BufferView {
 		return true
 	}
 
+	public clone() {
+		const bv = new BufferView({
+			resourceName: this.resourceName,
+			size: this.size,
+			usage: this.usage,
+			offset: this.offset,
+		})
+		if (this.buffer) {
+			this.buffer.addBufferView(bv)
+			bv.buffer = this.buffer
+		}
+		return bv
+	}
+
 	dispose() {
 		//@ts-ignore
 		this._bufferPool = undefined
+		this.buffer?.removeBufferView(this)
 	}
 }
 

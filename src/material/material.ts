@@ -127,9 +127,17 @@ class Material {
 		return uniform || null
 	}
 
+	public getUniforms() {
+		return this.uniforms
+	}
+
 	public getStorage(name: string): Storage | null {
 		const storage = this.storages[name]
 		return storage || null
+	}
+
+	public getStorages() {
+		return this.storages
 	}
 
 	public updateUniform(uniformName: string, value: any) {
@@ -308,6 +316,12 @@ class Material {
 	public dispose() {
 		//@ts-ignore
 		this.bufferPool = undefined
+		for (let un in this.uniforms) {
+			this.uniforms[un].dispose()
+		}
+		for (let sn in this.storages) {
+			this.storages[sn].dispose()
+		}
 	}
 }
 

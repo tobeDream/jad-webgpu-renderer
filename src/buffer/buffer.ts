@@ -12,6 +12,7 @@ class Buffer {
 	private _id: string
 	private _buffer: GPUBuffer
 	private _size: number
+	private _offset: number
 	private _usage: number
 	private _bufferViews: BufferView[] = []
 
@@ -19,6 +20,7 @@ class Buffer {
 		this._id = 'buffer_' + genId()
 		this._usage = props.usage
 		this._size = props.size
+		this._offset = props.size
 		this._buffer = this.createBuffer(props.device)
 		this._bufferViews = props.bufferViews
 	}
@@ -43,6 +45,20 @@ class Buffer {
 		return this._buffer
 	}
 
+	get offset() {
+		return this._offset
+	}
+
+	set offset(v: number) {
+		this._offset = v
+	}
+
+	addBufferView(bv: BufferView) {
+		if (!this.bufferViews.includes(bv)) {
+			this.bufferViews.push(bv)
+		}
+	}
+
 	removeBufferView(bv: BufferView) {
 		const index = this._bufferViews.findIndex((b) => b === bv)
 		if (index > -1) {
@@ -53,11 +69,11 @@ class Buffer {
 		}
 	}
 
-	reallocate(device: GPUDevice, size: number) {
-		this.dispose()
-		this._size = size
-		this.createBuffer(device)
-	}
+	// reallocate(device: GPUDevice, size: number) {
+	// 	this.dispose()
+	// 	this._size = size
+	// 	this.createBuffer(device)
+	// }
 
 	createBuffer(device: GPUDevice) {
 		const res = device.createBuffer({

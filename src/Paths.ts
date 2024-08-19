@@ -121,6 +121,48 @@ export class Path extends Model {
 	}
 }
 
+class HeadPoint extends Model {
+	constructor(pathModel: Path, style: Required<Style>, bufferPool: BufferPool) {
+		const positionBufferView = pathModel.material.getStorage('positions')?.bufferView
+		const startTimeBufferView = pathModel.material.getStorage('startTimes')?.bufferView
+		let headPointColor = style.headPointColor || style.color
+		const headPointSize = style.headPointSize
+		const speedColorList = new Float32Array(style.speedColorList.flat())
+		const geometry = new Geometry()
+		geometry.vertexCount = 6
+		const material = new Material({
+			id: 'heatPoint',
+			renderCode: genHeadPointShaderCode(!!style.colorBySpeed),
+			vertexShaderEntry: 'vs',
+			fragmentShaderEntry: 'fs',
+			blending: style.blending,
+			uniforms: { time: 0, size: headPointSize, pointIndex: 0, headPointColor },
+			storages: { speedColorList },
+		})
+		const positionStorage = material.getStorage('positions')
+		//headPoint 和 path 共用同一个 position storage buffer。startTime 同理
+		if (positionStorage && positionBufferView) {
+			positionStorage.bufferView = positionBufferView
+		}
+		const startTimeStorage = material.getStorage('startTimes')
+		if (startTimeStorage && startTimeBufferView) {
+			startTimeStorage.bufferView = startTimeBufferView
+		}
+
+		super(geometry, material)
+		this.id = pathModel.id
+		this.bufferPool = bufferPool
+	}
+
+	dispose() {
+		this._geometry.dispose()
+		const uniforms = this.material.getUniforms()
+		for (let un in uniforms) {
+			uniforms[un].dispose()
+		}
+	}
+}
+
 export class Paths implements IRenderable {
 	private _id = 'paths_' + genId()
 	private _style: Style
@@ -167,7 +209,7 @@ export class Paths implements IRenderable {
 			this.pathModelList.push(pathModel)
 			//用 line 绘制动态轨迹时，需添加轨迹头部点，以标识轨迹当前运行的位置
 			if (!!p.startTime && p.style?.headPointVisible) {
-				this.createHeadPoint(pathModel, pathStyle, p.position, p.startTime)
+				this.headPointList.push(new HeadPoint(pathModel, pathStyle, this.bufferPool))
 			}
 		}
 	}
@@ -195,11 +237,10 @@ export class Paths implements IRenderable {
 				if ('headPointVisible' in _style) {
 					const existedHeadPointIndex = this.headPointList.findIndex((p) => p.id === id)
 					if (!_style.headPointVisible && existedHeadPointIndex !== -1) {
-						this.headPointList[existedHeadPointIndex].geometry.dispose()
-						this.headPointList[existedHeadPointIndex].material.dispose()
+						this.headPointList[existedHeadPointIndex].dispose()
 						this.headPointList.splice(existedHeadPointIndex, 1)
 					} else if (_style.headPointVisible && existedHeadPointIndex === -1 && pathModel.startTimes) {
-						this.createHeadPoint(pathModel, _style, pathModel.positions, pathModel.startTimes)
+						this.headPointList.push(new HeadPoint(pathModel, _style, this.bufferPool))
 					}
 				}
 				if ('drawLine' in _style && _style['drawLine'] !== pathModel.drawLine) {
@@ -222,43 +263,6 @@ export class Paths implements IRenderable {
 				}
 			}
 		}
-	}
-
-	private createHeadPoint(pathModel: Path, style: Required<Style>, position: Float32Array, startTime?: Float32Array) {
-		const positionBufferView = pathModel.material.getStorage('positions')?.bufferView
-		const startTimeBufferView = pathModel.material.getStorage('startTimes')?.bufferView
-		let headPointColor = style.headPointColor || style.color
-		const headPointSize = style.headPointSize
-		const speedColorList = new Float32Array(style.speedColorList.flat())
-		const geometry = new Geometry()
-		geometry.vertexCount = 6
-		const material = new Material({
-			id: 'heatPoint',
-			renderCode: genHeadPointShaderCode(!!style.colorBySpeed),
-			vertexShaderEntry: 'vs',
-			fragmentShaderEntry: 'fs',
-			blending: style.blending,
-			uniforms: { time: 0, size: headPointSize, pointIndex: 0, headPointColor },
-			storages: {
-				positions: position,
-				startTimes: startTime,
-				speedColorList,
-			},
-		})
-		const positionStorage = material.getStorage('positions')
-		//headPoint 和 path 共用同一个 position storage buffer。startTime 同理
-		if (positionStorage && positionBufferView) {
-			positionStorage.bufferView = positionBufferView
-		}
-		const startTimeStorage = material.getStorage('startTimes')
-		if (startTimeStorage && startTimeBufferView) {
-			startTimeStorage.bufferView = startTimeBufferView
-		}
-
-		const pointModel = new Model(geometry, material)
-		pointModel.id = pathModel.id
-		pointModel.bufferPool = this.bufferPool
-		this.headPointList.push(pointModel)
 	}
 
 	get visible() {

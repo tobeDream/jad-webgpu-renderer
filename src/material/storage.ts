@@ -93,6 +93,11 @@ class Storage {
 			if (res) this.needsUpdate = false
 		}
 	}
+
+	dispose() {
+		this.bufferView.dispose()
+		this._value = undefined
+	}
 }
 
 export default Storage

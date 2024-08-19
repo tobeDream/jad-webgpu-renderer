@@ -61,22 +61,22 @@ for (let i = 0; i < num; ++i) {
 
 const paths = new Paths(
 	[
-		{
-			pathId: '1',
-			position: pos,
-			startTime: timestamps,
-			// colorBySpeed: true,
-			style: {
-				color: [1, 0.3, 0.2, 0.7],
-				lineWidth: 10,
-				headPointColor: [1, 0.9, 0.3, 1],
-				headPointSize: 10,
-				headPointVisible: false,
-				blending: 'normalBlending',
-				drawLine: false,
-				tailDuration: 0,
-			},
-		},
+		// {
+		// 	pathId: '1',
+		// 	position: pos,
+		// 	startTime: timestamps,
+		// 	// colorBySpeed: true,
+		// 	style: {
+		// 		color: [1, 0.3, 0.2, 0.7],
+		// 		lineWidth: 10,
+		// 		headPointColor: [1, 0.9, 0.3, 1],
+		// 		headPointSize: 10,
+		// 		headPointVisible: false,
+		// 		blending: 'normalBlending',
+		// 		drawLine: false,
+		// 		tailDuration: 0,
+		// 	},
+		// },
 		{
 			pathId: '2',
 			position: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
@@ -122,10 +122,10 @@ const points = new Points({
 
 const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
 const heat = new Heatmap({
-	// points: heatPoints.subarray(0, 100),
-	// startTime: timestamps.subarray(0, 50),
-	points: heatPoints,
-	total: 400,
+	points: heatPoints.subarray(0, 100),
+	startTime: timestamps.subarray(0, 50),
+	// points: heatPoints,
+	// total: 400,
 	style: {
 		radius: 30,
 		blur: 0.8,
@@ -148,10 +148,10 @@ window.h = heat
 // 	if (i > num) {
 // 		clearInterval(timer)
 // 	} else {
-// 		points.appendPoints({
-// 			position: pos.subarray(i * 2, (i + 50) * 2),
-// 			startTime: timestamps.subarray(i, i + 50),
-// 		})
+// 		// points.appendPoints({
+// 		// 	position: pos.subarray(i * 2, (i + 50) * 2),
+// 		// 	startTime: timestamps.subarray(i, i + 50),
+// 		// })
 // 		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
 // 	}
 // 	i += 50
@@ -175,9 +175,9 @@ const animate = (time: number) => {
 	}
 	// const timeElapsed = time - lastTimestamp
 	// if (timeElapsed >= interval) {
-	// 	points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	// 	// points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	// 	heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-	// 	renderer.render(scene, camera)
+	// 	// renderer.render(scene, camera)
 	// 	lastTimestamp = time
 	// }
 	paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])

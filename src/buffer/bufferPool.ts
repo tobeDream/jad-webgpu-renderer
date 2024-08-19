@@ -42,6 +42,10 @@ class BufferPool {
 		this.bufferMap[newBuffer.id] = newBuffer
 	}
 
+	public createBuffer(device: GPUDevice, bv: BufferView) {
+		const usage = bv.usedInUniform ? bv.usage : bv.resourceName
+	}
+
 	public createBuffers(device: GPUDevice, bufferViewList: BufferView[]) {
 		const bufferViewsByUsage: Record<string, BufferView[]> = {}
 		for (let bv of bufferViewList) {

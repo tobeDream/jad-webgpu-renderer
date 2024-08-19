@@ -1,7 +1,7 @@
 import Material from './material'
 import { Blending, Color } from '../types'
 import { genShaderCode } from './shaders/path'
-import { Style } from '../Paths'
+import { Style } from '../Path/Paths'
 
 type IProps = {
 	position: Float32Array

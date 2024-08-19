@@ -3,7 +3,7 @@ import PerspectiveCamera from '@/camera/perspectiveCamera'
 import Renderer from '../Renderer'
 import Scene from '../Scene'
 import Points from '../Points/Points'
-import { Paths } from '../Paths'
+import { Paths } from '../Path/Paths'
 import Heatmap from '../Heatmap/Heatmap'
 // import * as moment from 'moment'
 

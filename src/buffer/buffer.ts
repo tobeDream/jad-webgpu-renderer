@@ -4,23 +4,30 @@ import BufferView from './bufferView'
 export type IProps = {
 	usage: number
 	size: number
+	capacity: number
+	resourceName: string
 	device: GPUDevice
 	bufferViews: BufferView[]
 }
+let i = 0
 
 class Buffer {
 	private _id: string
 	private _buffer: GPUBuffer
 	private _size: number
+	private _capacity: number
 	private _offset: number
 	private _usage: number
+	private _resourceName: string
 	private _bufferViews: BufferView[] = []
 
 	constructor(props: IProps) {
-		this._id = 'buffer_' + genId()
+		this._id = `buffer_${props.resourceName}_${i++}`
 		this._usage = props.usage
 		this._size = props.size
+		this._capacity = props.capacity
 		this._offset = props.size
+		this._resourceName = props.resourceName
 		this._buffer = this.createBuffer(props.device)
 		this._bufferViews = props.bufferViews
 	}
@@ -35,6 +42,18 @@ class Buffer {
 
 	get size() {
 		return this._size
+	}
+
+	set size(s: number) {
+		this._size = s
+	}
+
+	get capacity() {
+		return this._capacity
+	}
+
+	get resourceName() {
+		return this._resourceName
 	}
 
 	get bufferViews() {
@@ -78,7 +97,7 @@ class Buffer {
 	createBuffer(device: GPUDevice) {
 		const res = device.createBuffer({
 			label: this.id,
-			size: this.size,
+			size: this.capacity,
 			usage: this.usage,
 		})
 		return res

@@ -38,7 +38,7 @@ class Points extends Model implements IPlayable {
 		const geometry = new Geometry()
 		const style = deepMerge(defaultStyle, props.style || {})
 		const total = props.total || props.position.length / 2
-		const radiusStorage = new RadiusStorage({ data: props.radius })
+		const radiusStorage = new RadiusStorage({ data: props.radius, total })
 		const material = new PointMaterial({
 			...defaultStyle,
 			...style,

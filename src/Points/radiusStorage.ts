@@ -3,7 +3,7 @@ import { packUint8ToUint32, unpackUint32ToUint8 } from '@/utils'
 
 type IProps = {
 	data?: Uint8Array
-	capacity?: number
+	total?: number
 }
 
 export const transformRadiusArray = (data: Uint8Array | { value: number; total: number }) => {
@@ -32,6 +32,9 @@ class RadiusStorage extends Storage {
 	constructor(props: IProps) {
 		const radiusUint32Array = props.data ? transformRadiusArray(props.data) : undefined
 		super({ name: 'radius', value: radiusUint32Array })
+		if (props.total && props.data && props.data.length < props.total) {
+			this.reallocate(props.total)
+		}
 	}
 
 	get hasData() {

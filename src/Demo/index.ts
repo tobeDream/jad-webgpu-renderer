@@ -79,7 +79,7 @@ const paths = new Paths(
 		// },
 		{
 			pathId: '2',
-			position: pos.map((p, i) => (i % 2 === 1 ? p * 1.3 : p)),
+			position: pos.map((p, i) => (i % 2 === 1 ? p * -1.1 : p)),
 			startTime: timestamps.map((t) => t - 1000),
 			// colorBySpeed: true,
 			style: {
@@ -100,17 +100,38 @@ const paths = new Paths(
 	}
 )
 //@ts-ignore
-window.p = paths
+window.t = paths
+
+setTimeout(() => {
+	paths.appendPaths([
+		{
+			pathId: '1',
+			position: pos,
+			startTime: timestamps,
+			// colorBySpeed: true,
+			style: {
+				color: [1, 0.3, 0.2, 0.5],
+				lineWidth: 6,
+				headPointColor: [1, 0.9, 0.3, 1],
+				headPointSize: 10,
+				headPointVisible: false,
+				blending: 'normalBlending',
+				drawLine: false,
+				tailDuration: 0,
+			},
+		},
+	])
+}, 2000)
 
 pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
-	// position: pos.subarray(0, 100),
-	// color: color.slice(0, 200),
-	// radius: size.slice(0, 50),
-	// startTime: timestamps.subarray(0, 50),
-	position: pos,
-	color,
-	radius: size,
+	position: pos.subarray(0, 100),
+	color: color.slice(0, 200),
+	radius: size.slice(0, 50),
+	startTime: timestamps.subarray(0, 50),
+	// position: pos,
+	// color,
+	// radius: size,
 	// startTime: timestamps,
 	// total: 1000,
 	style: {
@@ -119,13 +140,15 @@ const points = new Points({
 		radius: 10,
 	},
 })
+//@ts-ignore
+window.p = points
 
 const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
 const heat = new Heatmap({
 	points: heatPoints.subarray(0, 100),
 	startTime: timestamps.subarray(0, 50),
 	// points: heatPoints,
-	// total: 400,
+	total: 400,
 	style: {
 		radius: 30,
 		blur: 0.8,
@@ -143,25 +166,25 @@ const heat = new Heatmap({
 //@ts-ignore
 window.h = heat
 
-// let i = 50
-// const timer = setInterval(() => {
-// 	if (i > num) {
-// 		clearInterval(timer)
-// 	} else {
-// 		// points.appendPoints({
-// 		// 	position: pos.subarray(i * 2, (i + 50) * 2),
-// 		// 	startTime: timestamps.subarray(i, i + 50),
-// 		// })
-// 		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
-// 	}
-// 	i += 50
-// }, 500)
+let i = 50
+const timer = setInterval(() => {
+	if (i > num) {
+		clearInterval(timer)
+	} else {
+		points.appendPoints({
+			position: pos.subarray(i * 2, (i + 50) * 2),
+			startTime: timestamps.subarray(i, i + 50),
+		})
+		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+	}
+	i += 50
+}, 500)
 // // line.visible = false
 heat.renderOrder = 1
 points.renderOrder = 0
 // path.renderOrder = 2
-// scene.addModel(heat)
-// scene.addModel(points)
+scene.addModel(heat)
+scene.addModel(points)
 scene.addModel(paths)
 
 let interval = 60
@@ -173,29 +196,17 @@ const animate = (time: number) => {
 		lastTimestamp = time
 		start = lastTimestamp
 	}
-	// const timeElapsed = time - lastTimestamp
-	// if (timeElapsed >= interval) {
-	// 	// points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-	// 	heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-	// 	// renderer.render(scene, camera)
-	// 	lastTimestamp = time
-	// }
+	const timeElapsed = time - lastTimestamp
+	if (timeElapsed >= interval) {
+		points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+		heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+		// renderer.render(scene, camera)
+		lastTimestamp = time
+	}
 	paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	requestAnimationFrame(animate)
 }
 requestAnimationFrame(animate)
 
-// setTimeout(() => {
-// 	// points.highlights([1, 10, 30, 50])
-// 	// renderer.render(scene, camera)
-// 	p.setStyle({ color: [1, 1, 0, 1], radius: 50 }, [10, 30, 60, 100, 200, 300])
-// }, 1000)
-
 window.addEventListener('resize', renderer.resize)
-
-//@ts-ignore
-// window.f = (t) => {
-// 	paths.updateTime(t)
-// 	renderer.render(scene, camera)
-// }

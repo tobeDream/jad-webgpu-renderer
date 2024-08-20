@@ -64,7 +64,20 @@ export class Paths implements IRenderable {
 		return this._id
 	}
 
-	public appendPaths(paths: PathProps[]) {}
+	public appendPaths(paths: PathProps[]) {
+		for (let p of paths) {
+			if (p.style) {
+				this._pathsStyle[p.pathId] = p.style
+			}
+			const pathStyle = deepMerge(this._style, p.style || {})
+			const pathModel = new Path({ ...p, style: pathStyle })
+			pathModel.bufferPool = this.bufferPool
+			this.pathModelList.push(pathModel)
+			if (!!p.startTime && p.style?.headPointVisible) {
+				this.headPointList.push(new HeadPoint(pathModel, pathStyle, this.bufferPool))
+			}
+		}
+	}
 
 	public setStyle(style: Style, pathIds?: string[]) {
 		if (!pathIds) {

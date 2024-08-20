@@ -282,6 +282,7 @@ class Material {
 				} else {
 					if (uniform.needsUpdate) uniform.updateBuffer(device, bufferPool)
 					buffer = uniform.bufferView?.GPUBuffer || null
+					// console.log(buffer?.label)
 				}
 				if (!buffer) continue
 				entries.push({

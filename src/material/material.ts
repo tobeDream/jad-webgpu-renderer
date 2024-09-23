@@ -105,14 +105,15 @@ class Material {
 			})
 		}
 		for (let sn in defs.storages) {
-			if (storages[sn] instanceof Storage) {
-				storages[sn].def = defs.storages[sn]
-				this.storages[sn] = storages[sn]
+			const storage = storages[sn]
+			if (storage instanceof Storage) {
+				storage.def = defs.storages[sn]
+				this.storages[sn] = storage
 			} else {
 				this.storages[sn] = new Storage({
 					name: sn,
 					def: defs.storages[sn],
-					value: storages[sn],
+					value: storage,
 				})
 			}
 		}

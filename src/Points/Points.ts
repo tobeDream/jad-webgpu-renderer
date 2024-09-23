@@ -15,7 +15,7 @@ const defaultStyle = {
 type IProps = {
 	position: Float32Array
 	radius?: Uint8Array
-	color?: number[]
+	color?: Uint8Array
 	startTime?: Float32Array
 	total?: number
 	style?: {
@@ -38,13 +38,13 @@ class Points extends Model implements IPlayable {
 		const geometry = new Geometry()
 		const style = deepMerge(defaultStyle, props.style || {})
 		const total = props.total || props.position.length / 2
-		const radiusStorage = new RadiusStorage({ data: props.radius, total })
+		// const radiusStorage = new RadiusStorage({ data: props.radius, total })
 		const material = new PointMaterial({
 			...defaultStyle,
 			...style,
 			hasColorAttribute: !!props.color,
 			total,
-			radiusStorage,
+			// radiusStorage,
 			hasTime: !!props.startTime,
 		})
 
@@ -72,6 +72,11 @@ class Points extends Model implements IPlayable {
 		return this.material.getStorage('radius') as RadiusStorage
 	}
 
+	/**
+	 * 设置模型的样式
+	 * @param style
+	 * @param pointIndices 可选，表示要更新的散点的索引，如果不传递，更新所有散点的样式
+	 */
 	setStyle(style: Exclude<IProps['style'], undefined>, pointIndices?: number[]) {
 		if (!pointIndices) {
 			this._style = deepMerge(this._style, style)
@@ -144,10 +149,10 @@ class Points extends Model implements IPlayable {
 			const colorArray = new Uint32Array(props.color.length / 4)
 			for (let i = 0; i < props.color.length / 4; ++i) {
 				const color = packUint8ToUint32([
-					props.color[i * 4 + 0] * 255,
-					props.color[i * 4 + 1] * 255,
-					props.color[i * 4 + 2] * 255,
-					props.color[i * 4 + 3] * 255,
+					props.color[i * 4 + 0],
+					props.color[i * 4 + 1],
+					props.color[i * 4 + 2],
+					props.color[i * 4 + 3],
 				])
 				colorArray[i] = color
 			}

@@ -9,8 +9,7 @@ export type IProps = {
 	blending: Blending
 	color: Color
 	radius: number
-	hasRadiusAttribute: boolean
-	// radiusStorage: RadiusStorage
+	radiusStorage: RadiusStorage
 	hasTime?: boolean
 }
 
@@ -22,11 +21,11 @@ class PointMaterial extends Material {
 		const { color, radius } = props
 		super({
 			id: 'point',
-			renderCode: getShaderCode(props.hasColorAttribute, props.hasColorAttribute, !!props.hasTime),
+			renderCode: getShaderCode(props.hasColorAttribute, props.radiusStorage.hasData, !!props.hasTime),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: props.blending,
-			// storages: { radius: props.radiusStorage },
+			storages: { radius: props.radiusStorage },
 			uniforms: { style: { color, radius, currentTime: -1 } },
 		})
 

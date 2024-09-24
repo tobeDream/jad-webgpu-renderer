@@ -3,7 +3,7 @@ import Attribute from '../geometry/attribute'
 import PointMaterial from './pointMaterial'
 import Model from '../Model'
 import { Blending, Color, IPlayable } from '../types'
-import { deepMerge, packUint8ToUint32, unpackUint32ToUint8 } from '../utils'
+import { deepMerge, packUint8ToUint32 } from '../utils'
 import RadiusStorage from './radiusStorage'
 
 const defaultStyle = {
@@ -38,14 +38,14 @@ class Points extends Model implements IPlayable {
 		const geometry = new Geometry()
 		const style = deepMerge(defaultStyle, props.style || {})
 		const total = props.total || props.position.length / 2
-		// const radiusStorage = new RadiusStorage({ data: props.radius, total })
+		const radiusStorage = new RadiusStorage({ data: props.radius, total })
 		const material = new PointMaterial({
 			...defaultStyle,
 			...style,
+			radiusStorage,
 			hasColorAttribute: !!props.color,
-			total,
-			// radiusStorage,
 			hasTime: !!props.startTime,
+			total,
 		})
 
 		super(geometry, material)
@@ -85,12 +85,10 @@ class Points extends Model implements IPlayable {
 			if (style.color) {
 				let colorArray = this.getAttribute('color')
 				if (!colorArray) {
-					colorArray = new Uint32Array(this.total)
-					for (let i = 0; i < this.total; ++i) {
-						const color = packUint8ToUint32(this._style.color.map((c: number) => c * 255))
-						colorArray[i] = color
-					}
-					const colorAttribute = new Attribute('color', colorArray, 1, {
+					const colorArray32 = new Uint32Array(this.total) //使用 Uint32Array 代替 Uint8Array，达到 TypedArray 快速填充的目的
+					const packedColor = packUint8ToUint32(this._style.color.map((c: number) => c * 255))
+					colorArray32.fill(packedColor)
+					const colorAttribute = new Attribute('color', colorArray32, 1, {
 						stepMode: 'instance',
 						shaderLocation: 1,
 						capacity: this.total,
@@ -101,13 +99,17 @@ class Points extends Model implements IPlayable {
 						this.material.hasRadiusAttribute,
 						this.material.hasTimeAttribute
 					)
+					colorArray = new Uint8Array(colorArray32.buffer)
 				}
 				for (let i of pointIndices) {
-					const color = packUint8ToUint32(style.color.map((c) => c * 255) as Color)
-					colorArray[i] = color
+					colorArray[i * 4 + 0] = style.color[0] * 255
+					colorArray[i * 4 + 1] = style.color[1] * 255
+					colorArray[i * 4 + 2] = style.color[2] * 255
+					colorArray[i * 4 + 3] = style.color[3] * 255
 				}
 				this.setAttribute('color', colorArray)
 			}
+
 			if (style.radius) {
 				const radiusStorage = this.getRadiusStorage()
 				if (!radiusStorage.hasData) {
@@ -146,20 +148,10 @@ class Points extends Model implements IPlayable {
 		this.geometry.setAttribute('position', positionAttribute)
 
 		if (props.color) {
-			const colorArray = new Uint32Array(props.color.length / 4)
-			for (let i = 0; i < props.color.length / 4; ++i) {
-				const color = packUint8ToUint32([
-					props.color[i * 4 + 0],
-					props.color[i * 4 + 1],
-					props.color[i * 4 + 2],
-					props.color[i * 4 + 3],
-				])
-				colorArray[i] = color
-			}
-			const colorAttribute = new Attribute('color', colorArray, 1, {
+			const colorAttribute = new Attribute('color', props.color, 4, {
 				stepMode: 'instance',
 				shaderLocation: 1,
-				capacity: this.total * 1,
+				capacity: this.total * 4,
 			})
 			this.geometry.setAttribute('color', colorAttribute)
 		}
@@ -184,7 +176,12 @@ class Points extends Model implements IPlayable {
 		this.getRadiusStorage().reallocate(this.total)
 	}
 
-	public appendPoints({ position, startTime }: Pick<IProps, 'position' | 'startTime'>) {
+	public appendPoints({
+		position,
+		startTime,
+		color: colorData,
+		radius: radiusData,
+	}: Pick<IProps, 'position' | 'startTime' | 'color' | 'radius'>) {
 		const appendLen = position.length / 2
 		if (startTime && startTime.length !== appendLen) {
 			throw 'startTime 数据不完备'
@@ -195,28 +192,34 @@ class Points extends Model implements IPlayable {
 			this._total = currentLen + appendLen * 5
 			this.reallocate()
 		}
+
 		const positionAttr = this.geometry.getAttribute('position')
 		if (positionAttr?.array) {
 			positionAttr.array.set(position, currentLen * 2)
 			positionAttr.needsUpdate = true
 		}
+
 		const colorAttr = this.geometry.getAttribute('color')
 		if (colorAttr) {
-			const colorArray = new Uint32Array(appendLen)
-			for (let i = 0; i < appendLen; ++i) {
+			if (colorData) {
+				colorAttr.array.set(colorData, currentLen * 4)
+			} else {
 				const color = packUint8ToUint32(this._style.color.map((c: number) => c * 255))
-				colorArray[i] = color
+				const colorArray32 = new Uint32Array(colorAttr.array.buffer)
+				colorArray32.fill(color, currentLen, appendLen + currentLen)
 			}
-			colorAttr.array.set(colorArray, currentLen)
 			colorAttr.needsUpdate = true
 		}
+
 		const startTimeAttr = this.geometry.getAttribute('startTime')
 		if (startTime && startTimeAttr?.array) {
 			startTimeAttr.array.set(startTime, currentLen)
 			startTimeAttr.needsUpdate = true
 		}
+
 		const radiusStorage = this.getRadiusStorage()
-		radiusStorage.appendData(this._style.radius, appendLen, currentLen)
+		let radiusArray8 = radiusData || new Uint8Array(appendLen).fill(this._style.radius)
+		radiusStorage.appendData(radiusArray8, appendLen, currentLen)
 
 		this.geometry.instanceCount += appendLen
 	}

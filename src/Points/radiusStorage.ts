@@ -31,6 +31,7 @@ export const transformRadiusArray = (data: Uint8Array | { value: number; total: 
 class RadiusStorage extends Storage {
 	constructor(props: IProps) {
 		const radiusUint32Array = props.data ? transformRadiusArray(props.data) : undefined
+		console.log(radiusUint32Array)
 		super({ name: 'radius', value: radiusUint32Array })
 		if (props.total && props.data && props.data.length < props.total) {
 			this.reallocate(props.total)
@@ -69,18 +70,19 @@ class RadiusStorage extends Storage {
 		this.needsUpdate = true
 	}
 
-	appendData(radius: number, appendLen: number, start: number) {
+	appendData(radiusArray8: Uint8Array, appendLen: number, start: number) {
 		if (!this.value) return
 		const si = Math.floor(start / 4)
 		const sj = start % 4
+		let offset = 0
 		if (sj > 0) {
 			const unpacked = unpackUint32ToUint8(this.value[si])
 			for (let i = sj; i < unpacked.length; ++i) {
-				unpacked[i] = radius
+				unpacked[i] = radiusArray8[offset++]
 			}
 			this.value[si] = packUint8ToUint32(unpacked)
 		}
-		const toAppend = transformRadiusArray({ value: radius, total: appendLen - sj })
+		const toAppend = transformRadiusArray(radiusArray8.subarray(offset))
 		this.value.set(toAppend, si + (sj > 0 ? 1 : 0))
 		this.needsUpdate = true
 	}

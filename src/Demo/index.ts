@@ -46,6 +46,7 @@ for (let i = 0; i < num; ++i) {
 	// size[i] = 10
 	timestamps[i] = (totalTime / num) * i
 }
+console.log(color)
 
 // size[9] = 10
 // size[8] = 10
@@ -126,14 +127,14 @@ setTimeout(() => {
 pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
 const points = new Points({
 	position: pos.subarray(0, 100),
-	color: color.slice(0, 200),
-	radius: size.slice(0, 50),
-	startTime: timestamps.subarray(0, 50),
+	color: color.subarray(0, 200),
+	radius: size.subarray(0, 50),
+	// startTime: timestamps.subarray(0, 50),
 	// position: pos,
 	// color,
 	// radius: size,
 	// startTime: timestamps,
-	// total: 1000,
+	total: 400,
 	style: {
 		color: [1, 0.9, 0.2, 0.9],
 		blending: 'normalBlending',
@@ -174,8 +175,10 @@ const timer = setInterval(() => {
 		points.appendPoints({
 			position: pos.subarray(i * 2, (i + 50) * 2),
 			startTime: timestamps.subarray(i, i + 50),
+			color: color.subarray(i * 4, (i + 50) * 4),
+			radius: size.subarray(i, i + 50),
 		})
-		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+		// heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
 	}
 	i += 50
 }, 500)
@@ -183,9 +186,9 @@ const timer = setInterval(() => {
 heat.renderOrder = 1
 points.renderOrder = 0
 // path.renderOrder = 2
-scene.addModel(heat)
+// scene.addModel(heat)
 scene.addModel(points)
-scene.addModel(paths)
+// scene.addModel(paths)
 
 let interval = 60
 let lastTimestamp = 0
@@ -199,11 +202,11 @@ const animate = (time: number) => {
 	const timeElapsed = time - lastTimestamp
 	if (timeElapsed >= interval) {
 		points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-		heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+		// heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 		// renderer.render(scene, camera)
 		lastTimestamp = time
 	}
-	paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	// paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	requestAnimationFrame(animate)
 }

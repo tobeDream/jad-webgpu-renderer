@@ -48,14 +48,14 @@ export const getShaderCode = (hasColor: boolean, hasRadius: boolean, hasTime: bo
 				? `
                     let si = vert.ii / 4u;
                     let sj = vert.ii % 4u;
-                    let size = f32((radius[si] >> (sj * 8u)) & 255u);
+                    let size = f32((radius[si] >> (sj * 8u)) & 255u) * 2;
                     // let size = f32(radius[si]) / 20000000f;
                     // let size = f32(radius[0]) * 5;
                     let a = radius[0];
                     _ = style;
                 `
 				: `
-                    let size = style.radius;
+                    let size = style.radius * 2;
                     if(false){
                         let a = radius[0];
                     }

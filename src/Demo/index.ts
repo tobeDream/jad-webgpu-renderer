@@ -178,7 +178,7 @@ const timer = setInterval(() => {
 			color: color.subarray(i * 4, (i + 50) * 4),
 			radius: size.subarray(i, i + 50),
 		})
-		// heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
 	}
 	i += 50
 }, 500)
@@ -186,7 +186,7 @@ const timer = setInterval(() => {
 heat.renderOrder = 1
 points.renderOrder = 0
 // path.renderOrder = 2
-// scene.addModel(heat)
+scene.addModel(heat)
 scene.addModel(points)
 // scene.addModel(paths)
 
@@ -202,7 +202,7 @@ const animate = (time: number) => {
 	const timeElapsed = time - lastTimestamp
 	if (timeElapsed >= interval) {
 		points.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
-		// heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+		heat.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 		// renderer.render(scene, camera)
 		lastTimestamp = time
 	}

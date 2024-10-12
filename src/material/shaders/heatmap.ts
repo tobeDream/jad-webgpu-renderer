@@ -33,7 +33,7 @@ export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
 
         let pos = points[vert.vi];
         let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
-        let pointPos = vec4f(pos * radius / resolution * clipPos.w, 0, 0);
+        let pointPos = vec4f(pos * radius * 2 / resolution * clipPos.w, 0, 0);
 
         var vsOut: VSOutput;
         vsOut.position = clipPos + pointPos;

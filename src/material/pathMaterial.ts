@@ -4,8 +4,8 @@ import { genShaderCode } from './shaders/path'
 import { Style } from '../Path/Path'
 
 type IProps = {
-	position: Float32Array
-	startTime?: Float32Array
+	positions: Float32Array
+	startTimes?: Float32Array
 	color?: Color
 	lineWidth?: number
 	blending?: Blending
@@ -18,7 +18,7 @@ class PathMaterial extends Material {
 	private hasTime: boolean
 	private hasTail: boolean
 	constructor(props: IProps) {
-		const hasTime = !!props.startTime
+		const hasTime = !!props.startTimes
 		const color = props.color || [1, 0, 0, 1]
 		const lineWidth = props.lineWidth || 5
 		const unplayedColor = hasTime ? props.unplayedColor || [0, 0, 0, 0.05] : undefined
@@ -29,7 +29,7 @@ class PathMaterial extends Material {
 			vertexShaderEntry: drawLine ? 'lineVs' : 'vs',
 			renderCode: genShaderCode(hasTime, hasTime && !!props.tailDuration),
 			blending: props.blending,
-			storages: { positions: props.position, startTimes: props.startTime },
+			storages: { positions: props.positions, startTimes: props.startTimes },
 			uniforms: { style: { color, lineWidth, unplayedColor }, time: 0, tailDuration },
 			primitive: drawLine ? { topology: 'line-strip' } : { topology: 'triangle-list' },
 		})

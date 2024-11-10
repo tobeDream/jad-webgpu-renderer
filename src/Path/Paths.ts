@@ -79,6 +79,10 @@ export class Paths implements IRenderable {
 		}
 	}
 
+	public getPathDataById(pathId: string) {
+		return this.pathModelList.find((p) => p.id === pathId)?.getData() || null
+	}
+
 	public setStyle(style: Style, pathIds?: string[]) {
 		if (!pathIds) {
 			this._style = deepMerge(this._style, style)

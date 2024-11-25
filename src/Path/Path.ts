@@ -43,6 +43,7 @@ export type IProps = {
 }
 
 export class Path extends Model {
+	private style: Style
 	constructor(props: IProps) {
 		const style = props.style || {}
 		const drawLine = !!style.drawLine
@@ -50,14 +51,15 @@ export class Path extends Model {
 		const geometry = new Geometry()
 		const material = new PathMaterial({
 			...style,
-			position: props.position,
-			startTime: props.startTime,
+			positions: props.position,
+			startTimes: props.startTime,
 			drawLine,
 		})
 
 		super(geometry, material)
 
 		this._id = props.pathId
+		this.style = style
 		this.changeDrawLine(drawLine, props.position)
 	}
 
@@ -92,6 +94,16 @@ export class Path extends Model {
 				this.geometry.setIndex(undefined)
 			}
 			this.geometry.vertexCount = position.length / 2
+		}
+	}
+
+	public getData() {
+		const positions = this.material.getStorage('positions')?.value || null
+		const startTimes = this.material.getStorage('startTimes')?.value || null
+		return {
+			positions,
+			startTimes,
+			style: this.style,
 		}
 	}
 

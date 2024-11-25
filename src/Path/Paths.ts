@@ -54,7 +54,7 @@ export class Paths implements IRenderable {
 			pathModel.bufferPool = this.bufferPool //通过将一个 Paths下的所有 PathModel 的 bufferPool 设为同一个，保证了在创建 buffer 时各个Path 的不同 attribute 共用同一个 buffer
 			this.pathModelList.push(pathModel)
 			//用 line 绘制动态轨迹时，需添加轨迹头部点，以标识轨迹当前运行的位置
-			if (!!p.startTime && p.style?.headPointVisible) {
+			if (!!p.startTime && pathStyle.headPointVisible) {
 				this.headPointList.push(new HeadPoint(pathModel, pathStyle, this.bufferPool))
 			}
 		}

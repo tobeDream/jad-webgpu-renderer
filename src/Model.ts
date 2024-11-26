@@ -138,10 +138,6 @@ class Model implements IRenderable {
 		else pass.draw(geometry.vertexCount, instanceCount)
 	}
 
-	public getStyle(id?: string) {
-		return this._style
-	}
-
 	public dispose() {
 		this._geometry.dispose()
 		this._material.dispose()

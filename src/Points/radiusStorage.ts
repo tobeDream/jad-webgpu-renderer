@@ -42,6 +42,13 @@ class RadiusStorage extends Storage {
 		return !!this._value
 	}
 
+	getPointRadius(index: number) {
+		if (!this.value) return undefined
+		const i = Math.floor(index / 4)
+		const offset = index % 4
+		return unpackUint32ToUint8(this.value[index])[offset]
+	}
+
 	updatePointsRadius(radius: number | number[], defaultRadius: number, total: number, pointIndices: number[]) {
 		if (!this.value) {
 			const uint32Arr = transformRadiusArray({ value: defaultRadius, total })

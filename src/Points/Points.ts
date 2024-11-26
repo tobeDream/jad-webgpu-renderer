@@ -162,6 +162,24 @@ class Points extends Model implements IPlayable {
 		}
 	}
 
+	getStyle(index?: number) {
+		const style = { ...this._style }
+		if (index === undefined) return style
+		const colorArray = this.getAttribute('color')
+		if (colorArray) {
+			style.color = [
+				colorArray[index * 4 + 0] / 255,
+				colorArray[index * 4 + 1] / 255,
+				colorArray[index * 4 + 2] / 255,
+				colorArray[index * 4 + 3] / 255,
+			]
+		}
+		const radiusStorage = this.getRadiusStorage()
+		const radius = radiusStorage.getPointRadius(index)
+		if (radius !== undefined) style.radius = radius
+		return style
+	}
+
 	setTotal(count: number) {
 		this._total = count
 		this.reallocate()

@@ -28,7 +28,7 @@ window.r = renderer
 
 // const pos = new Float32Array([30, 20, 0, 20, 0, 0, -40, 0])
 const totalTime = 20000
-const num = 400
+const num = 100
 let pos = new Float32Array(num * 2)
 const color = new Uint8Array(num * 4)
 const size = new Uint8Array(num)
@@ -129,25 +129,25 @@ window.t = paths
 // 	])
 // }, 2000)
 
-// pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
-// const points = new Points({
-// 	position: pos.subarray(0, 100),
-// 	color: color.subarray(0, 200),
-// 	radius: size.subarray(0, 50),
-// 	// startTime: timestamps.subarray(0, 50),
-// 	// position: pos,
-// 	// color,
-// 	// radius: size,
-// 	// startTime: timestamps,
-// 	total: 400,
-// 	style: {
-// 		color: [1, 0.9, 0.2, 0.9],
-// 		blending: 'normalBlending',
-// 		radius: 10,
-// 	},
-// })
-// //@ts-ignore
-// window.p = points
+pos = pos.map((p, i) => (i % 2 === 1 ? p * 1.5 : p))
+const points = new Points({
+	// position: pos.subarray(0, 100),
+	// color: color.subarray(0, 200),
+	// radius: size.subarray(0, 50),
+	// startTime: timestamps.subarray(0, 50),
+	position: pos,
+	// color,
+	radius: size,
+	// startTime: timestamps,
+	// total: 400,
+	style: {
+		color: [1, 0.9, 0.2, 0.9],
+		blending: 'normalBlending',
+		radius: 10,
+	},
+})
+//@ts-ignore
+window.p = points
 
 // const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
 // const heat = new Heatmap({
@@ -183,7 +183,7 @@ window.t = paths
 // 			color: color.subarray(i * 4, (i + 50) * 4),
 // 			radius: size.subarray(i, i + 50),
 // 		})
-// 		heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+// 		// heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
 // 	}
 // 	i += 50
 // }, 500)
@@ -192,8 +192,8 @@ window.t = paths
 // points.renderOrder = 0
 // path.renderOrder = 2
 // scene.addModel(heat)
-// scene.addModel(points)
-scene.addModel(paths)
+scene.addModel(points)
+// scene.addModel(paths)
 
 let interval = 60
 let lastTimestamp = 0
@@ -211,7 +211,7 @@ const animate = (time: number) => {
 		// renderer.render(scene, camera)
 		lastTimestamp = time
 	}
-	paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
+	// paths.updateCurrentTime(((time - start) * (totalTime / 400 / 20)) % timestamps[num - 1])
 	renderer.render(scene, camera)
 	requestAnimationFrame(animate)
 }

@@ -46,7 +46,7 @@ class RadiusStorage extends Storage {
 		if (!this.value) return undefined
 		const i = Math.floor(index / 4)
 		const offset = index % 4
-		return unpackUint32ToUint8(this.value[index])[offset]
+		return unpackUint32ToUint8(this.value[i])[offset]
 	}
 
 	updatePointsRadius(radius: number | number[], defaultRadius: number, total: number, pointIndices: number[]) {

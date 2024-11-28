@@ -73,7 +73,7 @@ export class Paths implements IRenderable {
 			const pathModel = new Path({ ...p, style: pathStyle })
 			pathModel.bufferPool = this.bufferPool
 			this.pathModelList.push(pathModel)
-			if (!!p.startTime && p.style?.headPointVisible) {
+			if (!!p.startTime && pathStyle?.headPointVisible) {
 				this.headPointList.push(new HeadPoint(pathModel, pathStyle, this.bufferPool))
 			}
 		}
@@ -81,6 +81,12 @@ export class Paths implements IRenderable {
 
 	public getPathDataById(pathId: string) {
 		return this.pathModelList.find((p) => p.id === pathId)?.getData() || null
+	}
+
+	public getStyle(pathId: string) {
+		const pathStyle = this._pathsStyle[pathId]
+		if (!pathStyle) return
+		return deepMerge(this._style, pathStyle)
 	}
 
 	public setStyle(style: Style, pathIds?: string[]) {

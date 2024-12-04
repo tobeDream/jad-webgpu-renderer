@@ -47,7 +47,7 @@ for (let i = 0; i < num; ++i) {
 	// size[i] = 10
 	timestamps[i] = (totalTime / num) * i
 }
-console.log(timestamps)
+// console.log(timestamps)
 
 // size[9] = 10
 // size[8] = 10
@@ -174,7 +174,8 @@ const heat = new Heatmap({
 //@ts-ignore
 window.h = heat
 setTimeout(() => {
-	console.log(heat.getMaxHeatValue, '===========maxValue')
+	console.log(heat.getMaxHeatValue, '===========maxValue', heatPoints)
+	console.log(heat.getMinHeatValue, '===========minValue')
 }, 2000)
 // let i = 50
 // const timer = setInterval(() => {

@@ -62,7 +62,6 @@ export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
         return vec4f(h, 0, 0, 1);
     }
 `
-
 export const computeMaxHeatValueShaderCode = `
     @group(0) @binding(0) var heatValTex: texture_2d<f32>;
     @group(0) @binding(1) var<uniform> resolution: vec2f;

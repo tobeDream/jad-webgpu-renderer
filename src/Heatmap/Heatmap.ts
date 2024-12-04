@@ -289,7 +289,7 @@ class Heatmap extends Model implements IPlayable {
 			{ texture: heatValueTexture },
 			{
 				buffer: gpuReadBuffer,
-				bytesPerRow: 8, // 读取的每行字节数
+				bytesPerRow: 256, // 读取的每行字节数
 				rowsPerImage: 1, // 每个图像的行数
 			},
 			[1, 1, 1] // 读取 1x1 大小的数据
@@ -354,9 +354,9 @@ class Heatmap extends Model implements IPlayable {
 		// 渲染最小热力值
 		if (this.minHeatValueModel) {
 			const minHeatValTex = this.textures['minValTex']
-			// this.getTextureHeatValue(renderer, minHeatValTex).then((res) => {
-			// this.minHeatValue = res
-			// })
+			this.getTextureHeatValue(renderer, minHeatValTex).then((res) => {
+				this.minHeatValue = res
+			})
 			const renderPassDesc: GPURenderPassDescriptor = {
 				label: 'min heat renderPass',
 				colorAttachments: [
@@ -368,9 +368,9 @@ class Heatmap extends Model implements IPlayable {
 					},
 				],
 			}
-			// const pass = encoder.beginRenderPass(renderPassDesc)
-			// this.minHeatValueModel.render(renderer, pass, camera)
-			// pass.end()
+			const pass = encoder.beginRenderPass(renderPassDesc)
+			this.minHeatValueModel.render(renderer, pass, camera, this.textures)
+			pass.end()
 		}
 	}
 

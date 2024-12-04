@@ -6,6 +6,7 @@ import {
 	renderShaderCode,
 	genComputeHeatValueShaderCode,
 	computeMaxHeatValueShaderCode,
+	computeMinHeatValueShaderCode,
 	sampleRate,
 } from '../material/shaders/heatmap'
 import Renderer from '../Renderer'
@@ -49,6 +50,9 @@ class Heatmap extends Model implements IPlayable {
 	//heatPointsModel 和 maxHeatValueModel 都是在 preRender 阶段执行的渲染
 	private heatPointsModel?: Model //负责将根据热力点的坐标和半径渲染各个像素的热力值到输出纹理的R 通道
 	private maxHeatValueModel?: Model //负责根据 heatPointsModel 的输出纹理计算所有像素的最大热力值
+	private minHeatValueModel?: Model //负责根据 heatPointsModel 的输出纹理计算所有像素的最小热力值
+	private maxHeatValue?: number
+	private minHeatValue?: number
 	private _total: number
 	/**
 	 * points 为热力点的二维坐标 e.g [x0, y0, x1, y1,....]
@@ -98,6 +102,14 @@ class Heatmap extends Model implements IPlayable {
 		return !!this.startTime
 	}
 
+	get getMaxHeatValue() {
+		return this.maxHeatValue
+	}
+
+	get getMinHeatValue() {
+		return this.minHeatValue
+	}
+
 	/**
 	 * heatValTex 作为 heatPointsModel 的输出纹理以及 maxHeatValueModel 的输入纹理在 R 通道记录了像素热力值
 	 * size 为像素的宽高
@@ -125,9 +137,24 @@ class Heatmap extends Model implements IPlayable {
 		const maxHeatValueTexture = device.createTexture({
 			size: [1, 1, 1],
 			format: 'rgba16float',
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
 		})
 		this.updateTexture('maxValTex', maxHeatValueTexture)
+	}
+	/**
+	 * minValTex 作为 minHeatValueModel 输出纹理，记录了所有像素的最小热力值
+	 * size 为1x1
+	 * @param renderer
+	 */
+	private createMinHeatValueTexture(renderer: Renderer) {
+		const { device } = renderer
+		// 创建一个用于存储最小热力值的纹理
+		const minHeatValueTexture = device.createTexture({
+			size: [1, 1, 1],
+			format: 'rgba16float',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+		})
+		this.updateTexture('minValTex', minHeatValueTexture)
 	}
 
 	private createHeatPointsModel(renderer: Renderer) {
@@ -182,6 +209,29 @@ class Heatmap extends Model implements IPlayable {
 		})
 		this.maxHeatValueModel = new Model(geo, mat)
 	}
+	private createMinHeatValueModel(renderer: Renderer) {
+		const { width, height } = renderer
+		const geo = new Geometry()
+		geo.vertexCount = (width * height) / sampleRate / sampleRate // 进行降采样
+		const mat = new Material({
+			id: 'compute min heat value',
+			renderCode: computeMinHeatValueShaderCode, // 需要定义计算最小热力值的shader代码
+			vertexShaderEntry: 'vs',
+			fragmentShaderEntry: 'fs',
+			blending: 'min', // 使用最小值混合
+			presentationFormat: 'rgba16float',
+			multisampleCount: 1,
+			primitive: { topology: 'point-list' },
+			uniforms: {
+				resolution: [renderer.width, renderer.height], // 正确传递分辨率
+			},
+			bindGroupLayout: [
+				{ binding: 0, type: 'texture', visibility: GPUShaderStage.FRAGMENT }, // heatValTex 纹理
+				{ binding: 1, type: 'buffer', visibility: GPUShaderStage.FRAGMENT }, // resolution buffer
+			],
+		})
+		this.minHeatValueModel = new Model(geo, mat)
+	}
 
 	lastResolution = { width: 0, height: 0 }
 	private checkCreateHeatValueTexture(renderer: Renderer) {
@@ -225,11 +275,43 @@ class Heatmap extends Model implements IPlayable {
 		this.reallocate()
 	}
 
+	private async getTextureHeatValue(renderer: Renderer, heatValueTexture: any) {
+		const { device } = renderer
+		const commandEncoder = device.createCommandEncoder()
+
+		const gpuReadBuffer = device.createBuffer({
+			size: 4 * 4, // 读取数据的大小 (rgba16float是4字节一个通道)
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+		})
+
+		// 读取数据到 buffer
+		commandEncoder.copyTextureToBuffer(
+			{ texture: heatValueTexture },
+			{
+				buffer: gpuReadBuffer,
+				bytesPerRow: 8, // 读取的每行字节数
+				rowsPerImage: 1, // 每个图像的行数
+			},
+			[1, 1, 1] // 读取 1x1 大小的数据
+		)
+
+		// 执行命令
+		device.queue.submit([commandEncoder.finish()])
+		// 映射到主内存
+		await gpuReadBuffer.mapAsync(GPUMapMode.READ)
+		const data = new Float32Array(gpuReadBuffer.getMappedRange())
+		console.log(data)
+		return data[0]
+	}
+
 	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {
 		this.checkCreateHeatValueTexture(renderer)
 		if (!this.textures['maxValTex']) this.createMaxHeatValueTexture(renderer)
+		if (!this.textures['minValTex']) this.createMinHeatValueTexture(renderer)
 		if (!this.heatPointsModel) this.createHeatPointsModel(renderer)
 		if (!this.maxHeatValueModel) this.createMaxHeatValueModel(renderer)
+		if (!this.minHeatValueModel) this.createMinHeatValueModel(renderer)
+
 		const heatValTex = this.textures['heatValTex']
 		if (this.heatPointsModel) {
 			const heatRenderPassDesc: GPURenderPassDescriptor = {
@@ -249,6 +331,9 @@ class Heatmap extends Model implements IPlayable {
 		}
 		if (this.maxHeatValueModel) {
 			const maxHeatValTex = this.textures['maxValTex']
+			this.getTextureHeatValue(renderer, maxHeatValTex).then((res) => {
+				this.maxHeatValue = res
+			})
 			const renderPassDesc: GPURenderPassDescriptor = {
 				label: 'mx heat renderPass',
 				colorAttachments: [
@@ -266,6 +351,27 @@ class Heatmap extends Model implements IPlayable {
 			//但需要注意的是在同一个Model 中纹理名不要重复
 			this.maxHeatValueModel.render(renderer, pass, camera, this.textures)
 			pass.end()
+		}
+		// 渲染最小热力值
+		if (this.minHeatValueModel) {
+			const minHeatValTex = this.textures['minValTex']
+			// this.getTextureHeatValue(renderer, minHeatValTex).then((res) => {
+			// this.minHeatValue = res
+			// })
+			const renderPassDesc: GPURenderPassDescriptor = {
+				label: 'min heat renderPass',
+				colorAttachments: [
+					{
+						view: minHeatValTex.createView(),
+						clearValue: [0, 0, 0, 0],
+						loadOp: 'clear',
+						storeOp: 'store',
+					},
+				],
+			}
+			// const pass = encoder.beginRenderPass(renderPassDesc)
+			// this.minHeatValueModel.render(renderer, pass, camera)
+			// pass.end()
 		}
 	}
 

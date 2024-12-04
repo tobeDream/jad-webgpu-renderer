@@ -300,7 +300,6 @@ class Heatmap extends Model implements IPlayable {
 		// 映射到主内存
 		await gpuReadBuffer.mapAsync(GPUMapMode.READ)
 		const data = new Float32Array(gpuReadBuffer.getMappedRange())
-		console.log(data)
 		return data[0]
 	}
 

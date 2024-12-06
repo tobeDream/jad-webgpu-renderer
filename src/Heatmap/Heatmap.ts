@@ -53,6 +53,7 @@ class Heatmap extends Model implements IPlayable {
 	private minHeatValueModel?: Model //负责根据 heatPointsModel 的输出纹理计算所有像素的最小热力值
 	private maxHeatValue?: number
 	private minHeatValue?: number
+	private maxHeatBuffer?: GPUBuffer
 	private _total: number
 	/**
 	 * points 为热力点的二维坐标 e.g [x0, y0, x1, y1,....]
@@ -275,8 +276,9 @@ class Heatmap extends Model implements IPlayable {
 		this.reallocate()
 	}
 
-	private async getTextureHeatValue(renderer: Renderer, heatValueTexture: any) {
+	public async setMaxMinHeatValue(renderer: Renderer, type: 'max' | 'min') {
 		const { device } = renderer
+		const heatValueTexture = this.textures[type === 'max' ? 'maxValTex' : 'minValTex']
 		const commandEncoder = device.createCommandEncoder()
 
 		const gpuReadBuffer = device.createBuffer({
@@ -297,13 +299,37 @@ class Heatmap extends Model implements IPlayable {
 
 		// 执行命令
 		device.queue.submit([commandEncoder.finish()])
+
+		// 等待 GPU 完成所有命令
+		await device.queue.onSubmittedWorkDone()
+
 		// 映射到主内存
 		await gpuReadBuffer.mapAsync(GPUMapMode.READ)
+
+		// 读取映射范围
 		const data = new Float32Array(gpuReadBuffer.getMappedRange())
-		return data[0]
+		let result = type === 'max' ? -Infinity : Infinity
+
+		for (let i = 0; i < data.length; i++) {
+			const value = data[i]
+			if (type === 'max') {
+				if (value > result) result = value
+			} else {
+				if (value < result) result = value
+			}
+		}
+
+		if (type === 'max') {
+			this.maxHeatValue = result
+		} else {
+			this.minHeatValue = result
+		}
+
+		// 取消映射
+		gpuReadBuffer.unmap()
 	}
 
-	public prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {
+	public async prevRender(renderer: Renderer, encoder: GPUCommandEncoder, camera: Camera) {
 		this.checkCreateHeatValueTexture(renderer)
 		if (!this.textures['maxValTex']) this.createMaxHeatValueTexture(renderer)
 		if (!this.textures['minValTex']) this.createMinHeatValueTexture(renderer)
@@ -330,9 +356,7 @@ class Heatmap extends Model implements IPlayable {
 		}
 		if (this.maxHeatValueModel) {
 			const maxHeatValTex = this.textures['maxValTex']
-			this.getTextureHeatValue(renderer, maxHeatValTex).then((res) => {
-				this.maxHeatValue = res
-			})
+			this.setMaxMinHeatValue(renderer, 'max')
 			const renderPassDesc: GPURenderPassDescriptor = {
 				label: 'mx heat renderPass',
 				colorAttachments: [
@@ -354,9 +378,7 @@ class Heatmap extends Model implements IPlayable {
 		// 渲染最小热力值
 		if (this.minHeatValueModel) {
 			const minHeatValTex = this.textures['minValTex']
-			this.getTextureHeatValue(renderer, minHeatValTex).then((res) => {
-				this.minHeatValue = res
-			})
+			this.setMaxMinHeatValue(renderer, 'min')
 			const renderPassDesc: GPURenderPassDescriptor = {
 				label: 'min heat renderPass',
 				colorAttachments: [

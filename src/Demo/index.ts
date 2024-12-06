@@ -174,7 +174,7 @@ const heat = new Heatmap({
 //@ts-ignore
 window.h = heat
 setTimeout(() => {
-	console.log(heat.getMaxHeatValue, '===========maxValue', heatPoints)
+	console.log(heat.getMaxHeatValue, '===========maxValue')
 	console.log(heat.getMinHeatValue, '===========minValue')
 }, 2000)
 // let i = 50

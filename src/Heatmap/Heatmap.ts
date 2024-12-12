@@ -13,6 +13,7 @@ import Renderer from '../Renderer'
 import { Camera } from '../camera/camera'
 import Attribute from '../geometry/attribute'
 import { deepMerge, genId } from '../utils'
+import { toFloat32 } from 'half-float'
 
 type ColorList = [Color, Color, Color, Color, Color]
 type OffsetList = [number, number, number, number, number]
@@ -276,6 +277,37 @@ class Heatmap extends Model implements IPlayable {
 		this.reallocate()
 	}
 
+	halfToFloat(half: number): number {
+		const sign = (half >> 15) & 0x1
+		const exponent = (half >> 10) & 0x1f
+		const mantissa = half & 0x3ff
+
+		if (exponent === 0) {
+			if (mantissa === 0) {
+				return sign === 0 ? 0 : -0
+			} else {
+				// Denormalized number
+				return ((sign === 0 ? 1 : -1) * Math.pow(2, -14) * mantissa) / Math.pow(2, 10)
+			}
+		} else if (exponent === 0x1f) {
+			if (mantissa === 0) {
+				return sign === 0 ? Infinity : -Infinity
+			} else {
+				return NaN
+			}
+		} else {
+			return (sign === 0 ? 1 : -1) * Math.pow(2, exponent - 15) * (1 + mantissa / Math.pow(2, 10))
+		}
+	}
+
+	convertHalfToFloatArray(data: Uint16Array): Float32Array {
+		const result = new Float32Array(data.length)
+		for (let i = 0; i < data.length; i++) {
+			result[i] = this.halfToFloat(data[i])
+		}
+		return result
+	}
+
 	public async setMaxMinHeatValue(renderer: Renderer, type: 'max' | 'min') {
 		const { device } = renderer
 		const heatValueTexture = this.textures[type === 'max' ? 'maxValTex' : 'minValTex']
@@ -307,17 +339,31 @@ class Heatmap extends Model implements IPlayable {
 		await gpuReadBuffer.mapAsync(GPUMapMode.READ)
 
 		// 读取映射范围
-		const data = new Float32Array(gpuReadBuffer.getMappedRange())
+		const halfData = new Uint16Array(gpuReadBuffer.getMappedRange())
+		const floatData = new Float32Array(halfData)
 		let result = type === 'max' ? -Infinity : Infinity
-
-		for (let i = 0; i < data.length; i++) {
-			const value = data[i]
+		for (let i = 0; i < floatData.length; i++) {
+			const value = floatData[i]
 			if (type === 'max') {
 				if (value > result) result = value
 			} else {
 				if (value < result) result = value
 			}
 		}
+
+		// const data = new Float32Array(gpuReadBuffer.getMappedRange())
+
+		// const halfData = new Float32Array(gpuReadBuffer.getMappedRange())
+		// const data = this.convertHalfToFloatArray(halfData)
+		// let result = type === 'max' ? -Infinity : Infinity
+		// for (let i = 0; i < data.length; i++) {
+		// 	const value = data[i]
+		// 	if (type === 'max') {
+		// 		if (value > result) result = value
+		// 	} else {
+		// 		if (value < result) result = value
+		// 	}
+		// }
 
 		if (type === 'max') {
 			this.maxHeatValue = result

@@ -62,7 +62,6 @@ export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
         return vec4f(h, 0, 0, 1);
     }
 `
-
 export const computeMaxHeatValueShaderCode = `
     @group(0) @binding(0) var heatValTex: texture_2d<f32>;
     @group(0) @binding(1) var<uniform> resolution: vec2f;
@@ -85,6 +84,40 @@ export const computeMaxHeatValueShaderCode = `
         let x = vi - i32(resolution.x / ${sampleRate}) * y;
         let color = textureLoad(heatValTex, vec2i(x * ${sampleRate}, y * ${sampleRate}), 0);
         return color;
+    }
+`
+
+export const computeMinHeatValueShaderCode = `
+    @group(0) @binding(0) var heatValTex: texture_2d<f32>;
+    @group(0) @binding(1) var<uniform> resolution: vec2f;
+
+    struct VSOut {
+        @location(0) vi: f32,
+        @builtin(position) position: vec4f
+    }
+
+    @vertex fn vs(@builtin(vertex_index) vii: u32) -> VSOut {
+        var vsOut: VSOut;
+        vsOut.vi = f32(vii);
+        vsOut.position = vec4f(0, 0, 0, 1);
+        return vsOut;
+    }
+
+    @fragment fn fs(vsOut: VSOut) -> @location(0) vec4f {
+        let vi = i32(vsOut.vi);
+        let y = vi / i32(resolution.x / ${sampleRate});
+        let x = vi - i32(resolution.x / ${sampleRate}) * y;
+        
+        // 使用 min 函数从多个采样点中获取最小值
+        let color1 = textureLoad(heatValTex, vec2i(x * ${sampleRate}, y * ${sampleRate}), 0);
+        let color2 = textureLoad(heatValTex, vec2i((x + 1) * ${sampleRate}, y * ${sampleRate}), 0);
+        let color3 = textureLoad(heatValTex, vec2i(x * ${sampleRate}, (y + 1) * ${sampleRate}), 0);
+        let color4 = textureLoad(heatValTex, vec2i((x + 1) * ${sampleRate}, (y + 1) * ${sampleRate}), 0);
+        
+        // 使用 min 函数获取最小热力值
+        let minColor = min(min(color1, color2), min(color3, color4));
+
+        return minColor; // 返回最小热力值
     }
 `
 

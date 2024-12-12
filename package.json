@@ -9,7 +9,7 @@
 		"build": "npm run clear-output && tsc && tsc-alias",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"format": "prettier --write \"src/**/*.{ts,tsx,css,scss,html,json,md}\"",
-		"clear-output": "del ./typings/* ./lib/*"
+		"clear-output": "if exist ./typings (for %f in (.\\typings\\*) do del /q %f) && if exist ./lib (for %f in (.\\lib\\*) do del /q %f)"
 	},
 	"author": "Jad2wizard",
 	"license": "ISC",

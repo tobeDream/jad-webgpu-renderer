@@ -223,13 +223,6 @@ class Heatmap extends Model implements IPlayable {
 			presentationFormat: 'rgba16float',
 			multisampleCount: 1,
 			primitive: { topology: 'point-list' },
-			uniforms: {
-				resolution: [renderer.width, renderer.height], // 正确传递分辨率
-			},
-			bindGroupLayout: [
-				{ binding: 0, type: 'texture', visibility: GPUShaderStage.FRAGMENT }, // heatValTex 纹理
-				{ binding: 1, type: 'buffer', visibility: GPUShaderStage.FRAGMENT }, // resolution buffer
-			],
 		})
 		this.minHeatValueModel = new Model(geo, mat)
 	}

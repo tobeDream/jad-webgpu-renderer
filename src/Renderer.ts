@@ -1,6 +1,6 @@
 import Scene from './Scene'
 import { Camera } from './camera/camera'
-import Heatmap from './Heatmap/Heatmap'
+
 type IProps = {
 	canvas: HTMLCanvasElement
 	antiAlias?: boolean

@@ -108,16 +108,9 @@ export const computeMinHeatValueShaderCode = `
         let y = vi / i32(resolution.x / ${sampleRate});
         let x = vi - i32(resolution.x / ${sampleRate}) * y;
         
-        // 使用 min 函数从多个采样点中获取最小值
-        let color1 = textureLoad(heatValTex, vec2i(x * ${sampleRate}, y * ${sampleRate}), 0);
-        let color2 = textureLoad(heatValTex, vec2i((x + 1) * ${sampleRate}, y * ${sampleRate}), 0);
-        let color3 = textureLoad(heatValTex, vec2i(x * ${sampleRate}, (y + 1) * ${sampleRate}), 0);
-        let color4 = textureLoad(heatValTex, vec2i((x + 1) * ${sampleRate}, (y + 1) * ${sampleRate}), 0);
-        
-        // 使用 min 函数获取最小热力值
-        let minColor = min(min(color1, color2), min(color3, color4));
+        let color = textureLoad(heatValTex, vec2i(x * ${sampleRate}, y * ${sampleRate}), 0);
 
-        return minColor; // 返回最小热力值
+        return color; // 返回最小热力值
     }
 `
 

@@ -5,6 +5,7 @@ import { Color, Blending, IPlayable } from '../types'
 import {
 	renderShaderCode,
 	genComputeHeatValueShaderCode,
+	genComputeHeatValueShaderCode0,
 	computeMaxHeatValueShaderCode,
 	computeMinHeatValueShaderCode,
 	sampleRate,
@@ -33,6 +34,7 @@ const defaultStyle = {
 
 type IProps = {
 	points: Float32Array
+	heatValues?: Float32Array
 	startTime?: Float32Array
 	total?: number
 	style?: {
@@ -46,6 +48,7 @@ type IProps = {
 
 class Heatmap extends Model implements IPlayable {
 	private points: Float32Array
+	private heatValues?: Float32Array
 	private startTime?: Float32Array
 	//heatPointsModel 和 maxHeatValueModel 都是在 preRender 阶段执行的渲染
 	private heatPointsModel?: Model //负责将根据热力点的坐标和半径渲染各个像素的热力值到输出纹理的R 通道
@@ -68,7 +71,7 @@ class Heatmap extends Model implements IPlayable {
 	constructor(props: IProps) {
 		const geometry = new Geometry()
 		geometry.vertexCount = 6
-		const { points, startTime } = props
+		const { points, startTime, heatValues } = props
 		const style = deepMerge(defaultStyle, props.style || {})
 
 		const mat = new Material({
@@ -89,6 +92,7 @@ class Heatmap extends Model implements IPlayable {
 
 		this.points = points
 		this.startTime = startTime
+		this.heatValues = heatValues || new Float32Array(points.length / 2).fill(1.0) // 默认热力值为 1
 	}
 
 	get style() {
@@ -176,12 +180,22 @@ class Heatmap extends Model implements IPlayable {
 			geo.setAttribute('startTime', startTimeAttribute)
 		}
 
+		// 新增：创建 heatValues 属性并设置
+		if (this.heatValues) {
+			const heatValuesAttribute = new Attribute('heatValue', this.heatValues, 1, {
+				stepMode: 'instance',
+				shaderLocation: 2, // 新的着色器位置
+				capacity: this.total,
+			})
+			geo.setAttribute('heatValue', heatValuesAttribute)
+		}
+
 		geo.vertexCount = 6
 		geo.instanceCount = this.points.length / 2
 
 		const mat = new Material({
 			id: 'compute heat value',
-			renderCode: genComputeHeatValueShaderCode(!!this.startTime),
+			renderCode: genComputeHeatValueShaderCode0(!!this.startTime, !!this.heatValues),
 			vertexShaderEntry: 'vs',
 			fragmentShaderEntry: 'fs',
 			blending: 'additiveBlending', //混合阶段使同一像素上的不同热力点的热力值相加后输出到颜色纹理的 R 通道
@@ -414,13 +428,18 @@ class Heatmap extends Model implements IPlayable {
 	/**
 	 * 往当前热力图中追加热力点数据
 	 * @param points 热力点的二维坐标数组
+	 * @param heatValues 热力点的热力值数组
 	 * @param startTime
 	 */
-	public appendHeatPoints(points: Float32Array, startTime?: Float32Array) {
+	public appendHeatPoints(points: Float32Array, heatValues?: Float32Array, startTime?: Float32Array) {
+		console.log(points, heatValues, startTime, '======')
 		if (!this.heatPointsModel) return
 		const appendLen = points.length / 2
 		if (startTime && startTime.length !== appendLen) {
 			throw 'startTime 数据不完备'
+		}
+		if (heatValues && heatValues.length !== appendLen) {
+			throw 'heatValues 数据不完备'
 		}
 		const currentLen = this.heatPointsModel.geometry.instanceCount
 		if (appendLen + currentLen > this.total) {
@@ -436,6 +455,12 @@ class Heatmap extends Model implements IPlayable {
 		if (startTime && startTimeAttr?.array) {
 			startTimeAttr.array.set(startTime, currentLen)
 			startTimeAttr.needsUpdate = true
+		}
+		// 更新热力值
+		const heatValueAttr = this.heatPointsModel.geometry.getAttribute('heatValue')
+		if (heatValues && heatValueAttr?.array) {
+			heatValueAttr.array.set(heatValues, currentLen)
+			heatValueAttr.needsUpdate = true
 		}
 
 		this.heatPointsModel.geometry.instanceCount += appendLen

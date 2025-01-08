@@ -2,6 +2,77 @@
 export const heatValuePrec = 1
 export const sampleRate = 4 //使用 sampleRate 在计算最大热力值时对像素在X 和 Y 方向上做降采样
 
+export const genComputeHeatValueShaderCode0 = (hasStartTime: boolean, hasHeatValue: boolean) => `
+    struct Vertex {
+        @builtin(vertex_index) vi: u32,
+        @location(0) position: vec2f,
+        ${hasStartTime ? '@location(1) startTime: f32' : ''}
+        ${hasHeatValue ? '@location(2) heatValue: f32' : ''}    // 新增：热力值属性
+    };
+
+    struct VSOutput {
+        @builtin(position) position: vec4f,
+        @location(0) pointCoord: vec2f,
+        ${hasStartTime ? '@location(1) time: f32,' : ''}
+        ${hasHeatValue ? '@location(2) heat: f32,' : ''}  // 新增：传递热力值
+    };
+
+    @group(0) @binding(0) var<uniform> projectionMatrix: mat4x4f;
+    @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
+    @group(0) @binding(2) var<uniform> resolution: vec2f;
+    @group(0) @binding(3) var<uniform> radius: f32;
+    @group(0) @binding(4) var<uniform> currentTime: f32;
+
+    @vertex fn vs(vert: Vertex) -> VSOutput {
+        let points = array(
+            vec2f(-1, -1),
+            vec2f( 1, -1),
+            vec2f(-1,  1),
+            vec2f(-1,  1),
+            vec2f( 1, -1),
+            vec2f( 1,  1)
+        );
+
+        let pos = points[vert.vi];
+        let clipPos = projectionMatrix * viewMatrix * vec4f(vert.position, 0, 1);
+        let pointPos = vec4f(pos * radius * 2.0 / resolution * clipPos.w, 0.0, 0.0);
+
+        var vsOut: VSOutput;
+        vsOut.position = clipPos + pointPos;
+        vsOut.pointCoord = pos;
+        ${hasStartTime ? 'vsOut.time = vert.startTime;' : ''}
+        ${hasHeatValue ? 'vsOut.heat = vert.heatValue;' : ''} // 将热力值传递到片段着色器
+
+        return vsOut;
+    }
+
+    @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
+        let coord = vsOut.pointCoord;
+        let dis = length(coord);
+        if(dis >= 1.0) {
+            discard; // 如果距离大于 1，丢弃该片段
+        }
+
+        ${
+			hasStartTime
+				? `
+                if(vsOut.time > currentTime) {
+                    discard; // 如果时间超过当前时间，丢弃该片段
+                }
+            `
+				: '_ = currentTime;'
+		}
+
+        // 使用热力值计算热力图的颜色
+        let heat = vsOut.heat * pow(1.0 - dis, 1.5);  // 使用热力值和距离计算热力值
+        let finalHeat = heat / ${heatValuePrec};
+        return vec4f(finalHeat, 0, 0, 1); // 生成最终的颜色，红色通道代表热力值
+
+        // let h = pow(1.0 - dis, 1.5) / ${heatValuePrec};
+        // return vec4f(h, 0, 0, 1);
+    }
+`
+
 export const genComputeHeatValueShaderCode = (hasStartTime: boolean) => `
     struct Vertex {
         @builtin(vertex_index) vi: u32,

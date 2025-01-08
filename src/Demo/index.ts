@@ -149,12 +149,22 @@ window.t = paths
 // })
 // //@ts-ignore
 // window.p = points
-
+function createFloat32Array(length: number): Float32Array {
+	if (length <= 0) return new Float32Array(0)
+	const array = new Float32Array(length)
+	for (let i = 0; i < length; i++) {
+		// array[i] = (i + 1) * 0.2
+		array[i] = 10
+	}
+	return array
+}
 const heatPoints = pos.map((p, i) => (i % 2 === 1 ? p * -1 : p * 0.9))
+const heatValues = createFloat32Array(pos.length)
 const heat = new Heatmap({
 	// points: heatPoints.subarray(0, 100),
 	// startTime: timestamps.subarray(0, 50),
 	points: heatPoints,
+	// heatValues,
 	// startTime: timestamps,
 	// total: 400,
 	style: {
@@ -176,20 +186,25 @@ const heat = new Heatmap({
 window.h = heat
 setTimeout(() => {
 	console.log(heat.getMaxHeatValue, '===========maxValue', pos.length)
-	console.log(heat.getMinHeatValue, '===========minValue')
+	console.log(heat.getMinHeatValue, '===========minValue', heatValues)
 }, 2000)
-// let i = 50
+let i = 50
 // const timer = setInterval(() => {
 // 	if (i > num) {
 // 		clearInterval(timer)
 // 	} else {
-// 		points.appendPoints({
-// 			position: pos.subarray(i * 2, (i + 50) * 2),
-// 			startTime: timestamps.subarray(i, i + 50),
-// 			color: color.subarray(i * 4, (i + 50) * 4),
-// 			radius: size.subarray(i, i + 50),
-// 		})
-// 		// heat.appendHeatPoints(heatPoints.subarray(i * 2, (i + 50) * 2), timestamps.subarray(i, i + 50))
+// 		// points.appendPoints({
+// 		// 	position: pos.subarray(i * 2, (i + 50) * 2),
+// 		// 	startTime: timestamps.subarray(i, i + 50),
+// 		// 	color: color.subarray(i * 4, (i + 50) * 4),
+// 		// 	radius: size.subarray(i, i + 50),
+// 		// })
+// 		// console.log(heatPoints.subarray(i * 2, (i + 50) * 2))
+// 		heat.appendHeatPoints(
+// 			heatPoints.subarray(i * 2, (i + 10) * 2),
+// 			new Float32Array(10).fill(i),
+// 			timestamps.subarray(i, i + 10)
+// 		)
 // 	}
 // 	i += 50
 // }, 500)
